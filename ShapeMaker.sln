@@ -5,6 +5,8 @@ VisualStudioVersion = 25.0.1706.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShapeMaker", "ShapeMaker\ShapeMaker.csproj", "{F9B68F4F-A15A-4DA4-8716-8E8805B0F1AE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShapeMakerTests", "ShapeMakerTests\ShapeMakerTests.csproj", "{0F9CE5BF-834B-4203-8480-BD46D7144D2A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{F9B68F4F-A15A-4DA4-8716-8E8805B0F1AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F9B68F4F-A15A-4DA4-8716-8E8805B0F1AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F9B68F4F-A15A-4DA4-8716-8E8805B0F1AE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0F9CE5BF-834B-4203-8480-BD46D7144D2A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0F9CE5BF-834B-4203-8480-BD46D7144D2A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0F9CE5BF-834B-4203-8480-BD46D7144D2A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0F9CE5BF-834B-4203-8480-BD46D7144D2A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
