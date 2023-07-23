@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 using ShapeMaker;
 
 namespace ShapeMakerTests;
@@ -8,7 +9,7 @@ public class ProgramTests {
 	[TestMethod]
 	public void TestPolycubes() {
         // ref: https://en.wikipedia.org/wiki/Polycube
-        var shapes1 = new HashSet<string>() { "1,1,1,1" };
+        var shapes1 = new HashSet<byte[]>() { Encoding.UTF8.GetBytes("1,1,1,1") };
         var shapes2 = Program.ShapesFromExtendingShapes(shapes1);
         Assert.AreEqual(1, shapes2.Count);
         Assert.AreEqual(1, Program.ChiralShapes(shapes2).Count);

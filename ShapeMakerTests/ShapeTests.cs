@@ -5,6 +5,21 @@ namespace ShapeMakerTests;
 [TestClass]
 public class ShapeTests {
     [TestMethod]
+    public void TestHashSetForByteArray() {
+        // do hashset of byte[] test
+        var test = new HashSet<byte[]>(ByteArrayEqualityComparer.Instance);
+        var shape0 = new byte[1] { 0 };
+        test.Add(shape0);
+        var shape1 = new byte[1] { 0 };
+        test.Add(shape1);
+        var shape2 = new byte[1] { 1 };
+        test.Add(shape2);
+        var shape3 = new byte[2] { 0, 0 };
+        test.Add(shape3);
+        Assert.AreEqual(3, test.Count);
+    }
+
+    [TestMethod]
     public void TestHashSetForShapes() {
         // do hashset of type test
         var test = new HashSet<Shape<bool>>();
