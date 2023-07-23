@@ -130,7 +130,7 @@ public class Program {
                                 newShapes.Add(s);
                                 bool showAndNext = newShapes.Count >= showOnCount && newShapes.Count != oldCount;
                                 if (showAndNext) {
-                                    var ss = "[" + showOnCount / 1_000_000 + "m " + sw.Elapsed.TotalSeconds.ToString("G0") + "s]";
+                                    var ss = "[" + showOnCount / 1_000_000 + "m " + sw.Elapsed.TotalSeconds.ToString("0") + "s]";
                                     Console.Write(ss + new string('\b', ss.Length));
                                     showOnCount += showEveryCount;
                                 }
@@ -150,7 +150,7 @@ public class Program {
                 newShapes.Add(newShapeString);
                 bool showAndNext = newShapes.Count >= showOnCount && newShapes.Count != oldCount;
                 if (showAndNext) {
-                    var ss = "[" + showOnCount / 1_000_000 + "m " + sw.Elapsed.TotalSeconds.ToString("G0") + "s]";
+                    var ss = "[" + showOnCount / 1_000_000 + "m " + sw.Elapsed.TotalSeconds.ToString("0") + "s]";
                     Console.Write(ss + new string('\b', ss.Length));
                     showOnCount += showEveryCount;
                 }
