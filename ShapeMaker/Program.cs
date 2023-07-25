@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections;
+using System.Diagnostics;
 using System.Text;
 
 namespace ShapeMaker;
@@ -6,26 +7,44 @@ namespace ShapeMaker;
 public class Program {
     /*
         Timing (in seconds) from 14-inch 2023 MacBook Pro w/ 96GB 12-core M2 Max, .NET 7 in Release mode
-        n=2, shapes: 1 time: 0.0018114, chiral shapes: 1 time: 0.0257625
-        n=3, shapes: 2 time: 0.0003327, chiral shapes: 2 time: 0.0002263
-        n=4, shapes: 8 time: 0.0003637, chiral shapes: 7 time: 0.0003806
-        n=5, shapes: 29 time: 0.0004629, chiral shapes: 23 time: 0.0253754
-        n=6, shapes: 166 time: 0.0017314, chiral shapes: 112 time: 0.0260918
-        n=7, shapes: 1,023 time: 0.0056179, chiral shapes: 607 time: 0.031555
-        n=8, shapes: 6,922 time: 0.0577995, chiral shapes: 3,811 time: 0.0685468
-        n=9, shapes: 48,311 time: 0.1662816, chiral shapes: 25,413 time: 0.3171091
-        n=10, shapes: 346,543 time: 0.9449985, chiral shapes: 178,083 time: 0.8792436
-        n=11, shapes: 2,522,522 time: 8.5114444, chiral shapes: 1,279,537 time: 7.25399
-        n=12, shapes: 18,598,427 time: 81.1195411, chiral shapes: 9,371,094 time: 72.0814029
-        n=13, shapes: 138,462,649 time: 1534.5545362, chiral shapes: 69,513,546 time: 1276.3501387
-        n=14, shapes: 1,039,496,297 time: a bit over a day
+        n=2, shapes: 1 time: 0.0019492, chiral shapes: 1 time: 0.0008132
+        n=3, shapes: 2 time: 0.0254537, chiral shapes: 2 time: 0.0007671
+        n=4, shapes: 8 time: 0.0003629, chiral shapes: 7 time: 0.0003711
+        n=5, shapes: 29 time: 0.0003806, chiral shapes: 23 time: 0.0003791
+        n=6, shapes: 166 time: 0.0010368, chiral shapes: 112 time: 0.0008895
+        n=7, shapes: 1,023 time: 0.0078469, chiral shapes: 607 time: 0.0835757
+        n=8, shapes: 6,922 time: 0.0633673, chiral shapes: 3,811 time: 0.1431671
+        n=9, shapes: 48,311 time: 0.1607531, chiral shapes: 25,413 time: 0.1234189
+        n=10, shapes: 346,543 time: 0.951717, chiral shapes: 178,083 time: 0.9171924
+        n=11, shapes: 2,522,522 time: 8.0103342, chiral shapes: 1,279,537 time: 7.425307
+        n=12, shapes: 18,598,427 time: 79.5650482, chiral shapes: 9,371,094 time: 76.7999118
+        n=13, shapes: 138,462,649 time: 1369.8905435, chiral shapes: 69,513,546 time: 1452.8374758
+        n=14, shapes: 1,039,496,297 time: 109294.9330384, chiral shapes: 520,878,101 time: 63637.5133701
      */
 
     // Potential Optimizations:
     // * early out of match rotation check (requires HashSet<Shape<bool>>)
+    // * serialize to an array of shorts with bits for z dimension (which is always the largest)
 
     // Potential Features:
     // * Make a 4-D version?
+    // * Scale this out by making one file per {n},{w},{h},{d} combination. To run, we process
+    //   all {n-1},{w},{h},{d} and write new unpadded shapes to {n},{w},{h},{d}, then we reprocess
+    //   that list for the X paddings (left,right) of that to {n},{w+1},{h},{d} and so on. Ideally,
+    //   we'd have a fast way to read/write hashsets, but also a way to easily read serially shape-
+    //   by-shape for the input side of extending shapes. It might be easiest to store these sorted,
+    //   use binary search to see if we already have that shape, if not add to a hashset, then when
+    //   done, sort the hashset and merge into the sorted list and write that out.
+
+    //   for example:
+    //   1/1-1-1.txt file: "1"
+    //   2/1-1-2.txt file: "11" (from Z padding on 1/1-1-1)
+    //   3/1-1-3.txt file: "111" (from Z padding on 2/1-1-2)
+    //   3/1-2-2.txt file: "0111" (from Y padding on 2/1-1-2)
+    //   4/1-1-4.txt file: "1111" (from Z padding on 3/1-1-3)
+    //   4/1-2-2.txt file: "1111" (from unpadded change on 3/1-2-2)
+    //   4/1-2-3.txt file: "001111","010111","011110" (from paddings on 3/1-1-3 and 3/1-2-2)
+    //   4/2-2-2.txt file: "00010111","0001110","00100111" (from X padding on 3/1-2-2)
 
     static int showOnCount = 0; // used to show progress
     const int showEveryCount = 1_000_000;
@@ -42,6 +61,7 @@ public class Program {
             if (doChiral)
                 ChiralShapes(warmupShapes, sw);
             sw.Stop();
+            warmupShapes = null; // just to be sure we release memory for this object
         }
 
         for (var n = 2; n < 15; n++) {
@@ -53,6 +73,8 @@ public class Program {
                 sw.Stop();
                 Console.Write(shapes.Count.ToString("N0") + " time: " + sw.Elapsed.TotalSeconds);
                 SaveShapes(n, shapes);
+                shapes.Clear(); // just to be sure we release memory for this large object
+                shapes = null; // just to be sure we release memory for this large object
             }
 
             if (doChiral) {
@@ -63,6 +85,8 @@ public class Program {
                 sw.Stop();
                 Console.Write(chiral.Count.ToString("N0") + " time: " + sw.Elapsed.TotalSeconds);
                 SaveChiralShapes(n, chiral);
+                chiral.Clear(); // just to be sure we release memory for this large object
+                chiral = null; // just to be sure we release memory for this large object
             }
 
             Console.WriteLine();
@@ -234,6 +258,22 @@ public class ByteArrayEqualityComparer : IEqualityComparer<byte[]> {
         int hashCode = obj.Length;
         for (int i = 0; i < obj.Length; i++)
             hashCode = hashCode * 37 + obj[i];
+        return hashCode;
+    }
+}
+
+public class BitArrayEqualityComparer : IEqualityComparer<BitArray> {
+    public static readonly BitArrayEqualityComparer Instance = new BitArrayEqualityComparer();
+
+    bool IEqualityComparer<BitArray>.Equals(BitArray? x, BitArray? y) {
+        return x is not null && y is not null && x.CompareTo(y) == 0;
+    }
+
+    int IEqualityComparer<BitArray>.GetHashCode(BitArray obj) {
+        int hashCode = obj.Length;
+        for(int i=0; i<obj.Length;i++) {
+            hashCode = hashCode * 3 + (obj[i] ? 1 : 0);
+        }
         return hashCode;
     }
 }

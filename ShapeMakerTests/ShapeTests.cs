@@ -127,8 +127,6 @@ public class ShapeTests {
 
     [TestMethod]
     public void TestInPlaceRotateXMini() {
-        // Expected:<741852963>.
-        //   Actual:<721456983>.
         var nums = "123456789";
         var shape = NewShape(1, 3, 3, nums);
         var newShape = shape.RotateX(); // should rotate in-place
@@ -140,8 +138,6 @@ public class ShapeTests {
         Assert.AreEqual(nums, SerializeShape(shape));
     }
 
-    // Expected:<upkfavqlgbwrmhcxsnidytojeUPKFAVQLGBWRMHCXSNIDYTOJE>.
-    //   Actual:<upkfavtqgbwlmhcxsrniydojeUPKFAVTQGBWLMHCXSRNIYDOJE>.
     [TestMethod]
     public void TestInPlaceRotateX() {
         // abcde    upkfa
