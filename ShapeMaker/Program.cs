@@ -7,24 +7,24 @@ namespace ShapeMaker;
 public class Program {
     /*
         Timing (in seconds) from 14-inch 2023 MacBook Pro w/ 96GB 12-core M2 Max, .NET 7 in Release mode
-        n=2, shapes: 1 time: 0.0019492, chiral shapes: 1 time: 0.0008132
-        n=3, shapes: 2 time: 0.0254537, chiral shapes: 2 time: 0.0007671
-        n=4, shapes: 8 time: 0.0003629, chiral shapes: 7 time: 0.0003711
-        n=5, shapes: 29 time: 0.0003806, chiral shapes: 23 time: 0.0003791
-        n=6, shapes: 166 time: 0.0010368, chiral shapes: 112 time: 0.0008895
-        n=7, shapes: 1,023 time: 0.0078469, chiral shapes: 607 time: 0.0835757
-        n=8, shapes: 6,922 time: 0.0633673, chiral shapes: 3,811 time: 0.1431671
-        n=9, shapes: 48,311 time: 0.1607531, chiral shapes: 25,413 time: 0.1234189
-        n=10, shapes: 346,543 time: 0.951717, chiral shapes: 178,083 time: 0.9171924
-        n=11, shapes: 2,522,522 time: 8.0103342, chiral shapes: 1,279,537 time: 7.425307
-        n=12, shapes: 18,598,427 time: 79.5650482, chiral shapes: 9,371,094 time: 76.7999118
-        n=13, shapes: 138,462,649 time: 1369.8905435, chiral shapes: 69,513,546 time: 1452.8374758
-        n=14, shapes: 1,039,496,297 time: 109294.9330384, chiral shapes: 520,878,101 time: 63637.5133701
+        n=2, shapes: 1 time: 0.0011644, chiral shapes: 1 time: 0.0005432
+        n=3, shapes: 2 time: 0.000195, chiral shapes: 2 time: 0.0003663
+        n=4, shapes: 8 time: 0.0002425, chiral shapes: 7 time: 0.0003905
+        n=5, shapes: 29 time: 0.0008399, chiral shapes: 23 time: 0.0004595
+        n=6, shapes: 166 time: 0.0024831, chiral shapes: 112 time: 0.0273049
+        n=7, shapes: 1,023 time: 0.0328246, chiral shapes: 607 time: 0.0157585
+        n=8, shapes: 6,922 time: 0.0556222, chiral shapes: 3,811 time: 0.1486691
+        n=9, shapes: 48,311 time: 0.1556955, chiral shapes: 25,413 time: 0.1916542
+        n=10, shapes: 346,543 time: 1.2470705, chiral shapes: 178,083 time: 1.2792246
+        n=11, shapes: 2,522,522 time: 10.8460798, chiral shapes: 1,279,537 time: 27.1576975
+        n=12, shapes: 18,598,427 time: 93.9832502, chiral shapes: 9,371,094 time: 83.3083316
+        n=13, shapes: 138,462,649 time: 1473.5459219, chiral shapes: 69,513,546 time: 873.6866129
+        n=14, shapes: 1,039,496,297 time: 85387.0518438, chiral shapes: 520,878,101 time: 9882.1415169
      */
 
     // Potential Optimizations:
     // * early out of match rotation check (requires HashSet<Shape<bool>>)
-    // * serialize to an array of shorts with bits for z dimension (which is always the largest)
+    // * write out shapes to file as we add them to hashset
 
     // Potential Features:
     // * Make a 4-D version?
@@ -52,7 +52,7 @@ public class Program {
     static void Main(string[] args) {
         bool doChiral = true;
 
-        var shapes1 = new HashSet<byte[]>() { Encoding.UTF8.GetBytes("1,1,1,1") };
+        var shapes1 = new HashSet<BitArray>(BitArrayEqualityComparer.Instance) { BitShape.Deserialize("1,1,1,*") };
         SaveShapes(1, shapes1);
 
         { // scoping - warm up so timing is more stable
@@ -61,6 +61,7 @@ public class Program {
             if (doChiral)
                 ChiralShapes(warmupShapes, sw);
             sw.Stop();
+            warmupShapes.Clear(); // just to be sure we release memory for this object
             warmupShapes = null; // just to be sure we release memory for this object
         }
 
@@ -93,45 +94,44 @@ public class Program {
         }
     }
 
-    private static void SaveShapes(int n, IEnumerable<byte[]> shapes) => SaveShapes("shapes-" + n + ".txt", shapes);
+    private static void SaveShapes(int n, IEnumerable<BitArray> shapes) => SaveShapes("shapes-" + n + ".txt", shapes);
 
-    private static void SaveChiralShapes(int n, IEnumerable<byte[]> shapes) => SaveShapes("chiral-shapes" + n + ".txt", shapes);
+    private static void SaveChiralShapes(int n, IEnumerable<BitArray> shapes) => SaveShapes("chiral-shapes" + n + ".txt", shapes);
 
-    private static void SaveShapes(string filename, IEnumerable<byte[]> shapes) {
-        var nl = Encoding.UTF8.GetBytes(Environment.NewLine);
+    private static void SaveShapes(string filename, IEnumerable<BitArray> shapes) {
         using (var fs = File.Create(filename))
+        using (var sw = new StreamWriter(fs, Encoding.UTF8, 65536))
             foreach (var s in shapes) {
-                fs.Write(s); fs.Write(nl);
+                sw.WriteLine(s.Serialize());
             }
     }
 
-    private static IEnumerable<byte[]> LoadShapes(int n) {
+    private static IEnumerable<BitArray> LoadShapes(int n) {
         using (var fs = File.OpenRead("shapes-" + n + ".txt"))
         using (var sr = new StreamReader(fs, Encoding.UTF8, false, 65536))
             for (; ; ) {
                 var l = sr.ReadLine();
                 if (l == null) break;
-                yield return Encoding.UTF8.GetBytes(l);
+                yield return BitShape.Deserialize(l);
             }
     }
 
     // for each shape in parallel, try to add cube to it
     // first does by adding cube to the shape in its current size
     // then tries padding each of the 6 faces of the shape and adding a cube there
-    public static HashSet<byte[]> ShapesFromExtendingShapes(IEnumerable<byte[]> shapes, Stopwatch sw) {
-        var newShapes = new HashSet<byte[]>(ByteArrayEqualityComparer.Instance);
+    public static HashSet<BitArray> ShapesFromExtendingShapes(IEnumerable<BitArray> shapes, Stopwatch sw) {
+        var newShapes = new HashSet<BitArray>(BitArrayEqualityComparer.Instance);
 
         Parallel.ForEach(shapes, (shape) => {
-            var baseShape = DeserializeShape(shape);
-            int w = baseShape.w, h = baseShape.h, d = baseShape.d;
+            var (w, h, d) = shape.Dimensions();
 
-            AddShapes(newShapes, sw, baseShape, 0, w, 0, h, 0, d); // unpadded
-            AddShapes(newShapes, sw, baseShape.PadLeft(), 0, 1, 0, h, 0, d);
-            AddShapes(newShapes, sw, baseShape.PadRight(), w, w + 1, 0, h, 0, d);
-            AddShapes(newShapes, sw, baseShape.PadTop(), 0, w, 0, 1, 0, d);
-            AddShapes(newShapes, sw, baseShape.PadBottom(), 0, w, h, h + 1, 0, d);
-            AddShapes(newShapes, sw, baseShape.PadFront(), 0, w, 0, h, 0, 1);
-            AddShapes(newShapes, sw, baseShape.PadBack(), 0, w, 0, h, d, d + 1);
+            AddShapes(newShapes, sw, shape, 0, w, 0, h, 0, d); // unpadded
+            AddShapes(newShapes, sw, shape.PadLeft(), 0, 1, 0, h, 0, d);
+            AddShapes(newShapes, sw, shape.PadRight(), w, w + 1, 0, h, 0, d);
+            AddShapes(newShapes, sw, shape.PadTop(), 0, w, 0, 1, 0, d);
+            AddShapes(newShapes, sw, shape.PadBottom(), 0, w, h, h + 1, 0, d);
+            AddShapes(newShapes, sw, shape.PadFront(), 0, w, 0, h, 0, 1);
+            AddShapes(newShapes, sw, shape.PadBack(), 0, w, 0, h, d, d + 1);
         });
 
         return newShapes;
@@ -140,15 +140,15 @@ public class Program {
     // for each blank cube from x0 to w, y0 to h, z0 to d, if it has an adjacent neighbor
     // add that cube, find the minimum rotation, and add to the newShapes hash set (under
     // lock since we could be doing this in parallel.)
-    private static void AddShapes(HashSet<byte[]> newShapes, Stopwatch sw, Shape<bool> shape, int x0, int w, int y0, int h, int z0, int d) {
+    private static void AddShapes(HashSet<BitArray> newShapes, Stopwatch sw, BitArray shape, int x0, int w, int y0, int h, int z0, int d) {
         for (var x = x0; x < w; x++)
             for (var y = y0; y < h; y++)
                 for (var z = z0; z < d; z++)
-                    if (!shape.shape[x, y, z])
+                    if (!shape.Get(x,y,z))
                         if (HasSetNeighbor(shape, x, y, z)) {
-                            var newShape = new Shape<bool>(shape);
-                            newShape.shape[x, y, z] = true;
-                            var s = SerializeShape(newShape.MinRotation());
+                            var newShape = new BitArray(shape);
+                            newShape.Set(x, y, z, true);
+                            var s = newShape.MinRotation();
                             lock (newShapes) {
                                 int oldCount = newShapes.Count;
                                 newShapes.Add(s);
@@ -164,14 +164,14 @@ public class Program {
 
     // for each shape in parallel, get its minimum chiral rotation and add to
     // newShapes hash set under lock
-    public static HashSet<byte[]> ChiralShapes(IEnumerable<byte[]> shapes, Stopwatch sw) {
-        var newShapes = new HashSet<byte[]>(ByteArrayEqualityComparer.Instance);
+    public static HashSet<BitArray> ChiralShapes(IEnumerable<BitArray> shapes, Stopwatch sw) {
+        var newShapes = new HashSet<BitArray>(BitArrayEqualityComparer.Instance);
 
-        Parallel.ForEach(shapes, (shapeString) => {
-            var newShapeString = SerializeShape(DeserializeShape(shapeString).MinChiralRotation());
+        Parallel.ForEach(shapes, (shape) => {
+            var newShape = new BitArray(shape).MinChiralRotation();
             lock (newShapes) {
                 int oldCount = newShapes.Count;
-                newShapes.Add(newShapeString);
+                newShapes.Add(newShape);
                 bool showAndNext = newShapes.Count >= showOnCount && newShapes.Count != oldCount;
                 if (showAndNext) {
                     var ss = "[" + showOnCount / 1_000_000 + "m " + sw.Elapsed.TotalSeconds.ToString("0") + "s]";
@@ -184,81 +184,15 @@ public class Program {
         return newShapes;
     }
 
-    private static bool HasSetNeighbor(Shape<bool> shape, int x, int y, int z) {
-        int w = shape.w, h = shape.h, d = shape.d;
-        var s = shape.shape;
+    private static bool HasSetNeighbor(BitArray shape, int x, int y, int z) {
+        var (w, h, d) = shape.Dimensions();
         // minor opt: we do easier comparisons first with short-circuiting
-        return (x > 0 && s[x - 1, y, z]) ||
-            (y > 0 && s[x, y - 1, z]) ||
-            (z > 0 && s[x, y, z - 1]) ||
-            (x + 1 < w && s[x + 1, y, z]) ||
-            (y + 1 < h && s[x, y + 1, z]) ||
-            (z + 1 < d && s[x, y, z + 1]);
-    }
-
-    private static Shape<bool> DeserializeShape(byte[] serializedShape) {
-        int i = 0;
-        for (int c = 0; c < 3;)
-            if (serializedShape[i++] == (byte)',')
-                c++;
-        var splitS = Encoding.UTF8.GetString(serializedShape, 0, i).Split(',');
-        if (splitS.Length != 4) throw new ArgumentException("serialized string must have 4 comma separated components");
-        int w = int.Parse(splitS[0]), h = int.Parse(splitS[1]), d = int.Parse(splitS[2]);
-        var shape = new Shape<bool>(w, h, d);
-        var shapeShape = shape.shape;
-        for (int x = 0; x < w; x++)
-            for (int y = 0; y < h; y++)
-                for (int z = 0; z < d; z++)
-                    shapeShape[x, y, z] = serializedShape[i++] == '1';
-        return shape;
-    }
-
-    private static byte[] SerializeShape(Shape<bool> shape) {
-        int w = shape.w, h = shape.h, d = shape.d;
-        var s = shape.shape;
-        var dim = Encoding.UTF8.GetBytes(w + "," + h + "," + d + ",");
-        int i = dim.Length;
-        var ba = new byte[w * h * d + i];
-        Array.Copy(dim, ba, i);
-        for (int x = 0; x < w; x++)
-            for (int y = 0; y < h; y++)
-                for (int z = 0; z < d; z++)
-                    ba[i++] = (byte)(s[x, y, z] ? '1' : '0');
-        return ba;
-    }
-}
-
-public class ShapeBoolEqualityComparer : IEqualityComparer<Shape<bool>> {
-    public static readonly ShapeBoolEqualityComparer Instance = new ShapeBoolEqualityComparer();
-
-    bool IEqualityComparer<Shape<bool>>.Equals(Shape<bool>? x, Shape<bool>? y) {
-        return x is not null && y is not null && x.CompareTo(y) == 0;
-    }
-
-    int IEqualityComparer<Shape<bool>>.GetHashCode(Shape<bool> obj) {
-        int w = obj.w, h = obj.h, d = obj.d;
-        var s = obj.shape;
-        int hashCode = w * 37 * 37 + h * 37 + d;
-        for (int x = 0; x < w; x++)
-            for (int y = 0; y < h; y++)
-                for (int z = 0; z < d; z++)
-                    hashCode = hashCode * 3 + (s[x, y, z] ? 1 : 0);
-        return hashCode;
-    }
-}
-
-public class ByteArrayEqualityComparer : IEqualityComparer<byte[]> {
-    public static readonly ByteArrayEqualityComparer Instance = new ByteArrayEqualityComparer();
-
-    bool IEqualityComparer<byte[]>.Equals(byte[]? x, byte[]? y) {
-        return x is not null && y is not null && x.SequenceEqual(y);
-    }
-
-    int IEqualityComparer<byte[]>.GetHashCode(byte[] obj) {
-        int hashCode = obj.Length;
-        for (int i = 0; i < obj.Length; i++)
-            hashCode = hashCode * 37 + obj[i];
-        return hashCode;
+        return (x > 0 && shape.Get(x - 1, y, z)) ||
+            (y > 0 && shape.Get(x, y - 1, z)) ||
+            (z > 0 && shape.Get(x, y, z - 1)) ||
+            (x + 1 < w && shape.Get(x + 1, y, z)) ||
+            (y + 1 < h && shape.Get(x, y + 1, z)) ||
+            (z + 1 < d && shape.Get(x, y, z + 1));
     }
 }
 
