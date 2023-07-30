@@ -56,7 +56,7 @@ public class Program {
     static void Main(string[] args) {
         bool doChiral = true;
 
-        byte[] shape1 = BitShape.Deserialize2("1,1,1,*");
+        byte[] shape1 = BitShape.Deserialize("1,1,1,*");
         using (var fzsw = new FileGzipStreamWriter("shapes-1.txt.gz"))
             fzsw.WriteLine(shape1.Serialize());
 
@@ -99,7 +99,7 @@ public class Program {
             for (; ; ) {
                 var l = sr.ReadLine();
                 if (l == null) break;
-                yield return BitShape.Deserialize2(l);
+                yield return BitShape.Deserialize(l);
             }
     }
 
