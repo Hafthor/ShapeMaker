@@ -5,23 +5,18 @@ namespace ShapeMakerTests;
 
 [TestClass]
 public class BitShapeTests {
-    /*
+    
     [TestMethod]
-    public void TestHashSetForBitArray() {
+    public void TestHashSetForByteArray() {
         // do hashset of BitArray test
-        var test = new HashSet<BitArray>(BitArrayEqualityComparer.Instance);
-        var shape0 = new BitArray(1);
-        test.Add(shape0);
-        var shape1 = new BitArray(1);
-        test.Add(shape1);
-        var shape2 = new BitArray(1);
-        shape2[0] = true;
-        test.Add(shape2);
-        var shape3 = new BitArray(2);
-        test.Add(shape3);
-        Assert.AreEqual(3, test.Count);
+        var test = new HashSet<byte[]>(ByteArrayEqualityComparer.Instance);
+        var ba1 = new byte[] { 0x55, 0xAA };
+        Assert.IsTrue(test.Add(ba1));
+        var ba2 = new byte[] { 0x55, 0xAA };
+        Assert.IsFalse(test.Add(ba2));
+        Assert.AreEqual(1, test.Count);
     }
-
+    
     [TestMethod]
     public void TestSerializeDeserialize() {
         var shape = Deserialize("1,1,1,*");
@@ -37,15 +32,15 @@ public class BitShapeTests {
         Assert.AreEqual(3, h);
         Assert.AreEqual(3, d);
 
-        //for (int x = 0; x < w; x++)
-        //    for (int y = 0; y < h; y++)
-        //        for (int z = 0; z < d; z++)
-        //            Assert.AreEqual(x != 1 || y != 1 || z != 1, shape.Get(x, y, z));
+        for (int x = 0; x < w; x++)
+            for (int y = 0; y < h; y++)
+                for (int z = 0; z < d; z++)
+                    Assert.AreEqual(x != 1 || y != 1 || z != 1, shape.Get(x, y, z));
 
         var s = SerializeShape(shape);
         Assert.AreEqual("3,3,3,*** *** ***\n*** *.* ***\n*** *** ***".Replace(" ", "").Replace("\n", ""), s);
     }
-
+    
     [TestMethod]
     public void TestPadLeft() {
         var shape = BitShape.NewShape(1, 1, 1);
@@ -135,7 +130,7 @@ public class BitShapeTests {
 
         Assert.AreEqual("1,1,2,*.", SerializeShape(shape));
     }
-
+    
     [TestMethod]
     public void TestInPlaceRotateXMini() {
         var shape = Deserialize("1,3,3,.** .** ...");
@@ -147,7 +142,7 @@ public class BitShapeTests {
         shape.RotateX().RotateX().RotateX();
         Assert.AreEqual("1,3,3,.** .** ...".Replace(" ", ""), SerializeShape(shape));
     }
-
+    
     [TestMethod]
     public void TestRotateX() {
         // abcd    iea
@@ -163,7 +158,7 @@ public class BitShapeTests {
         Assert.AreEqual(2, w);
         Assert.AreEqual(4, h);
         Assert.AreEqual(3, d);
-        //Assert.IsTrue(shape.Get(0, 0, 2)); why didn't this work?
+        // Assert.IsTrue(shape.Get(0, 0, 2)); //why didn't this work?
         Assert.IsTrue(shape.Get(1, 1, 1));
 
         newShape = newShape.RotateX().RotateX().RotateX();
@@ -285,6 +280,7 @@ public class BitShapeTests {
         Assert.AreEqual("2,5,5," + bits, shape.MirrorY().Serialize());
     }
 
+    /*
     [TestMethod]
     public void TestInPlaceRotateZ() {
         var alpha = "aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyY";
@@ -342,8 +338,9 @@ public class BitShapeTests {
 
         Assert.AreEqual(alpha, SerializeShape(shape.MirrorZ()));
     }
-    
-    private BitArray Deserialize(string s) {
+    */
+
+    private byte[] Deserialize(string s) {
         var ss = s.Split(',');
         if (ss.Length != 4) throw new ArgumentException("expected a four part string");
         int w = int.Parse(ss[0]), h = int.Parse(ss[1]), d = int.Parse(ss[2]);
@@ -351,21 +348,29 @@ public class BitShapeTests {
         if (chars.Length != w * h * d) throw new ArgumentException("expected string of len w*h*d");
         var shape = BitShape.NewShape(w, h, d);
         int l = w * h * d;
-        for (int i = 0; i < l; i++)
-            shape[i + 8] = chars[i] == '*';
+        byte mask = 1 << 4;
+        int di = 1;
+        for (int i = 0; i < l; i++) {
+            if (chars[i] == '*')
+                shape[di] |= mask;
+            if (mask == 1) { mask = 1 << 7; di++; } else mask >>= 1;
+        }
         return shape;
     }
 
-    private string SerializeShape(BitArray shape) {
+    private string SerializeShape(byte[] shape) {
         var (w, h, d) = shape.Dimensions();
         int l = w * h * d;
         var ca = new char[l];
-        int ci = 0, bi = 8;
+        int ci = 0, si = 1;
+        byte mask = 1 << 4;
         for (int x = 0; x < w; x++)
             for (int y = 0; y < h; y++)
-                for (int z = 0; z < d; z++)
-                    ca[ci++] = shape[bi++] ? '*' : '.';
+                for (int z = 0; z < d; z++) {
+                    ca[ci++] = (shape[si] & mask) != 0 ? '*' : '.';
+                    if (mask == 1) { mask = 1 << 7; si++; } else mask >>= 1;
+                }
         if (ci != ca.Length) throw new InvalidProgramException("miscalculated string length");
         return w + "," + h + "," + d + "," + new string(ca);
-    }*/
+    }
 }
