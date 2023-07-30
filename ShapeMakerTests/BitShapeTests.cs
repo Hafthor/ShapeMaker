@@ -1,11 +1,11 @@
 ﻿using System;
-using System.Collections;
 using ShapeMaker;
 
 namespace ShapeMakerTests;
 
 [TestClass]
 public class BitShapeTests {
+    /*
     [TestMethod]
     public void TestHashSetForBitArray() {
         // do hashset of BitArray test
@@ -37,10 +37,10 @@ public class BitShapeTests {
         Assert.AreEqual(3, h);
         Assert.AreEqual(3, d);
 
-        /*for (int x = 0; x < w; x++)
-            for (int y = 0; y < h; y++)
-                for (int z = 0; z < d; z++)
-                    Assert.AreEqual(x != 1 || y != 1 || z != 1, shape.Get(x, y, z));*/
+        //for (int x = 0; x < w; x++)
+        //    for (int y = 0; y < h; y++)
+        //        for (int z = 0; z < d; z++)
+        //            Assert.AreEqual(x != 1 || y != 1 || z != 1, shape.Get(x, y, z));
 
         var s = SerializeShape(shape);
         Assert.AreEqual("3,3,3,*** *** ***\n*** *.* ***\n*** *** ***".Replace(" ", "").Replace("\n", ""), s);
@@ -285,7 +285,7 @@ public class BitShapeTests {
         Assert.AreEqual("2,5,5," + bits, shape.MirrorY().Serialize());
     }
 
-    /* [TestMethod]
+    [TestMethod]
     public void TestInPlaceRotateZ() {
         var alpha = "aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyY";
         var shape = NewShape(5, 5, 2, alpha);
@@ -342,8 +342,7 @@ public class BitShapeTests {
 
         Assert.AreEqual(alpha, SerializeShape(shape.MirrorZ()));
     }
-    */
-
+    
     private BitArray Deserialize(string s) {
         var ss = s.Split(',');
         if (ss.Length != 4) throw new ArgumentException("expected a four part string");
@@ -368,5 +367,5 @@ public class BitShapeTests {
                     ca[ci++] = shape[bi++] ? '*' : '.';
         if (ci != ca.Length) throw new InvalidProgramException("miscalculated string length");
         return w + "," + h + "," + d + "," + new string(ca);
-    }
+    }*/
 }

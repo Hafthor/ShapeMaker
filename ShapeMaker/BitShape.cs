@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 
 namespace ShapeMaker;
 
@@ -7,101 +6,126 @@ namespace ShapeMaker;
 /// A series of extension methods to BitArray to support 3-D shape opertaions
 /// </summary>
 public static class BitShape {
-    public static BitArray NewShape(int w, int h, int d) {
-        int sz = w * h * d;
-        var ba = new BitArray(sz + 8); // 4-bits for w, 4-bits for h, d determined by size
-        if (w > 15 || h > 15) throw new ArgumentException("values for w and h > 15 not supported");
-        ba[0] = (w & 8) != 0;
-        ba[1] = (w & 4) != 0;
-        ba[2] = (w & 2) != 0;
-        ba[3] = (w & 1) != 0;
-        ba[4] = (h & 8) != 0;
-        ba[5] = (h & 4) != 0;
-        ba[6] = (h & 2) != 0;
-        ba[7] = (h & 1) != 0;
-        return ba;
+    public static byte[] NewShape2(int w, int h, int d) {
+        int sz = w * h * d + 11; // 11 reserved bits
+        var bytes = new byte[(sz + 7) / 8];
+        int r = sz % 8; // remainder bits in last byte
+        // we store w, h and remainder in first 11 bits - done to minimize memory used
+        bytes[0] = (byte)((w << 4) + h);
+        bytes[1] = (byte)(r << 5);
+        return bytes;
     }
 
-    public static BitArray Deserialize(string s) {
+    public static byte[] Copy(this byte[] bytes) {
+        var copy = new byte[bytes.Length];
+        Array.Copy(bytes, copy, bytes.Length);
+        return copy;
+    }
+
+    public static byte[] Deserialize2(string s) {
         var ss = s.Split(',');
         if (ss.Length != 4) throw new ArgumentException("expected a four part string");
         int w = int.Parse(ss[0]), h = int.Parse(ss[1]), d = int.Parse(ss[2]);
         var chars = ss[3].Replace(" ", "").Replace("\n", "");
         if (chars.Length != w * h * d) throw new ArgumentException("expected string of len w*h*d");
-        var shape = BitShape.NewShape(w, h, d);
+        var shape = BitShape.NewShape2(w, h, d);
         int l = w * h * d;
-        for (int i = 0; i < l; i++)
-            shape[i + 8] = chars[i] == '*';
+        int di = 1;
+        byte mask = 1 << 4;
+        for (int i = 0; i < l; i++) {
+            if (chars[i] == '*') shape[di] |= mask;
+            if (mask == 1) { mask = 128; di++; } else mask >>= 1;
+        }
         return shape;
     }
 
-    public static string Serialize(this BitArray shape) {
+    public static string Serialize(this byte[] shape) {
         var (w, h, d) = shape.Dimensions();
         int l = w * h * d;
         var ca = new char[l];
-        int ci = 0, bi = 8;
+        int ci = 0, bi = 1;
+        byte mask = 1 << 4;
         for (int x = 0; x < w; x++)
             for (int y = 0; y < h; y++)
-                for (int z = 0; z < d; z++)
-                    ca[ci++] = shape[bi++] ? '*' : '.';
+                for (int z = 0; z < d; z++) {
+                    ca[ci++] = (shape[bi] & mask) != 0 ? '*' : '.';
+                    if (mask == 1) { mask = 128; bi++; } else mask >>= 1;
+                }
         if (ci != ca.Length) throw new InvalidProgramException("miscalculated string length");
         return w + "," + h + "," + d + "," + new string(ca);
     }
 
-    public static (int w, int h, int d) Dimensions(this BitArray ba) {
-        int sz = ba.Length - 8;
-        int w = (ba[0] ? 8 : 0) + (ba[1] ? 4 : 0) + (ba[2] ? 2 : 0) + (ba[3] ? 1 : 0);
-        int h = (ba[4] ? 8 : 0) + (ba[5] ? 4 : 0) + (ba[6] ? 2 : 0) + (ba[7] ? 1 : 0);
-        int d = sz / w / h;
+    public static (int w, int h, int d) Dimensions(this byte[] shape) {
+        byte wh = shape[0];
+        int r = shape[1] >> 5;
+        int l = shape.Length*8-11;
+        if (r > 0) l = l - 8 + r;
+        int w = wh >> 4, h = wh & 0xF, d = l / w / h;
         return (w, h, d);
     }
 
-    private static int Index(int x, int y, int z, int h, int d) => 8 + z + (y + x * h) * d;
+    private static int Index2(int x, int y, int z, int h, int d) => 11 + z + (y + x * h) * d;
 
-    public static int Index(this BitArray ba, int x, int y, int z) {
-        var (_, h, d) = ba.Dimensions();
-        return Index(x, y, z, h, d);
+    public static int Index(this byte[] bytes, int x, int y, int z) {
+        var (_, h, d) = bytes.Dimensions();
+        return Index2(x, y, z, h, d);
     }
 
-    public static bool Get(this BitArray ba, int x, int y, int z) => ba[ba.Index(x, y, z)];
-
-    private static bool Get(this BitArray ba, int x, int y, int z, int h, int d) => ba[Index(x, y, z, h, d)];
-
-    public static bool Set(this BitArray ba, int x, int y, int z, bool v) => ba[ba.Index(x, y, z)] = v;
-
-    private static bool Set(this BitArray ba, int x, int y, int z, int h, int d, bool v) => ba[Index(x, y, z, h, d)] = v;
-
-    public static BitArray PadLeft(this BitArray ba) {
-        var (w, h, d) = ba.Dimensions();
-        return ba.Copy(NewShape(w + 1, h, d), 1, w, 0, h, 0, d);
+    public static bool Get(this byte[] bytes, int x, int y, int z) {
+        var bi = bytes.Index(x, y, z);
+        byte mask = (byte)(1 << (7 - (bi % 8)));
+        return (bytes[bi / 8] & mask) != 0;
     }
 
-    public static BitArray PadRight(this BitArray ba) {
-        var (w, h, d) = ba.Dimensions();
-        return ba.Copy(NewShape(w + 1, h, d), 0, w, 0, h, 0, d);
+    private static bool Get(this byte[] bytes, int x, int y, int z, int h, int d) {
+        var bi = Index2(x, y, z, h, d);
+        byte mask = (byte)(1 << (7 - (bi % 8)));
+        return (bytes[bi / 8] & mask) != 0;
     }
 
-    public static BitArray PadTop(this BitArray ba) {
-        var (w, h, d) = ba.Dimensions();
-        return ba.Copy(NewShape(w, h + 1, d), 0, w, 1, h, 0, d);
+    public static void Set(this byte[] bytes, int x, int y, int z, bool v) {
+        var bi = bytes.Index(x, y, z);
+        byte mask = (byte)(1 << (7 - (bi % 8)));
+        if (v) bytes[bi / 8] |= mask; else bytes[bi / 8] &= (byte)~mask;
     }
 
-    public static BitArray PadBottom(this BitArray ba) {
-        var (w, h, d) = ba.Dimensions();
-        return ba.Copy(NewShape(w, h + 1, d), 0, w, 0, h, 0, d);
+    private static void Set(this byte[] bytes, int x, int y, int z, int h, int d, bool v) {
+        var bi = Index2(x, y, z, h, d);
+        byte mask = (byte)(1 << (7 - (bi % 8)));
+        if (v) bytes[bi / 8] |= mask; else bytes[bi / 8] &= (byte)~mask;
     }
 
-    public static BitArray PadFront(this BitArray ba) {
-        var (w, h, d) = ba.Dimensions();
-        return ba.Copy(NewShape(w, h, d + 1), 0, w, 0, h, 1, d);
+    public static byte[] PadLeft(this byte[] bytes) {
+        var (w, h, d) = bytes.Dimensions();
+        return bytes.Copy(NewShape2(w + 1, h, d), 1, w, 0, h, 0, d);
     }
 
-    public static BitArray PadBack(this BitArray ba) {
-        var (w, h, d) = ba.Dimensions();
-        return ba.Copy(NewShape(w, h, d + 1), 0, w, 0, h, 0, d);
+    public static byte[] PadRight(this byte[] bytes) {
+        var (w, h, d) = bytes.Dimensions();
+        return bytes.Copy(NewShape2(w + 1, h, d), 0, w, 0, h, 0, d);
     }
 
-    public static BitArray Copy(this BitArray src, BitArray dest, int xa, int w, int ya, int h, int za, int d) {
+    public static byte[] PadTop(this byte[] bytes) {
+        var (w, h, d) = bytes.Dimensions();
+        return bytes.Copy(NewShape2(w, h + 1, d), 0, w, 1, h, 0, d);
+    }
+
+    public static byte[] PadBottom(this byte[] bytes) {
+        var (w, h, d) = bytes.Dimensions();
+        return bytes.Copy(NewShape2(w, h + 1, d), 0, w, 0, h, 0, d);
+    }
+
+    public static byte[] PadFront(this byte[] bytes) {
+        var (w, h, d) = bytes.Dimensions();
+        return bytes.Copy(NewShape2(w, h, d + 1), 0, w, 0, h, 1, d);
+    }
+
+    public static byte[] PadBack(this byte[] bytes) {
+        var (w, h, d) = bytes.Dimensions();
+        return bytes.Copy(NewShape2(w, h, d + 1), 0, w, 0, h, 0, d);
+    }
+
+    public static byte[] Copy(this byte[] src, byte[] dest, int xa, int w, int ya, int h, int za, int d) {
         var (_, dh, dd) = dest.Dimensions();
         var (_, sh, sd) = src.Dimensions();
         for (int x = 0, xd = xa; x < w; x++, xd++)
@@ -112,7 +136,7 @@ public static class BitShape {
     }
 
     // returns shape rotated clockwise on X axis by 90º (swaps h,d)
-    public static BitArray RotateX(this BitArray ba) {
+    public static byte[] RotateX(this byte[] ba) {
         var (w, h, d) = ba.Dimensions();
         if (d == h) { // rotate in-place
             int h2 = h / 2;
@@ -128,7 +152,7 @@ public static class BitShape {
             return ba;
         }
 
-        var newShape = NewShape(w, d, h);
+        var newShape = NewShape2(w, d, h);
         for (int x = 0; x < w; x++)
             for (int y = 0, yn = h - 1; y < h; y++, yn--)
                 for (int z = 0; z < d; z++)
@@ -138,7 +162,7 @@ public static class BitShape {
     }
 
     // rotates in-place on X axis by 180º
-    public static BitArray RotateX2(this BitArray ba) {
+    public static byte[] RotateX2(this byte[] ba) {
         var (w, h, d) = ba.Dimensions();
         int h2 = h / 2;
         for (int x = 0; x < w; x++) {
@@ -159,7 +183,7 @@ public static class BitShape {
     }
 
     // mirrors in-place
-    public static BitArray MirrorX(this BitArray ba) {
+    public static byte[] MirrorX(this byte[] ba) {
         var (w, h, d) = ba.Dimensions();
         int w2 = w / 2;
         for (int x = 0, xn = w - 1; x < w2; x++, xn--)
@@ -173,7 +197,7 @@ public static class BitShape {
     }
 
     // returns shape rotated clockwise on Y axis by 90º (swaps w,d)
-    public static BitArray RotateY(this BitArray ba) {
+    public static byte[] RotateY(this byte[] ba) {
         var (w, h, d) = ba.Dimensions();
         if (w == d) { // rotate in-place
             int d2 = d / 2;
@@ -189,7 +213,7 @@ public static class BitShape {
             return ba;
         }
 
-        var newShape = NewShape(d, h, w);
+        var newShape = NewShape2(d, h, w);
         for (int x = 0, xn = w - 1; x < w; x++, xn--)
             for (int y = 0; y < h; y++)
                 for (int z = 0; z < d; z++)
@@ -199,7 +223,7 @@ public static class BitShape {
     }
 
     // rotates in-place on Y axis by 180º
-    public static BitArray RotateY2(this BitArray ba) {
+    public static byte[] RotateY2(this byte[] ba) {
         var (w, h, d) = ba.Dimensions();
         int w2 = w / 2;
         for (int y = 0; y < h; y++) {
@@ -220,7 +244,7 @@ public static class BitShape {
     }
 
     // mirrors in-place
-    public static BitArray MirrorY(this BitArray ba) {
+    public static byte[] MirrorY(this byte[] ba) {
         var (w, h, d) = ba.Dimensions();
         int h2 = h / 2;
         for (int x = 0; x < w; x++)
@@ -234,7 +258,7 @@ public static class BitShape {
     }
 
     // returns shape rotated clockwise on Z axis by 90º (swaps w,h)
-    public static BitArray RotateZ(this BitArray ba) {
+    public static byte[] RotateZ(this byte[] ba) {
         var (w, h, d) = ba.Dimensions();
         if (w == h) { // rotate in-place
             int h2 = h / 2;
@@ -250,7 +274,7 @@ public static class BitShape {
             return ba;
         }
 
-        var newShape = NewShape(h, w, d);
+        var newShape = NewShape2(h, w, d);
         for (int x = 0, xn = w - 1; x < w; x++, xn--)
             for (int y = 0; y < h; y++)
                 for (int z = 0; z < d; z++)
@@ -260,7 +284,7 @@ public static class BitShape {
     }
 
     // rotates in-place on Z axis by 180º
-    public static BitArray RotateZ2(this BitArray ba) {
+    public static byte[] RotateZ2(this byte[] ba) {
         var (w, h, d) = ba.Dimensions();
         int w2 = w / 2;
         for (int z = 0; z < d; z++) {
@@ -281,7 +305,7 @@ public static class BitShape {
     }
 
     // mirrors in-place
-    public static BitArray MirrorZ(this BitArray ba) {
+    public static byte[] MirrorZ(this byte[] ba) {
         var (w, h, d) = ba.Dimensions();
         int d2 = d / 2;
         for (int x = 0; x < w; x++)
@@ -295,7 +319,7 @@ public static class BitShape {
     }
 
     // returns the shape rotated such that the dimensions are narrowest in the X and broadest in the Z
-    public static BitArray MinDimension(this BitArray ba) {
+    public static byte[] MinDimension(this byte[] ba) {
         var (w, h, d) = ba.Dimensions();
         if (w <= h && h <= d)
             return ba;
@@ -324,19 +348,19 @@ public static class BitShape {
     }
 
     // generates all 24 possible rotations of this shape
-    private static IEnumerable<BitArray> AllRotations(this BitArray ba) {
-        var shape = new BitArray(ba);
+    private static IEnumerable<byte[]> AllRotations(this byte[] ba) {
+        var shape = ba.Copy();
         foreach (var s in ba.AllRotationsOfX()) yield return s;
 
         shape = shape.RotateY();
         foreach (var s in shape.AllRotationsOfX()) yield return s;
 
-        foreach (var s in new BitArray(ba).RotateY2().AllRotationsOfX()) yield return s;
+        foreach (var s in ba.Copy().RotateY2().AllRotationsOfX()) yield return s;
 
         shape = shape.RotateY2();
         foreach (var s in shape.AllRotationsOfX()) yield return s;
 
-        shape = new BitArray(ba).RotateZ();
+        shape = ba.Copy().RotateZ();
         foreach (var s in shape.AllRotationsOfX()) yield return s;
 
         shape = shape.RotateZ2();
@@ -344,7 +368,7 @@ public static class BitShape {
     }
 
     // generates all 4 possible rotations on X axis of this shape
-    private static IEnumerable<BitArray> AllRotationsOfX(this BitArray ba) {
+    private static IEnumerable<byte[]> AllRotationsOfX(this byte[] ba) {
         var (_, h, d) = ba.Dimensions();
         if (h == d) // rotates in-place but restores it
             for (int i = 0; i < 4; i++)
@@ -353,13 +377,13 @@ public static class BitShape {
             yield return ba;
             var shape90 = ba.RotateX();
             yield return shape90;
-            yield return new BitArray(ba).RotateX2();
+            yield return ba.Copy().RotateX2();
             yield return shape90.RotateX2();
         }
     }
 
     // returns the shape rotated such that it is the mimimum serialization of the shape
-    public static BitArray MinRotation(this BitArray ba) {
+    public static byte[] MinRotation(this byte[] ba) {
         // a rubiks cube, for example, is a 3x3x3 shape
         // it can be resting on any of its six colors
         // and could have any of four sides facing you. 6*4=24
@@ -367,16 +391,16 @@ public static class BitShape {
         // we will need to apply rotations to get all 24 combinations
         // and see which one compares to be the lowest
 
-        BitArray best = null;
+        byte[] best = null;
         foreach (var s in ba.AllRotations())
             if (best == null || best.CompareTo(s) > 0)
-                best = new BitArray(s); // must clone it to prevent it from being mutated in-place
+                best = s.Copy(); // must clone it to prevent it from being mutated in-place
         return best;
     }
 
     // generates all 8 possible 180º rotations of shape
     // note these are generated in-place on this shape
-    public static IEnumerable<BitArray> All180DegreeRotations(this BitArray ba) {
+    public static IEnumerable<byte[]> All180DegreeRotations(this byte[] ba) {
         yield return ba;
         yield return ba.RotateX2();
         yield return ba.RotateY2();
@@ -390,7 +414,7 @@ public static class BitShape {
 
     // generate all 8 possible mirrorings of shape
     // note these are generated in-place on this shape
-    public static IEnumerable<BitArray> AllMirrors(this BitArray ba) {
+    public static IEnumerable<byte[]> AllMirrors(this byte[] ba) {
         yield return ba;
         yield return ba.MirrorX();
         yield return ba.MirrorY();
@@ -406,24 +430,39 @@ public static class BitShape {
     // note that we do this by rotations first, since mirrors
     // mutate object in-place and should be more cache friendly
     // to do on the inside loop.
-    public static BitArray MinChiralRotation(this BitArray ba) {
-        BitArray best = null;
+    public static byte[] MinChiralRotation(this byte[] ba) {
+        byte[] best = null;
         foreach (var s in ba.AllRotations())
             foreach (var ss in s.AllMirrors())
                 if (best == null || best.CompareTo(ss) > 0)
-                    best = new BitArray(ss); // must clone it to prevent it from being mutated in-place
+                    best = ss.Copy(); // must clone it to prevent it from being mutated in-place
         return best;
     }
 
     // returns <0 if this is lower than other, 0 if equal, >0 if other is lower
     public static int CompareTo(this BitArray ba, BitArray other) {
-        int dl = ba.Length - other.Length;
-        if (dl != 0) return dl;
+        var (w, h, d) = ba.Dimensions();
+        var (ow, oh, od) = other.Dimensions();
+        int dw = w - ow; if (dw != 0) return dw;
+        int dh = h - oh; if (dh != 0) return dh;
+        int dd = d - od; if (dd != 0) return dd;
 
-        for (int i = 0; i < ba.Length; i++)
+        for (int i = 8; i < ba.Length; i++)
             if (ba[i] != other[i])
                 return ba[i] ? 1 : -1;
 
+        return 0;
+    }
+
+    public static int CompareTo(this byte[] bytes, byte[] other) {
+        var (w, h, d) = bytes.Dimensions();
+        var (ow, oh, od) = other.Dimensions();
+        int dw = w - ow; if (dw != 0) return dw;
+        int dh = h - oh; if (dh != 0) return dh;
+        int dd = d - od; if (dd != 0) return dd;
+        for (int i = 1; i < bytes.Length; i++)
+            if (bytes[i] != other[i])
+                return bytes[i] - other[i];
         return 0;
     }
 }
