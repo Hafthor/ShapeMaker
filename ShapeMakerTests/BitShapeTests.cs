@@ -142,7 +142,7 @@ public class BitShapeTests {
         shape.RotateX().RotateX().RotateX();
         Assert.AreEqual("1,3,3,.** .** ...".Replace(" ", ""), SerializeShape(shape));
     }
-    
+
     [TestMethod]
     public void TestRotateX() {
         // abcd    iea

@@ -25,8 +25,6 @@ public class Program {
 
     // Potential Optimizations:
     // * Avoid rotations - should only need to test all rotations when w==h==d.
-    // * Refactor BitShape to be extension methods of a byte array. First byte to hold length,
-    //   second byte to hold w,h, remaining bytes to hold bits.
 
     // Potential Features:
     // * Make a 4-D version?
@@ -136,10 +134,10 @@ public class Program {
                             var newShape = shape.Copy();
                             newShape.Set(x, y, z, true);
                             var s = newShape.MinRotation();
+                            bool writeShape = false;
                             lock (newShapes) {
                                 int oldCount = newShapes.Count;
-                                if (newShapes.Add(s))
-                                    fgsw.WriteLine(s.Serialize());
+                                writeShape = newShapes.Add(s);
                                 bool showAndNext = newShapes.Count >= showOnCount && newShapes.Count != oldCount;
                                 if (showAndNext) {
                                     var ss = "[" + showOnCount / 1_000_000 + "m " + sw.Elapsed.TotalSeconds.ToString("0") + "s]";
@@ -147,6 +145,9 @@ public class Program {
                                     showOnCount += showEveryCount;
                                 }
                             }
+                            if (writeShape)
+                                lock (fgsw) 
+                                    fgsw.WriteLine(s.Serialize());
                         }
     }
 
@@ -157,10 +158,10 @@ public class Program {
 
         Parallel.ForEach(shapes, (shape) => {
             var newShape = shape.Copy().MinChiralRotation();
+            bool writeShape = false;
             lock (newShapes) {
                 int oldCount = newShapes.Count;
-                if (newShapes.Add(newShape))
-                    fgsw.WriteLine(newShape.Serialize());
+                writeShape = newShapes.Add(newShape);
                 bool showAndNext = newShapes.Count >= showOnCount && newShapes.Count != oldCount;
                 if (showAndNext) {
                     var ss = "[" + showOnCount / 1_000_000 + "m " + sw.Elapsed.TotalSeconds.ToString("0") + "s]";
@@ -168,6 +169,9 @@ public class Program {
                     showOnCount += showEveryCount;
                 }
             }
+            if (writeShape)
+                lock (fgsw)
+                    fgsw.WriteLine(newShape.Serialize());
         });
 
         return newShapes;
