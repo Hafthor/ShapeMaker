@@ -4,10 +4,10 @@
 /// A series of extension methods to byte[] to support 3-D shape opertaions
 /// </summary>
 public class BitShape {
-    public readonly int w, h, d;
+    public readonly byte w, h, d;
     public readonly byte[] bytes;
 
-    public BitShape(int w, int h, int d) {
+    public BitShape(byte w, byte h, byte d) {
         this.w = w;
         this.h = h;
         this.d = d;
@@ -15,7 +15,7 @@ public class BitShape {
         bytes = new byte[(sz + 7) / 8];
     }
 
-    public BitShape(int w, int h, int d, byte[] bytes) {
+    public BitShape(byte w, byte h, byte d, byte[] bytes) {
         this.w = w;
         this.h = h;
         this.d = d;
@@ -33,9 +33,9 @@ public class BitShape {
     public BitShape(string s) {
         var ss = s.Split(',');
         if (ss.Length != 4) throw new ArgumentException("expected a four part string");
-        this.w = int.Parse(ss[0]);
-        this.h = int.Parse(ss[1]);
-        this.d = int.Parse(ss[2]);
+        this.w = byte.Parse(ss[0]);
+        this.h = byte.Parse(ss[1]);
+        this.d = byte.Parse(ss[2]);
         var chars = ss[3].Replace(" ", "").Replace("\n", "");
         if (chars.Length != w * h * d) throw new ArgumentException("expected string of len w*h*d");
         int sz = w * h * d;
@@ -78,27 +78,27 @@ public class BitShape {
     }
 
     public BitShape PadLeft() {
-        return Copy(new BitShape(w + 1, h, d), 1, w, 0, h, 0, d);
+        return Copy(new BitShape((byte)(w + 1), h, d), 1, w, 0, h, 0, d);
     }
 
     public BitShape PadRight() {
-        return Copy(new BitShape(w + 1, h, d), 0, w, 0, h, 0, d);
+        return Copy(new BitShape((byte)(w + 1), h, d), 0, w, 0, h, 0, d);
     }
 
     public BitShape PadTop() {
-        return Copy(new BitShape(w, h + 1, d), 0, w, 1, h, 0, d);
+        return Copy(new BitShape(w, (byte)(h + 1), d), 0, w, 1, h, 0, d);
     }
 
     public BitShape PadBottom() {
-        return Copy(new BitShape(w, h + 1, d), 0, w, 0, h, 0, d);
+        return Copy(new BitShape(w, (byte)(h + 1), d), 0, w, 0, h, 0, d);
     }
 
     public BitShape PadFront() {
-        return Copy(new BitShape(w, h, d + 1), 0, w, 0, h, 1, d);
+        return Copy(new BitShape(w, h, (byte)(d + 1)), 0, w, 0, h, 1, d);
     }
 
     public BitShape PadBack() {
-        return Copy(new BitShape(w, h, d + 1), 0, w, 0, h, 0, d);
+        return Copy(new BitShape(w, h, (byte)(d + 1)), 0, w, 0, h, 0, d);
     }
 
     public BitShape Copy(BitShape dest, int xa, int w, int ya, int h, int za, int d) {

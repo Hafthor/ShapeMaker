@@ -8,22 +8,31 @@ public class Program {
     public const string FILE_COMPLETE = "_COMPLETE";
 
     /*
-        Timing (in seconds) from 14-inch 2023 MacBook Pro w/ 96GB 12-core M2 Max, .NET 7 in Release mode
-        n=2, shapes: 1 time: 0.0661961, chiral shapes: n=2, shapes: 1 time: 0.0016484
-        n=3, shapes: 2 time: 0.000109, chiral shapes: n=3, shapes: 2 time: 0.000765
-        n=4, shapes: 8 time: 0.0001455, chiral shapes: n=4, shapes: 7 time: 0.0257676
-        n=5, shapes: 29 time: 0.0260315, chiral shapes: n=5, shapes: 23 time: 0.0004452
-        n=6, shapes: 166 time: 0.0263653, chiral shapes: n=6, shapes: 112 time: 0.0277249
-        n=7, shapes: 1,023 time: 0.0581247, chiral shapes: n=7, shapes: 607 time: 0.0400251
-        n=8, shapes: 6,922 time: 0.0565975, chiral shapes: n=8, shapes: 3,811 time: 0.1070216
-        n=9, shapes: 48,311 time: 0.3342176, chiral shapes: n=9, shapes: 25,413 time: 0.4630857
-        n=10, shapes: 346,543 time: 1.3597535, chiral shapes: n=10, shapes: 178,083 time: 1.9888612
-        n=11, shapes: 2,522,522 time: 30.0762011, chiral shapes: n=11, shapes: 1,279,537 time: 16.0214537
-        n=12, shapes: 18,598,427 time: 103.3524449, chiral shapes: n=12, shapes: 9,371,094 time: 132.8544995
-        n=13, shapes: 138,462,649 time: 1146.536404, chiral shapes: n=13, shapes: 69,513,546 time: 1455.701472
-        n=14, shapes: 1,039,496,297 time: 17422.1545339, chiral shapes: n=14, shapes: 520,878,101 time: 13816.830999
-        Peak memory usage: 72.04GB
+        Results and timing (in seconds) from 14" 2023 MacBook Pro w/ 96GB 12-core M2 Max, .NET 7 in Release mode
+        n=2, shapes: 1 time: 0.0669563, chiral shapes: 1 time: 0.0008728
+        n=3, shapes: 2 time: 0.002236, chiral shapes: 2 time: 0.025654
+        n=4, shapes: 8 time: 0.0779982, chiral shapes: 7 time: 0.0815542
+        n=5, shapes: 29 time: 0.0410423, chiral shapes: 23 time: 0.0287943
+        n=6, shapes: 166 time: 0.0917942, chiral shapes: 112 time: 0.032371
+        n=7, shapes: 1,023 time: 0.1034941, chiral shapes: 607 time: 0.0179211
+        n=8, shapes: 6,922 time: 0.1850789, chiral shapes: 3,811 time: 0.3223144
+        n=9, shapes: 48,311 time: 0.3982609, chiral shapes: 25,413 time: 0.40237
+        n=10, shapes: 346,543 time: 2.1523452, chiral shapes: 178,083 time: 1.0884017
+        n=11, shapes: 2,522,522 time: 13.9907285, chiral shapes: 1,279,537 time: 7.7011648
+        n=12, shapes: 18,598,427 time: 115.7188455, chiral shapes: 9,371,094 time: 63.3039254
+        n=13, shapes: 138,462,649 time: 1022.8139417, chiral shapes: 69,513,546 time: 560.3390394
+        n=14, shapes: 1,039,496,297 time: 9123.6015745, chiral shapes: 520,878,101 time: was 13816.830999
+        Peak memory usage: ~10GB
      */
+
+    // Potential Optimizations:
+    // * Avoid hash reloading by rereading previous results instead. We could start by figuring out what target
+    //   files we plan to make, then for each output, check to see if an input can add to that output and if so
+    //   let it do so. Hash reloading is a comparitively small amount of the time taken, but it would mean that
+    //   we could potentially calculate for one n greater than we have disk space for since we could skip storing
+    //   on that final n and still end up with an accurate count... we wouldn't be able to compute chiral count.
+    // * Compute chiral count inline - especially easy if we do the above optimization. While hash still in
+    //   memory, we just count the number of shapes that are already at their minimal chiral rotation.
 
     // Potential Features:
     // * Make a 4-D version?
@@ -36,15 +45,16 @@ public class Program {
         FileWriter.Clear(1);
         using (var fw = new FileWriter(1, 1, 1, 1))
             fw.Write(shape1.bytes);
+        MarkComplete(1, "n=1, shapes: 1 time: 0, chiral shapes: 1 time: 0");
 
-        for (var n = 2; n < 20; n++) {
+        for (byte n = 2; n < 20; n++) {
             string s = CompleteString(n);
             if (recompute || s == null) {
                 FileWriter.Clear(n);
                 s = "n=" + n + ", shapes: ";
                 Console.Write(s);
                 Stopwatch sw = Stopwatch.StartNew();
-                var list = new FileScanner(n - 1).List;
+                var list = new FileScanner((byte)(n - 1)).List;
                 long shapeCount = ShapesFromExtendingShapes(list, sw);
                 sw.Stop();
                 string ss = shapeCount.ToString("N0") + " time: " + sw.Elapsed.TotalSeconds;
@@ -127,7 +137,7 @@ public class Program {
     }
 
     public static long ShapesFromExtendingShapes(FileScanner.Results file) {
-        int n = file.n, w = file.w, h = file.h, d = file.d;
+        byte n = file.n, w = file.w, h = file.h, d = file.d;
         long shapeCount = 0;
 
         Console.Write("|");
@@ -146,8 +156,9 @@ public class Program {
         Console.Write("\b");
         using (var fw = new FileWriter(n + 1, ww, hh, dd)) {
             Parallel.ForEach(LoadShapes(n, w, h, d), (shapeBytes) => {
-                Interlocked.Add(ref shapeCount, AddShapes(newShapes, fw, new BitShape(w, h, d, shapeBytes).PadLeft(), 0, 1, 0, h, 0, d));
-                Interlocked.Add(ref shapeCount, AddShapes(newShapes, fw, new BitShape(w, h, d, shapeBytes).PadRight(), w, w + 1, 0, h, 0, d));
+                long add1 = AddShapes(newShapes, fw, new BitShape(w, h, d, shapeBytes).PadLeft(), 0, 1, 0, h, 0, d);
+                long add2 = AddShapes(newShapes, fw, new BitShape(w, h, d, shapeBytes).PadRight(), w, w + 1, 0, h, 0, d);
+                Interlocked.Add(ref shapeCount, add1 + add2);
             });
         }
 
@@ -158,8 +169,9 @@ public class Program {
         Console.Write("\b");
         using (var fw = new FileWriter(n + 1, ww, hh, dd)) {
             Parallel.ForEach(LoadShapes(n, w, h, d), (shapeBytes) => {
-                Interlocked.Add(ref shapeCount, AddShapes(newShapes, fw, new BitShape(w, h, d, shapeBytes).PadTop(), 0, w, 0, 1, 0, d));
-                Interlocked.Add(ref shapeCount, AddShapes(newShapes, fw, new BitShape(w, h, d, shapeBytes).PadBottom(), 0, w, h, h + 1, 0, d));
+                long add1 = AddShapes(newShapes, fw, new BitShape(w, h, d, shapeBytes).PadTop(), 0, w, 0, 1, 0, d);
+                long add2 = AddShapes(newShapes, fw, new BitShape(w, h, d, shapeBytes).PadBottom(), 0, w, h, h + 1, 0, d);
+                Interlocked.Add(ref shapeCount, add1 + add2);
             });
         }
 
@@ -170,8 +182,9 @@ public class Program {
         Console.Write("\b");
         using (var fw = new FileWriter(n + 1, ww, hh, dd)) {
             Parallel.ForEach(LoadShapes(n, w, h, d), (shapeBytes) => {
-                Interlocked.Add(ref shapeCount, AddShapes(newShapes, fw, new BitShape(w, h, d, shapeBytes).PadFront(), 0, w, 0, h, 0, 1));
-                Interlocked.Add(ref shapeCount, AddShapes(newShapes, fw, new BitShape(w, h, d, shapeBytes).PadBack(), 0, w, 0, h, d, d + 1));
+                long add1 = AddShapes(newShapes, fw, new BitShape(w, h, d, shapeBytes).PadFront(), 0, w, 0, h, 0, 1);
+                long add2 = AddShapes(newShapes, fw, new BitShape(w, h, d, shapeBytes).PadBack(), 0, w, 0, h, d, d + 1);
+                Interlocked.Add(ref shapeCount, add1 + add2);
             });
         }
 
@@ -244,22 +257,22 @@ public class ByteArrayEqualityComparer : IEqualityComparer<byte[]> {
 
 public class FileScanner {
     public class Results {
-        public int w, h, d, n;
+        public byte w, h, d, n;
         public string filepath => Program.FILE_PATH + n + "/" + w + "," + h + "," + d + Program.FILE_EXT;
     }
 
     public readonly List<Results> List = new();
 
-    public FileScanner(int n) {
+    public FileScanner(byte n) {
         var di = new DirectoryInfo(Program.FILE_PATH + n);
         var files = di.GetFiles("*" + Program.FILE_EXT).OrderBy(f => f.Length);
         foreach (var file in files) {
             if (file.Name.EndsWith(Program.FILE_EXT)) {
                 var dim = file.Name.Substring(0, file.Name.Length - Program.FILE_EXT.Length).Split(',');
                 if (dim.Length != 3) continue;
-                if (!int.TryParse(dim[0], out int w) || w < 1 || w > n) continue;
-                if (!int.TryParse(dim[1], out int h) || h < 1 || h > n) continue;
-                if (!int.TryParse(dim[2], out int d) || d < 1 || d > n) continue;
+                if (!byte.TryParse(dim[0], out var w) || w < 1 || w > n) continue;
+                if (!byte.TryParse(dim[1], out var h) || h < 1 || h > n) continue;
+                if (!byte.TryParse(dim[2], out var d) || d < 1 || d > n) continue;
                 List.Add(new Results() { n = n, w = w, h = h, d = d });
             }
         }
@@ -271,7 +284,7 @@ public class FileWriter : IDisposable {
     private readonly int length;
     private readonly string path;
 
-    public static void Clear(int n) {
+    public static void Clear(byte n) {
         var di = new DirectoryInfo(Program.FILE_PATH + n);
         if (!di.Exists)
             di.Create();
