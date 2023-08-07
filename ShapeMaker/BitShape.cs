@@ -473,6 +473,11 @@ public class BitShape {
         return 0;
     }
 
+    public override bool Equals(object? obj)
+    {
+        return obj != null && obj is BitShape b && w == b.w && h == b.h && d == b.d && bytes.SequenceEqual(b.bytes);
+    }
+
     public bool HasSetNeighbor(int x, int y, int z) {
         // minor opt: we do easier comparisons first with short-circuiting
         return (x > 0 && Get(x - 1, y, z)) ||
