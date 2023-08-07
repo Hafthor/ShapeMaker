@@ -25,28 +25,17 @@ public class Program {
         Peak memory usage: 72.04GB
      */
 
-    // Potential Optimizations:
-    // * Minimize rotations - should only need to test all rotations when w==h==d.
-    // * Avoid storing/hashing shape dimensions/length since we are always dealing with one known size at a time.
-
     // Potential Features:
     // * Make a 4-D version?
-
-    // Minimize rotations:
-    // example: w=2,h=3,d=4, only 8 rotations (this,X2,Y2,X2,Z2,X2,Y2,X2)
-    // example: w=2,h=2,d=2, all 24 rotations
-    // example: w=2,h=3,d=3, only 16 rotations (this,X,X,X, this.Y2,X,X,X, this.Z2,X,X,X, this.Y2Z2,X,X,X)
-    // example: w=2,h=2,d=3, only 16 rotations (this,Z,Z,Z, this.Y2,Z,Z,Z, this.X2,Z,Z,Z, this.X2Y2,Z,Z,Z)
-    // example: w=2,h=3,d=2, impossible
 
     static void Main(string[] args) {
         bool recompute = true;
         bool doChiral = true;
 
-        byte[] shape1 = BitShape.Deserialize("1,1,1,*");
+        BitShape shape1 = new BitShape("1,1,1,*");
         FileWriter.Clear(1);
         using (var fw = new FileWriter(1, 1, 1, 1))
-            fw.Write(shape1);
+            fw.Write(shape1.bytes);
 
         for (var n = 2; n < 20; n++) {
             string s = CompleteString(n);
@@ -145,8 +134,8 @@ public class Program {
         var newShapes = LoadShapesHashSet(n + 1, w, h, d);
         Console.Write("\b");
         using (var fw = new FileWriter(n + 1, w, h, d)) {
-            Parallel.ForEach(LoadShapes(n, w, h, d), (shape) => {
-                Interlocked.Add(ref shapeCount, AddShapes(newShapes, fw, shape, 0, w, 0, h, 0, d)); // unpadded
+            Parallel.ForEach(LoadShapes(n, w, h, d), (shapeBytes) => {
+                Interlocked.Add(ref shapeCount, AddShapes(newShapes, fw, new BitShape(w, h, d, shapeBytes), 0, w, 0, h, 0, d)); // unpadded
             });
         }
 
@@ -156,9 +145,9 @@ public class Program {
         newShapes = LoadShapesHashSet(n + 1, ww, hh, dd);
         Console.Write("\b");
         using (var fw = new FileWriter(n + 1, ww, hh, dd)) {
-            Parallel.ForEach(LoadShapes(n, w, h, d), (shape) => {
-                Interlocked.Add(ref shapeCount, AddShapes(newShapes, fw, shape.PadLeft(), 0, 1, 0, h, 0, d));
-                Interlocked.Add(ref shapeCount, AddShapes(newShapes, fw, shape.PadRight(), w, w + 1, 0, h, 0, d));
+            Parallel.ForEach(LoadShapes(n, w, h, d), (shapeBytes) => {
+                Interlocked.Add(ref shapeCount, AddShapes(newShapes, fw, new BitShape(w, h, d, shapeBytes).PadLeft(), 0, 1, 0, h, 0, d));
+                Interlocked.Add(ref shapeCount, AddShapes(newShapes, fw, new BitShape(w, h, d, shapeBytes).PadRight(), w, w + 1, 0, h, 0, d));
             });
         }
 
@@ -168,9 +157,9 @@ public class Program {
         newShapes = LoadShapesHashSet(n + 1, ww, hh, dd);
         Console.Write("\b");
         using (var fw = new FileWriter(n + 1, ww, hh, dd)) {
-            Parallel.ForEach(LoadShapes(n, w, h, d), (shape) => {
-                Interlocked.Add(ref shapeCount, AddShapes(newShapes, fw, shape.PadTop(), 0, w, 0, 1, 0, d));
-                Interlocked.Add(ref shapeCount, AddShapes(newShapes, fw, shape.PadBottom(), 0, w, h, h + 1, 0, d));
+            Parallel.ForEach(LoadShapes(n, w, h, d), (shapeBytes) => {
+                Interlocked.Add(ref shapeCount, AddShapes(newShapes, fw, new BitShape(w, h, d, shapeBytes).PadTop(), 0, w, 0, 1, 0, d));
+                Interlocked.Add(ref shapeCount, AddShapes(newShapes, fw, new BitShape(w, h, d, shapeBytes).PadBottom(), 0, w, h, h + 1, 0, d));
             });
         }
 
@@ -180,9 +169,9 @@ public class Program {
         newShapes = LoadShapesHashSet(n + 1, ww, hh, dd);
         Console.Write("\b");
         using (var fw = new FileWriter(n + 1, ww, hh, dd)) {
-            Parallel.ForEach(LoadShapes(n, w, h, d), (shape) => {
-                Interlocked.Add(ref shapeCount, AddShapes(newShapes, fw, shape.PadFront(), 0, w, 0, h, 0, 1));
-                Interlocked.Add(ref shapeCount, AddShapes(newShapes, fw, shape.PadBack(), 0, w, 0, h, d, d + 1));
+            Parallel.ForEach(LoadShapes(n, w, h, d), (shapeBytes) => {
+                Interlocked.Add(ref shapeCount, AddShapes(newShapes, fw, new BitShape(w, h, d, shapeBytes).PadFront(), 0, w, 0, h, 0, 1));
+                Interlocked.Add(ref shapeCount, AddShapes(newShapes, fw, new BitShape(w, h, d, shapeBytes).PadBack(), 0, w, 0, h, d, d + 1));
             });
         }
 
@@ -192,24 +181,24 @@ public class Program {
     // for each blank cube from x0 to w, y0 to h, z0 to d, if it has an adjacent neighbor
     // add that cube, find the minimum rotation, and add to the newShapes hash set (under
     // lock since we could be doing this in parallel.)
-    private static long AddShapes(HashSet<byte[]> newShapes, FileWriter fw, byte[] shape, int x0, int w, int y0, int h, int z0, int d) {
+    private static long AddShapes(HashSet<byte[]> newShapes, FileWriter fw, BitShape shape, int x0, int w, int y0, int h, int z0, int d) {
         long shapeCount = 0;
         for (var x = x0; x < w; x++)
             for (var y = y0; y < h; y++)
                 for (var z = z0; z < d; z++)
                     if (!shape.Get(x, y, z))
-                        if (HasSetNeighbor(shape, x, y, z)) {
-                            var newShape = shape.Copy();
+                        if (shape.HasSetNeighbor(x, y, z)) {
+                            var newShape = new BitShape(shape);
                             newShape.Set(x, y, z, true);
                             var s = newShape.MinRotation();
                             bool writeShape = false;
                             lock (newShapes) {
-                                writeShape = newShapes.Add(s);
+                                writeShape = newShapes.Add(s.bytes);
                                 if (writeShape) shapeCount++;
                             }
                             if (writeShape)
                                 lock (fw)
-                                    fw.Write(s);
+                                    fw.Write(s.bytes);
                         }
         return shapeCount;
     }
@@ -228,23 +217,12 @@ public class Program {
     // newShapes hash set under lock
     public static long ChiralShapes(FileScanner.Results file) {
         var newShapes = new HashSet<byte[]>(ByteArrayEqualityComparer.Instance);
-        Parallel.ForEach(LoadShapes(file.n, file.w, file.h, file.d), (shape) => {
-            var newShape = shape.Copy().MinChiralRotation();
+        Parallel.ForEach(LoadShapes(file.n, file.w, file.h, file.d), (shapeBytes) => {
+            var newShape = new BitShape(new BitShape(file.w, file.h, file.d, shapeBytes)).MinChiralRotation();
             lock (newShapes)
-                newShapes.Add(newShape);
+                newShapes.Add(newShape.bytes);
         });
         return newShapes.Count;
-    }
-
-    private static bool HasSetNeighbor(byte[] shape, int x, int y, int z) {
-        var (w, h, d) = shape.Dimensions();
-        // minor opt: we do easier comparisons first with short-circuiting
-        return (x > 0 && shape.Get(x - 1, y, z)) ||
-            (y > 0 && shape.Get(x, y - 1, z)) ||
-            (z > 0 && shape.Get(x, y, z - 1)) ||
-            (x + 1 < w && shape.Get(x + 1, y, z)) ||
-            (y + 1 < h && shape.Get(x, y + 1, z)) ||
-            (z + 1 < d && shape.Get(x, y, z + 1));
     }
 }
 
@@ -252,7 +230,7 @@ public class ByteArrayEqualityComparer : IEqualityComparer<byte[]> {
     public static readonly ByteArrayEqualityComparer Instance = new ByteArrayEqualityComparer();
 
     bool IEqualityComparer<byte[]>.Equals(byte[]? x, byte[]? y) {
-        return x is not null && y is not null && x.CompareTo(y) == 0;
+        return x is not null && y is not null && x.SequenceEqual(y);
     }
 
     int IEqualityComparer<byte[]>.GetHashCode(byte[] obj) {
@@ -308,7 +286,7 @@ public class FileWriter : IDisposable {
 
     public FileWriter(int n, int w, int h, int d) {
         path = Program.FILE_PATH + n + "/" + w + "," + h + "," + d + Program.FILE_EXT;
-        length = (w * h * d + 11 + 7) / 8;
+        length = (w * h * d + 7) / 8;
     }
 
     public void Write(byte[] shape) {
@@ -331,7 +309,7 @@ public class FileReader : IDisposable {
 
     public FileReader(int n, int w, int h, int d) {
         fs = File.OpenRead(Program.FILE_PATH + n + "/" + w + "," + h + "," + d + Program.FILE_EXT);
-        length = (w * h * d + 11 + 7) / 8;
+        length = (w * h * d + 7) / 8;
     }
 
     public byte[] Read() {
