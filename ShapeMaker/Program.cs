@@ -1,10 +1,12 @@
 ﻿using System.Diagnostics;
-using System.IO.Compression;
-using System.Text;
 
 namespace ShapeMaker;
 
 public class Program {
+    public const string FILE_PATH = "/Users/hafthor/dev/ShapeMaker/";
+    public const string FILE_EXT = ".bin";
+    public const string FILE_COMPLETE = "_COMPLETE";
+
     /*
         Timing (in seconds) from 14-inch 2023 MacBook Pro w/ 96GB 12-core M2 Max, .NET 7 in Release mode
         n=2, shapes: 1 time: 0.0661961, chiral shapes: n=2, shapes: 1 time: 0.0016484
@@ -24,108 +26,174 @@ public class Program {
      */
 
     // Potential Optimizations:
-    // * Avoid rotations - should only need to test all rotations when w==h==d.
+    // * Minimize rotations - should only need to test all rotations when w==h==d.
+    // * Avoid storing/hashing shape dimensions/length since we are always dealing with one known size at a time.
 
     // Potential Features:
     // * Make a 4-D version?
-    // * Scale this out by making one file per {n},{w},{h},{d} combination. To run, we process
-    //   all {n-1},{w},{h},{d} and write new unpadded shapes to {n},{w},{h},{d}, then we reprocess
-    //   that list for the X paddings (left,right) of that to {n},{w+1},{h},{d} and so on. Of
-    //   course, it may be that we have to write to {n},{h},{w+1},{d} instead, or some other
-    //   minimal rotation.
-    //   Ideally, we'd have a fast way to read/write hashsets, but also a way to easily read serially
-    //   shape-by-shape for the input side of extending shapes. It might be easiest to store these
-    //   sorted, use binary search to see if we already have that shape, if not add to a hashset,
-    //   then when done, sort the hashset and merge into the sorted list and write that out.
 
-    //   for example:
-    //   1/1-1-1.txt file: "1"
-    //   2/1-1-2.txt file: "11" (from Z padding on 1/1-1-1)
-    //   3/1-1-3.txt file: "111" (from Z padding on 2/1-1-2)
-    //   3/1-2-2.txt file: "0111" (from Y padding on 2/1-1-2)
-    //   4/1-1-4.txt file: "1111" (from Z padding on 3/1-1-3)
-    //   4/1-2-2.txt file: "1111" (from unpadded change on 3/1-2-2)
-    //   4/1-2-3.txt file: "001111","010111","011110" (from paddings on 3/1-1-3 and 3/1-2-2)
-    //   4/2-2-2.txt file: "00010111","0001110","00100111" (from X padding on 3/1-2-2)
-
-    static int showOnCount = 0; // used to show progress
-    const int showEveryCount = 1_000_000;
+    // Minimize rotations:
+    // example: w=2,h=3,d=4, only 8 rotations (this,X2,Y2,X2,Z2,X2,Y2,X2)
+    // example: w=2,h=2,d=2, all 24 rotations
+    // example: w=2,h=3,d=3, only 16 rotations (this,X,X,X, this.Y2,X,X,X, this.Z2,X,X,X, this.Y2Z2,X,X,X)
+    // example: w=2,h=2,d=3, only 16 rotations (this,Z,Z,Z, this.Y2,Z,Z,Z, this.X2,Z,Z,Z, this.X2Y2,Z,Z,Z)
+    // example: w=2,h=3,d=2, impossible
 
     static void Main(string[] args) {
+        bool recompute = true;
         bool doChiral = true;
 
         byte[] shape1 = BitShape.Deserialize("1,1,1,*");
-        using (var fzsw = new FileGzipStreamWriter("shapes-1.txt.gz"))
-            fzsw.WriteLine(shape1.Serialize());
+        FileWriter.Clear(1);
+        using (var fw = new FileWriter(1, 1, 1, 1))
+            fw.Write(shape1);
 
-        for (var n = 2; n < 15; n++) {
-            { // scoping so shapes goes out of scope after we save it
-                showOnCount = showEveryCount;
-                Console.Write("n=" + n + ", shapes: ");
-                using (var fgsw = new FileGzipStreamWriter("shapes-" + n + ".txt.gz")) {
-                    Stopwatch sw = Stopwatch.StartNew();
-                    var shapes = ShapesFromExtendingShapes(LoadShapes(n - 1), sw, fgsw);
-                    sw.Stop();
-                    Console.Write(shapes.Count.ToString("N0") + " time: " + sw.Elapsed.TotalSeconds);
-                    shapes.Clear(); // just to be sure we release memory for this large object
-                    shapes = null; // just to be sure we release memory for this large object
+        for (var n = 2; n < 20; n++) {
+            string s = CompleteString(n);
+            if (recompute || s == null) {
+                FileWriter.Clear(n);
+                s = "n=" + n + ", shapes: ";
+                Console.Write(s);
+                Stopwatch sw = Stopwatch.StartNew();
+                var list = new FileScanner(n - 1).List;
+                long shapeCount = ShapesFromExtendingShapes(list, sw);
+                sw.Stop();
+                string ss = shapeCount.ToString("N0") + " time: " + sw.Elapsed.TotalSeconds;
+                s += ss;
+                Console.Write(ss);
+
+                if (doChiral) {
+                    ss = ", chiral shapes: ";
+                    s += ss;
+                    Console.Write(ss);
+                    Stopwatch sw2 = Stopwatch.StartNew();
+                    var list2 = new FileScanner(n).List;
+                    long chiralShapeCount = ChiralShapes(list2, sw2);
+                    sw2.Stop();
+                    ss = chiralShapeCount.ToString("N0") + " time: " + sw2.Elapsed.TotalSeconds;
+                    s += ss;
+                    Console.Write(ss);
                 }
-            }
 
-            if (doChiral) {
-                showOnCount = showEveryCount;
-                Console.Write(", chiral shapes: ");
-                Console.Write("n=" + n + ", shapes: ");
-                using (var fgsw = new FileGzipStreamWriter("chiral-shapes-" + n + ".txt.gz")) {
-                    Stopwatch sw = Stopwatch.StartNew();
-                    var chiral = ChiralShapes(LoadShapes(n), sw, fgsw);
-                    sw.Stop();
-                    Console.Write(chiral.Count.ToString("N0") + " time: " + sw.Elapsed.TotalSeconds);
-                    chiral.Clear(); // just to be sure we release memory for this large object
-                    chiral = null; // just to be sure we release memory for this large object
-                }
+                Console.WriteLine();
+                MarkComplete(n, s);
+            } else {
+                Console.WriteLine(s);
             }
-
-            Console.WriteLine();
         }
     }
 
-    private static IEnumerable<byte[]> LoadShapes(int n) {
-        using (var fs = File.OpenRead("shapes-" + n + ".txt.gz"))
-        using (var zr = new GZipStream(fs, CompressionMode.Decompress))
-        using (var sr = new StreamReader(zr, Encoding.UTF8, false, 65536))
+    private static string CompleteString(int n) {
+        return File.Exists(Program.FILE_PATH + n + "/" + Program.FILE_COMPLETE) ? File.ReadAllText(Program.FILE_PATH + n + "/" + Program.FILE_COMPLETE) : null;
+    }
+
+    private static void MarkComplete(int n, string s) {
+        File.WriteAllText(Program.FILE_PATH + n + "/" + Program.FILE_COMPLETE, s);
+    }
+
+
+    private static HashSet<byte[]> LoadShapesHashSet(int n, int w, int h, int d) {
+        var hash = new HashSet<byte[]>(ByteArrayEqualityComparer.Instance);
+        if (FileReader.FileExists(n, w, h, d))
+            foreach (var shape in LoadShapes(n, w, h, d))
+                hash.Add(shape);
+        return hash;
+    }
+
+    private static IEnumerable<byte[]> LoadShapes(int n, int w, int h, int d) {
+        using (var fr = new FileReader(n, w, h, d))
             for (; ; ) {
-                var l = sr.ReadLine();
+                var l = fr.Read();
                 if (l == null) break;
-                yield return BitShape.Deserialize(l);
+                yield return l;
             }
     }
 
     // for each shape in parallel, try to add cube to it
     // first does by adding cube to the shape in its current size
     // then tries padding each of the 6 faces of the shape and adding a cube there
-    public static HashSet<byte[]> ShapesFromExtendingShapes(IEnumerable<byte[]> shapes, Stopwatch sw, FileGzipStreamWriter fgsw) {
-        var newShapes = new HashSet<byte[]>(ByteArrayEqualityComparer.Instance);
+    public static long ShapesFromExtendingShapes(IEnumerable<FileScanner.Results> filelist, Stopwatch sw) {
+        long shapeCount = 0;
+        foreach (var r in filelist) {
+            shapeCount += ShapesFromExtendingShapes(r);
+            var ss = " [" + shapeCount + "," + sw.Elapsed.TotalSeconds.ToString("0") + "s]";
+            Console.Write(ss + new string('\b', ss.Length));
+        }
+        return shapeCount;
+    }
 
-        Parallel.ForEach(shapes, (shape) => {
-            var (w, h, d) = shape.Dimensions();
+    public static (int w, int h, int d) MinRotation(int w, int h, int d) {
+        if (w <= h && h <= d)
+            return (w, h, d); // 1,2,3 - no rotation
+        else if (w <= h && w <= d)
+            return (w, d, h); // 1,3,2 - x
+        else if (d < h && h < w)
+            return (d, h, w); // 3,2,1 - y
+        else if (d < h && d < w)
+            return (d, w, h); // 3,1,2 - xy
+        else if (w <= d)
+            return (h, w, d); // 2,1,3 - z
+        else
+            return (h, d, w); // 2,3,1 - yx
+    }
 
-            AddShapes(newShapes, sw, fgsw, shape, 0, w, 0, h, 0, d); // unpadded
-            AddShapes(newShapes, sw, fgsw, shape.PadLeft(), 0, 1, 0, h, 0, d);
-            AddShapes(newShapes, sw, fgsw, shape.PadRight(), w, w + 1, 0, h, 0, d);
-            AddShapes(newShapes, sw, fgsw, shape.PadTop(), 0, w, 0, 1, 0, d);
-            AddShapes(newShapes, sw, fgsw, shape.PadBottom(), 0, w, h, h + 1, 0, d);
-            AddShapes(newShapes, sw, fgsw, shape.PadFront(), 0, w, 0, h, 0, 1);
-            AddShapes(newShapes, sw, fgsw, shape.PadBack(), 0, w, 0, h, d, d + 1);
-        });
+    public static long ShapesFromExtendingShapes(FileScanner.Results file) {
+        int n = file.n, w = file.w, h = file.h, d = file.d;
+        long shapeCount = 0;
 
-        return newShapes;
+        Console.Write("|");
+        var newShapes = LoadShapesHashSet(n + 1, w, h, d);
+        Console.Write("\b");
+        using (var fw = new FileWriter(n + 1, w, h, d)) {
+            Parallel.ForEach(LoadShapes(n, w, h, d), (shape) => {
+                Interlocked.Add(ref shapeCount, AddShapes(newShapes, fw, shape, 0, w, 0, h, 0, d)); // unpadded
+            });
+        }
+
+        Console.Write("/");
+        newShapes.Clear();
+        var (ww, hh, dd) = MinRotation(w + 1, h, d);
+        newShapes = LoadShapesHashSet(n + 1, ww, hh, dd);
+        Console.Write("\b");
+        using (var fw = new FileWriter(n + 1, ww, hh, dd)) {
+            Parallel.ForEach(LoadShapes(n, w, h, d), (shape) => {
+                Interlocked.Add(ref shapeCount, AddShapes(newShapes, fw, shape.PadLeft(), 0, 1, 0, h, 0, d));
+                Interlocked.Add(ref shapeCount, AddShapes(newShapes, fw, shape.PadRight(), w, w + 1, 0, h, 0, d));
+            });
+        }
+
+        Console.Write("-");
+        newShapes.Clear();
+        (ww, hh, dd) = MinRotation(w, h + 1, d);
+        newShapes = LoadShapesHashSet(n + 1, ww, hh, dd);
+        Console.Write("\b");
+        using (var fw = new FileWriter(n + 1, ww, hh, dd)) {
+            Parallel.ForEach(LoadShapes(n, w, h, d), (shape) => {
+                Interlocked.Add(ref shapeCount, AddShapes(newShapes, fw, shape.PadTop(), 0, w, 0, 1, 0, d));
+                Interlocked.Add(ref shapeCount, AddShapes(newShapes, fw, shape.PadBottom(), 0, w, h, h + 1, 0, d));
+            });
+        }
+
+        Console.Write("\\");
+        newShapes.Clear();
+        (ww, hh, dd) = MinRotation(w, h, d + 1);
+        newShapes = LoadShapesHashSet(n + 1, ww, hh, dd);
+        Console.Write("\b");
+        using (var fw = new FileWriter(n + 1, ww, hh, dd)) {
+            Parallel.ForEach(LoadShapes(n, w, h, d), (shape) => {
+                Interlocked.Add(ref shapeCount, AddShapes(newShapes, fw, shape.PadFront(), 0, w, 0, h, 0, 1));
+                Interlocked.Add(ref shapeCount, AddShapes(newShapes, fw, shape.PadBack(), 0, w, 0, h, d, d + 1));
+            });
+        }
+
+        return shapeCount;
     }
 
     // for each blank cube from x0 to w, y0 to h, z0 to d, if it has an adjacent neighbor
     // add that cube, find the minimum rotation, and add to the newShapes hash set (under
     // lock since we could be doing this in parallel.)
-    private static void AddShapes(HashSet<byte[]> newShapes, Stopwatch sw, FileGzipStreamWriter fgsw, byte[] shape, int x0, int w, int y0, int h, int z0, int d) {
+    private static long AddShapes(HashSet<byte[]> newShapes, FileWriter fw, byte[] shape, int x0, int w, int y0, int h, int z0, int d) {
+        long shapeCount = 0;
         for (var x = x0; x < w; x++)
             for (var y = y0; y < h; y++)
                 for (var z = z0; z < d; z++)
@@ -136,45 +204,36 @@ public class Program {
                             var s = newShape.MinRotation();
                             bool writeShape = false;
                             lock (newShapes) {
-                                int oldCount = newShapes.Count;
                                 writeShape = newShapes.Add(s);
-                                bool showAndNext = newShapes.Count >= showOnCount && newShapes.Count != oldCount;
-                                if (showAndNext) {
-                                    var ss = "[" + showOnCount / 1_000_000 + "m " + sw.Elapsed.TotalSeconds.ToString("0") + "s]";
-                                    Console.Write(ss + new string('\b', ss.Length));
-                                    showOnCount += showEveryCount;
-                                }
+                                if (writeShape) shapeCount++;
                             }
                             if (writeShape)
-                                lock (fgsw) 
-                                    fgsw.WriteLine(s.Serialize());
+                                lock (fw)
+                                    fw.Write(s);
                         }
+        return shapeCount;
+    }
+
+    public static long ChiralShapes(IEnumerable<FileScanner.Results> filelist, Stopwatch sw) {
+        long shapeCount = 0;
+        foreach (var r in filelist) {
+            shapeCount += ChiralShapes(r);
+            var ss = "[" + shapeCount + "," + sw.Elapsed.TotalSeconds.ToString("0") + "s]";
+            Console.Write(ss + new string('\b', ss.Length));
+        }
+        return shapeCount;
     }
 
     // for each shape in parallel, get its minimum chiral rotation and add to
     // newShapes hash set under lock
-    public static HashSet<byte[]> ChiralShapes(IEnumerable<byte[]> shapes, Stopwatch sw, FileGzipStreamWriter fgsw) {
+    public static long ChiralShapes(FileScanner.Results file) {
         var newShapes = new HashSet<byte[]>(ByteArrayEqualityComparer.Instance);
-
-        Parallel.ForEach(shapes, (shape) => {
+        Parallel.ForEach(LoadShapes(file.n, file.w, file.h, file.d), (shape) => {
             var newShape = shape.Copy().MinChiralRotation();
-            bool writeShape = false;
-            lock (newShapes) {
-                int oldCount = newShapes.Count;
-                writeShape = newShapes.Add(newShape);
-                bool showAndNext = newShapes.Count >= showOnCount && newShapes.Count != oldCount;
-                if (showAndNext) {
-                    var ss = "[" + showOnCount / 1_000_000 + "m " + sw.Elapsed.TotalSeconds.ToString("0") + "s]";
-                    Console.Write(ss + new string('\b', ss.Length));
-                    showOnCount += showEveryCount;
-                }
-            }
-            if (writeShape)
-                lock (fgsw)
-                    fgsw.WriteLine(newShape.Serialize());
+            lock (newShapes)
+                newShapes.Add(newShape);
         });
-
-        return newShapes;
+        return newShapes.Count;
     }
 
     private static bool HasSetNeighbor(byte[] shape, int x, int y, int z) {
@@ -205,24 +264,83 @@ public class ByteArrayEqualityComparer : IEqualityComparer<byte[]> {
     }
 }
 
-public class FileGzipStreamWriter : IDisposable {
-    private readonly FileStream fs;
-    private readonly GZipStream zw;
-    private readonly StreamWriter sw;
-
-    public FileGzipStreamWriter(string filename) {
-        fs = File.Create(filename);
-        zw = new GZipStream(fs, CompressionLevel.Fastest);
-        sw = new StreamWriter(zw, Encoding.UTF8, 65536);
+public class FileScanner {
+    public class Results {
+        public int w, h, d, n;
+        public string filepath => Program.FILE_PATH + n + "/" + w + "," + h + "," + d + Program.FILE_EXT;
     }
 
-    public void WriteLine(string s) {
-        sw.WriteLine(s);
+    public readonly List<Results> List = new();
+
+    public FileScanner(int n) {
+        var di = new DirectoryInfo(Program.FILE_PATH + n);
+        var files = di.GetFiles("*" + Program.FILE_EXT).OrderBy(f => f.Length);
+        foreach (var file in files) {
+            if (file.Name.EndsWith(Program.FILE_EXT)) {
+                var dim = file.Name.Substring(0, file.Name.Length - Program.FILE_EXT.Length).Split(',');
+                if (dim.Length != 3) continue;
+                if (!int.TryParse(dim[0], out int w) || w < 1 || w > n) continue;
+                if (!int.TryParse(dim[1], out int h) || h < 1 || h > n) continue;
+                if (!int.TryParse(dim[2], out int d) || d < 1 || d > n) continue;
+                List.Add(new Results() { n = n, w = w, h = h, d = d });
+            }
+        }
+    }
+}
+
+public class FileWriter : IDisposable {
+    private FileStream fs = null;
+    private readonly int length;
+    private readonly string path;
+
+    public static void Clear(int n) {
+        var di = new DirectoryInfo(Program.FILE_PATH + n);
+        if (!di.Exists)
+            di.Create();
+        else {
+            var list = new FileScanner(n).List;
+            foreach (var f in list)
+                File.Delete(f.filepath);
+            if (File.Exists(Program.FILE_PATH + n + "/" + Program.FILE_COMPLETE))
+                File.Delete(Program.FILE_PATH + n + "/" + Program.FILE_COMPLETE);
+        }
+    }
+
+    public FileWriter(int n, int w, int h, int d) {
+        path = Program.FILE_PATH + n + "/" + w + "," + h + "," + d + Program.FILE_EXT;
+        length = (w * h * d + 11 + 7) / 8;
+    }
+
+    public void Write(byte[] shape) {
+        if (shape.Length != length) throw new ArgumentOutOfRangeException(nameof(shape), shape.Length, "unexpected shape length - should be " + length);
+        if (fs == null)
+            fs = File.Open(path, FileMode.Append);
+        fs.Write(shape);
     }
 
     public void Dispose() {
-        sw.Dispose();
-        zw.Dispose();
+        fs?.Dispose();
+    }
+}
+
+public class FileReader : IDisposable {
+    private readonly FileStream fs;
+    private readonly int length;
+
+    public static bool FileExists(int n, int w, int h, int d) => File.Exists(Program.FILE_PATH + n + "/" + w + "," + h + "," + d + Program.FILE_EXT);
+
+    public FileReader(int n, int w, int h, int d) {
+        fs = File.OpenRead(Program.FILE_PATH + n + "/" + w + "," + h + "," + d + Program.FILE_EXT);
+        length = (w * h * d + 11 + 7) / 8;
+    }
+
+    public byte[] Read() {
+        byte[] bytes = new byte[length];
+        if (fs.Read(bytes) < length) return null;
+        return bytes;
+    }
+
+    public void Dispose() {
         fs.Dispose();
     }
 }

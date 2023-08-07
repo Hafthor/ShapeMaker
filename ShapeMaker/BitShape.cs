@@ -56,7 +56,7 @@ public static class BitShape {
     public static (int w, int h, int d) Dimensions(this byte[] shape) {
         byte wh = shape[0];
         int r = shape[1] >> 5;
-        int l = shape.Length*8-11;
+        int l = shape.Length * 8 - 11;
         if (r > 0) l = l - 8 + r;
         int w = wh >> 4, h = wh & 0xF, d = l / w / h;
         return (w, h, d);
@@ -316,8 +316,85 @@ public static class BitShape {
         return ba;
     }
 
+    // not working yet :(
+    private static IEnumerable<byte[]> AllMinRotations(this byte[] ba) {
+        var (w, h, d) = ba.Dimensions();
+        if (w == h && h == d) return ba.All24Rotations();
+        if (w > h || h > d) {
+            if (w == h) {
+                if (w > d) ba = ba.RotateY(); else throw new ApplicationException("how did we end up here?");
+            } else if (h == d) {
+                if (w > d) ba = ba.RotateY(); else throw new ApplicationException("how did we end up here?");
+            } else if (w == d) {
+                if (w > h) ba = ba.RotateZ(); else ba = ba.RotateX();
+            } else {
+                if (w < h && h < d)
+                    throw new ApplicationException("how did we end up here?"); // 1,2,3 - no rotation
+                else if (w < d && d < h)
+                    ba = ba.RotateX(); // 1,3,2 - x
+                else if (d < h && h < w)
+                    ba = ba.RotateY(); // 3,2,1 - y
+                else if (d < w && w < h)
+                    ba = ba.RotateX().RotateY(); // 3,1,2 - xy
+                else if (h < w && w < d)
+                    ba = ba.RotateZ(); // 2,1,3 - z
+                else if (h < d && d < w)
+                    ba = ba.RotateY().RotateX(); // 2,3,1 - yx
+                else
+                    throw new ApplicationException("how did we end up here?");
+            }
+            (w, h, d) = ba.Dimensions();
+            if (w > h || h > d) throw new ApplicationException("Unexpected non minimal rotation");
+        }
+
+        if (w < h && h < d) return ba.All8Rotations();
+        if (w < h && h == d) return ba.All16RotationsY2Z2();
+        if (w == h && h < d) return ba.All16RotationsX2Y2();
+        throw new ApplicationException("Unexpected situation");
+    }
+
+    private static IEnumerable<byte[]> All8Rotations(this byte[] ba) {
+        yield return ba;
+        yield return ba.RotateX2();
+        yield return ba.RotateY2();
+        yield return ba.RotateX2();
+        yield return ba.RotateZ2();
+        yield return ba.RotateX2();
+        yield return ba.RotateY2();
+        yield return ba.RotateX2();
+        ba.RotateZ2(); // restore
+    }
+
+    private static IEnumerable<byte[]> All16RotationsY2Z2(this byte[] ba) {
+        var shape = ba.Copy();
+        foreach (var s in ba.AllRotationsOfX()) yield return s;
+
+        shape = shape.RotateY2();
+        foreach (var s in ba.AllRotationsOfX()) yield return s;
+
+        shape = shape.RotateZ2();
+        foreach (var s in ba.AllRotationsOfX()) yield return s;
+
+        shape = shape.RotateY2();
+        foreach (var s in ba.AllRotationsOfX()) yield return s;
+    }
+
+    private static IEnumerable<byte[]> All16RotationsX2Y2(this byte[] ba) {
+        var shape = ba.Copy();
+        foreach (var s in ba.AllRotationsOfZ()) yield return s;
+
+        shape = shape.RotateY2();
+        foreach (var s in ba.AllRotationsOfZ()) yield return s;
+
+        shape = shape.RotateX2();
+        foreach (var s in ba.AllRotationsOfZ()) yield return s;
+
+        shape = shape.RotateY2();
+        foreach (var s in ba.AllRotationsOfZ()) yield return s;
+    }
+
     // generates all 24 possible rotations of this shape
-    private static IEnumerable<byte[]> AllRotations(this byte[] ba) {
+    private static IEnumerable<byte[]> All24Rotations(this byte[] ba) {
         var shape = ba.Copy();
         foreach (var s in ba.AllRotationsOfX()) yield return s;
 
@@ -351,6 +428,21 @@ public static class BitShape {
         }
     }
 
+    // generates all 4 possible rotations on Z axis of this shape
+    private static IEnumerable<byte[]> AllRotationsOfZ(this byte[] ba) {
+        var (w, h, d) = ba.Dimensions();
+        if (w == h) // rotates in-place but restores it
+            for (int i = 0; i < 4; i++)
+                yield return ba.RotateZ();
+        else {
+            yield return ba;
+            var shape90 = ba.RotateZ();
+            yield return shape90;
+            yield return ba.Copy().RotateZ2();
+            yield return shape90.RotateZ2();
+        }
+    }
+
     // returns the shape rotated such that it is the mimimum serialization of the shape
     public static byte[] MinRotation(this byte[] ba) {
         // a rubiks cube, for example, is a 3x3x3 shape
@@ -361,7 +453,7 @@ public static class BitShape {
         // and see which one compares to be the lowest
 
         byte[] best = null;
-        foreach (var s in ba.AllRotations())
+        foreach (var s in ba.All24Rotations())
             if (best == null || best.CompareTo(s) > 0)
                 best = s.Copy(); // must clone it to prevent it from being mutated in-place
         return best;
@@ -387,7 +479,7 @@ public static class BitShape {
     // to do on the inside loop.
     public static byte[] MinChiralRotation(this byte[] ba) {
         byte[] best = null;
-        foreach (var s in ba.AllRotations())
+        foreach (var s in ba.AllMinRotations())
             foreach (var ss in s.AllMirrors())
                 if (best == null || best.CompareTo(ss) > 0)
                     best = ss.Copy(); // must clone it to prevent it from being mutated in-place
