@@ -33,6 +33,7 @@ public class Program {
     //   on that final n and still end up with an accurate count... we wouldn't be able to compute chiral count.
     // * Compute chiral count inline - especially easy if we do the above optimization. While hash still in
     //   memory, we just count the number of shapes that are already at their minimal chiral rotation.
+    // * It would be nice if we could have a % complete rather than just current count showing progress.
 
     // Potential Features:
     // * Make a 4-D version?
@@ -242,8 +243,9 @@ public class Program {
     // what we started with to see if it should be counted.
     public static long ChiralShapes(FileScanner.Results file) {
         long count = 0;
-        Parallel.ForEach(LoadShapes(file.n, file.w, file.h, file.d), (shapeBytes) => {
-            var shape = new BitShape(file.w, file.h, file.d, shapeBytes);
+        byte n = file.n, w = file.w, h = file.h, d = file.d;
+        Parallel.ForEach(LoadShapes(n, w, h, d), (shapeBytes) => {
+            var shape = new BitShape(w, h, d, shapeBytes);
             var newShape = new BitShape(shape).MinChiralRotation();
             if (shape.Equals(newShape)) Interlocked.Increment(ref count);
         });
