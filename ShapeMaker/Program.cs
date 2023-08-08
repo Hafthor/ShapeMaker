@@ -25,14 +25,7 @@ public class Program {
         Peak memory usage: ~10GB
      */
 
-    // Potential Optimizations:
-    // * Avoid hash reloading by rereading previous results instead. We could start by figuring out what target
-    //   files we plan to make, then for each output, check to see if an input can add to that output and if so
-    //   let it do so. Hash reloading is a comparitively small amount of the time taken, but it would mean that
-    //   we could potentially calculate for one n greater than we have disk space for since we could skip storing
-    //   on that final n and still end up with an accurate count... we wouldn't be able to compute chiral count.
-    // * Compute chiral count inline - especially easy if we do the above optimization. While hash still in
-    //   memory, we just count the number of shapes that are already at their minimal chiral rotation.
+    // Potential Optimizations / Enhancements:
     // * It would be nice if we could have a % complete rather than just current count showing progress.
 
     // Potential Features:
@@ -40,13 +33,12 @@ public class Program {
 
     static void Main(string[] args) {
         bool recompute = true;
-        bool doChiral = true;
 
         BitShape shape1 = new BitShape("1,1,1,*");
         FileWriter.Clear(1);
         using (var fw = new FileWriter(1, 1, 1, 1))
             fw.Write(shape1.bytes);
-        MarkNComplete(1, "n=1, shapes: 1 time: 0, chiral shapes: 1 time: 0");
+        MarkNComplete(1, "n=1, shapes: 1, chiral shapes: 1 time: 0");
 
         for (byte n = 2; n < 20; n++) {
             string s = NCompleteString(n);
@@ -56,24 +48,21 @@ public class Program {
                 Console.Write(s);
                 Stopwatch sw = Stopwatch.StartNew();
                 var list = new FileScanner((byte)(n - 1)).List;
-                long shapeCount = ShapesFromExtendingShapes(list, sw);
+                var targetSizes = ShapeSizesFromExtendingShapes(list);
+                long shapeCount = 0, chiralCount = 0;
+                foreach (var sz in targetSizes) {
+                    using (var fw = new FileWriter(n, sz.w, sz.h, sz.d)) {
+                        var counts = ShapesFromExtendingShapes(list, fw, sz.w, sz.h, sz.d);
+                        shapeCount += counts.shapeCount;
+                        chiralCount += counts.chiralCount;
+                        var sss = " [" + shapeCount.ToString("N0") + ", " + chiralCount.ToString("N0") + ", " + sw.Elapsed.TotalSeconds.ToString("N0") + "s]";
+                        Console.Write(sss + new string('\b', sss.Length));
+                    }
+                }
                 sw.Stop();
-                string ss = shapeCount.ToString("N0") + " time: " + sw.Elapsed.TotalSeconds;
+                string ss = shapeCount.ToString("N0") + ", chiral shapes: " + chiralCount.ToString("N0") + " time: " + sw.Elapsed.TotalSeconds;
                 s += ss;
                 Console.Write(ss);
-
-                if (doChiral) {
-                    ss = ", chiral shapes: ";
-                    s += ss;
-                    Console.Write(ss);
-                    Stopwatch sw2 = Stopwatch.StartNew();
-                    var list2 = new FileScanner(n).List;
-                    long chiralShapeCount = ChiralShapes(list2, sw2);
-                    sw2.Stop();
-                    ss = chiralShapeCount.ToString("N0") + " time: " + sw2.Elapsed.TotalSeconds;
-                    s += ss;
-                    Console.Write(ss);
-                }
 
                 Console.WriteLine();
                 MarkNComplete(n, s);
@@ -108,17 +97,23 @@ public class Program {
             }
     }
 
-    // for each shape in parallel, try to add cube to it
-    // first does by adding cube to the shape in its current size
-    // then tries padding each of the 6 faces of the shape and adding a cube there
-    public static long ShapesFromExtendingShapes(IEnumerable<FileScanner.Results> filelist, Stopwatch sw) {
-        long shapeCount = 0;
+    public static IEnumerable<(byte w, byte h, byte d)> ShapeSizesFromExtendingShapes(IEnumerable<FileScanner.Results> filelist) {
+        var hash = new HashSet<int>();
         foreach (var r in filelist)
-            ShapesFromExtendingShapes(r, sw, ref shapeCount);
-        return shapeCount;
+            foreach (var sz in ShapeSizesFromExtendingShapes(r))
+                hash.Add(sz.w * 65536 + sz.h * 256 + sz.d);
+        return hash.OrderBy(i => i).Select(i => ((byte)((i >> 16) & 0xFF), (byte)((i >> 8) & 0xFF), (byte)(i & 0xFF)));
     }
 
-    public static (int w, int h, int d) MinRotation(int w, int h, int d) {
+    public static IEnumerable<(byte w, byte h, byte d)> ShapeSizesFromExtendingShapes(FileScanner.Results file) {
+        byte n = file.n, w = file.w, h = file.h, d = file.d;
+        if (n < w * h * d) yield return (w, h, d);
+        yield return MinRotation((byte)(w + 1), h, d);
+        yield return MinRotation(w, (byte)(h + 1), d);
+        yield return MinRotation(w, h, (byte)(d + 1));
+    }
+
+    public static (byte w, byte h, byte d) MinRotation(byte w, byte h, byte d) {
         if (w <= h && h <= d)
             return (w, h, d); // 1,2,3 - no rotation
         else if (w <= h && w <= d)
@@ -133,82 +128,70 @@ public class Program {
             return (h, d, w); // 2,3,1 - yx
     }
 
-    public static void ShapesFromExtendingShapes(FileScanner.Results file, Stopwatch sw, ref long shapeCount) {
+    // for each shape in parallel, try to add cube to it
+    // first does by adding cube to the shape in its current size
+    // then tries padding each of the 6 faces of the shape and adding a cube there
+    public static (long shapeCount, long chiralCount) ShapesFromExtendingShapes(IEnumerable<FileScanner.Results> filelist, FileWriter fw, byte w, byte h, byte d) {
+        var newShapes = new HashSet<byte[]>(ByteArrayEqualityComparer.Instance);
+        foreach (var r in filelist)
+            ShapesFromExtendingShapes(r, fw, newShapes, w, h, d);
+
+        Console.Write("$");
+        long chiralCount = 0;
+        Parallel.ForEach(newShapes, (shapeBytes) => {
+            var shape = new BitShape(w, h, d, shapeBytes);
+            var newShape = new BitShape(shape).MinChiralRotation();
+            if (shape.Equals(newShape)) Interlocked.Increment(ref chiralCount);
+        });
+        Console.Write("\b");
+        return (newShapes.LongCount(), chiralCount);
+    }
+
+    public static void ShapesFromExtendingShapes(FileScanner.Results file, FileWriter fw, HashSet<byte[]> newShapes, byte tw, byte th, byte td) {
         byte n = file.n, w = file.w, h = file.h, d = file.d;
 
-        Console.Write("|");
-        var newShapes = LoadShapesHashSet(n + 1, w, h, d);
-        Console.Write("\b");
-        using (var fw = new FileWriter(n + 1, w, h, d)) {
-            long addShapeCount = 0;
+        if (w == tw && h == th && d == td) {
+            Console.Write("|\b");
             Parallel.ForEach(LoadShapes(n, w, h, d), (shapeBytes) => {
-                Interlocked.Add(ref addShapeCount, AddShapes(newShapes, fw, new BitShape(w, h, d, shapeBytes), 0, w, 0, h, 0, d)); // unpadded
+                AddShapes(newShapes, fw, new BitShape(w, h, d, shapeBytes), 0, w, 0, h, 0, d); // unpadded
             });
-            shapeCount += addShapeCount;
-            var ss = " [" + shapeCount + "," + sw.Elapsed.TotalSeconds.ToString("0") + "s]";
-            Console.Write(ss + new string('\b', ss.Length));
         }
 
-        Console.Write("/");
-        newShapes.Clear();
-        var (ww, hh, dd) = MinRotation(w + 1, h, d);
-        newShapes = LoadShapesHashSet(n + 1, ww, hh, dd);
-        Console.Write("\b");
-        using (var fw = new FileWriter(n + 1, ww, hh, dd)) {
-            long addShapeCount = 0;
+        var (ww, hh, dd) = MinRotation((byte)(w + 1), h, d);
+        if (ww == tw && hh == th && dd == td) {
+            Console.Write("/\b");
             Parallel.ForEach(LoadShapes(n, w, h, d), (shapeBytes) => {
                 BitShape shape = new BitShape(w, h, d, shapeBytes);
-                long add1 = AddShapes(newShapes, fw, shape.PadLeft(), 0, 1, 0, h, 0, d);
-                long add2 = AddShapes(newShapes, fw, shape.PadRight(), w, w + 1, 0, h, 0, d);
-                Interlocked.Add(ref addShapeCount, add1 + add2);
+                AddShapes(newShapes, fw, shape.PadLeft(), 0, 1, 0, h, 0, d);
+                AddShapes(newShapes, fw, shape.PadRight(), w, w + 1, 0, h, 0, d);
             });
-            shapeCount += addShapeCount;
-            var ss = " [" + shapeCount + "," + sw.Elapsed.TotalSeconds.ToString("0") + "s]";
-            Console.Write(ss + new string('\b', ss.Length));
         }
 
-        Console.Write("-");
-        newShapes.Clear();
-        (ww, hh, dd) = MinRotation(w, h + 1, d);
-        newShapes = LoadShapesHashSet(n + 1, ww, hh, dd);
-        Console.Write("\b");
-        using (var fw = new FileWriter(n + 1, ww, hh, dd)) {
-            long addShapeCount = 0;
+        (ww, hh, dd) = MinRotation(w, (byte)(h + 1), d);
+        if (ww == tw && hh == th && dd == td) {
+            Console.Write("-\b");
             Parallel.ForEach(LoadShapes(n, w, h, d), (shapeBytes) => {
                 BitShape shape = new BitShape(w, h, d, shapeBytes);
-                long add1 = AddShapes(newShapes, fw, shape.PadTop(), 0, w, 0, 1, 0, d);
-                long add2 = AddShapes(newShapes, fw, shape.PadBottom(), 0, w, h, h + 1, 0, d);
-                Interlocked.Add(ref addShapeCount, add1 + add2);
+                AddShapes(newShapes, fw, shape.PadTop(), 0, w, 0, 1, 0, d);
+                AddShapes(newShapes, fw, shape.PadBottom(), 0, w, h, h + 1, 0, d);
             });
-            shapeCount += addShapeCount;
-            var ss = " [" + shapeCount + "," + sw.Elapsed.TotalSeconds.ToString("0") + "s]";
-            Console.Write(ss + new string('\b', ss.Length));
         }
 
-        Console.Write("\\");
-        newShapes.Clear();
-        (ww, hh, dd) = MinRotation(w, h, d + 1);
-        newShapes = LoadShapesHashSet(n + 1, ww, hh, dd);
-        Console.Write("\b");
-        using (var fw = new FileWriter(n + 1, ww, hh, dd)) {
-            long addShapeCount = 0;
+        (ww, hh, dd) = MinRotation(w, h, (byte)(d + 1));
+        if (ww == tw && hh == th && dd == td) {
+            Console.Write("\\\b");
             Parallel.ForEach(LoadShapes(n, w, h, d), (shapeBytes) => {
                 BitShape shape = new BitShape(w, h, d, shapeBytes);
-                long add1 = AddShapes(newShapes, fw, shape.PadFront(), 0, w, 0, h, 0, 1);
-                long add2 = AddShapes(newShapes, fw, shape.PadBack(), 0, w, 0, h, d, d + 1);
-                Interlocked.Add(ref addShapeCount, add1 + add2);
+                AddShapes(newShapes, fw, shape.PadFront(), 0, w, 0, h, 0, 1);
+                AddShapes(newShapes, fw, shape.PadBack(), 0, w, 0, h, d, d + 1);
             });
-            shapeCount += addShapeCount;
-            var ss = " [" + shapeCount + "," + sw.Elapsed.TotalSeconds.ToString("0") + "s]";
-            Console.Write(ss + new string('\b', ss.Length));
         }
     }
 
     // for each blank cube from x0 to w, y0 to h, z0 to d, if it has an adjacent neighbor
     // add that cube, find the minimum rotation, and add to the newShapes hash set (under
     // lock since we could be doing this in parallel.)
-    private static long AddShapes(HashSet<byte[]> newShapes, FileWriter fw, BitShape shape, int x0, int w, int y0, int h, int z0, int d) {
-        long shapeCount = 0;
+    private static void AddShapes(HashSet<byte[]> newShapes, FileWriter fw, BitShape shape, int x0, int w, int y0, int h, int z0, int d) {
         for (var x = x0; x < w; x++)
             for (var y = y0; y < h; y++)
                 for (var z = z0; z < d; z++)
@@ -220,36 +203,11 @@ public class Program {
                             bool writeShape = false;
                             lock (newShapes) {
                                 writeShape = newShapes.Add(s.bytes);
-                                if (writeShape) shapeCount++;
                             }
                             if (writeShape)
                                 lock (fw)
                                     fw.Write(s.bytes);
                         }
-        return shapeCount;
-    }
-
-    public static long ChiralShapes(IEnumerable<FileScanner.Results> filelist, Stopwatch sw) {
-        long shapeCount = 0;
-        foreach (var r in filelist) {
-            shapeCount += ChiralShapes(r);
-            var ss = "[" + shapeCount + "," + sw.Elapsed.TotalSeconds.ToString("0") + "s]";
-            Console.Write(ss + new string('\b', ss.Length));
-        }
-        return shapeCount;
-    }
-
-    // for each shape in parallel, get its minimum chiral rotation and compare it to
-    // what we started with to see if it should be counted.
-    public static long ChiralShapes(FileScanner.Results file) {
-        long count = 0;
-        byte n = file.n, w = file.w, h = file.h, d = file.d;
-        Parallel.ForEach(LoadShapes(n, w, h, d), (shapeBytes) => {
-            var shape = new BitShape(w, h, d, shapeBytes);
-            var newShape = new BitShape(shape).MinChiralRotation();
-            if (shape.Equals(newShape)) Interlocked.Increment(ref count);
-        });
-        return count;
     }
 }
 
