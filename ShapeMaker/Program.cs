@@ -9,20 +9,21 @@ public class Program {
 
     /*
         Results and timing (in seconds) from 14" 2023 MacBook Pro w/ 96GB 12-core M2 Max, .NET 7 in Release mode
-        n=2, shapes: 1 time: 0.0669563, chiral shapes: 1 time: 0.0008728
-        n=3, shapes: 2 time: 0.002236, chiral shapes: 2 time: 0.025654
-        n=4, shapes: 8 time: 0.0779982, chiral shapes: 7 time: 0.0815542
-        n=5, shapes: 29 time: 0.0410423, chiral shapes: 23 time: 0.0287943
-        n=6, shapes: 166 time: 0.0917942, chiral shapes: 112 time: 0.032371
-        n=7, shapes: 1,023 time: 0.1034941, chiral shapes: 607 time: 0.0179211
-        n=8, shapes: 6,922 time: 0.1850789, chiral shapes: 3,811 time: 0.3223144
-        n=9, shapes: 48,311 time: 0.3982609, chiral shapes: 25,413 time: 0.40237
-        n=10, shapes: 346,543 time: 2.1523452, chiral shapes: 178,083 time: 1.0884017
-        n=11, shapes: 2,522,522 time: 13.9907285, chiral shapes: 1,279,537 time: 7.7011648
-        n=12, shapes: 18,598,427 time: 115.7188455, chiral shapes: 9,371,094 time: 63.3039254
-        n=13, shapes: 138,462,649 time: 1022.8139417, chiral shapes: 69,513,546 time: 560.3390394
-        n=14, shapes: 1,039,496,297 time: 9123.6015745, chiral shapes: 520,878,101 time: 5067.8353845
-        Peak memory usage: ~10GB
+        n=2, shapes: 1, chiral shapes: 1 time: 0.071802
+        n=3, shapes: 2, chiral shapes: 2 time: 0.002224
+        n=4, shapes: 8, chiral shapes: 7 time: 0.0802893
+        n=5, shapes: 29, chiral shapes: 23 time: 0.0306935
+        n=6, shapes: 166, chiral shapes: 112 time: 0.0861341
+        n=7, shapes: 1,023, chiral shapes: 607 time: 0.2358299
+        n=8, shapes: 6,922, chiral shapes: 3,811 time: 0.3127255
+        n=9, shapes: 48,311, chiral shapes: 25,413 time: 0.7920315
+        n=10, shapes: 346,543, chiral shapes: 178,083 time: 4.2821279
+        n=11, shapes: 2,522,522, chiral shapes: 1,279,537 time: 21.4681853
+        n=12, shapes: 18,598,427, chiral shapes: 9,371,094 time: 172.5449822
+        n=13, shapes: 138,462,649, chiral shapes: 69,513,546 time: 1740.2329292
+        n=14, shapes: 1,039,496,297, chiral shapes: 520,878,101 time: 16211.6567239
+        n=15, shapes: 7,859,514,470, chiral shapes: 3,934,285,874 time: 144239.3006667
+        Peak memory usage: ~40GB
      */
 
     // Potential Optimizations / Enhancements:
