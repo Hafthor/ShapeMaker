@@ -28,6 +28,16 @@ public class Program {
 
     // Potential Optimizations / Enhancements:
     // * It would be nice if we could have a % complete rather than just current count showing progress.
+    // * Use shortcut to cound ChiralShapes - we don't need to find the best shape, we just need to know
+    //   if the current shape is the best one.
+    // * Completeness for dimensions files - write to .tmp and rename to .bin when finished
+    // * For n=16 and above, we need to split up work in an efficient way. Essentially, we need to shard
+    //   the work by using a hash of some sort. Ideally the hash would be rotationally independent so we
+    //   wouldn't have to spend the effort of finding the minimal rotation before calculating the hash to
+    //   see if we are actually supposed to work on this shape or not. To that end, recommend we use
+    //   corner and edge counts as a hash. For when we predict calculating shapes for dimensions will use
+    //   more memory than available, we would run 0-N passes, where each pass means new shape has that
+    //   many set corners/edges.
 
     // Potential Features:
     // * Make a 4-D version?
