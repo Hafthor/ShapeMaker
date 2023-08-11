@@ -461,6 +461,15 @@ public class BitShape {
         return best;
     }
 
+    public bool IsMinChiralRotation() {
+        BitShape best = this;
+        foreach (var s in AllMinRotations())
+            foreach (var ss in s.AllMirrors())
+                if (best.CompareTo(ss) > 0)
+                    return false;
+        return true;
+    }
+
     // returns <0 if this is lower than other, 0 if equal, >0 if other is lower
     // assumes equal sizes
     public int CompareTo(BitShape other) {
@@ -473,8 +482,7 @@ public class BitShape {
         return 0;
     }
 
-    public override bool Equals(object? obj)
-    {
+    public override bool Equals(object? obj) {
         return obj != null && obj is BitShape b && w == b.w && h == b.h && d == b.d && bytes.SequenceEqual(b.bytes);
     }
 
@@ -486,5 +494,34 @@ public class BitShape {
             (x + 1 < w && Get(x + 1, y, z)) ||
             (y + 1 < h && Get(x, y + 1, z)) ||
             (z + 1 < d && Get(x, y, z + 1));
+    }
+
+    // returns the number of corners, edges and faces set - this is rotationally independent so can be used
+    // to shard shape work - value returned will be between 0 and 98 for a 5x5x5 shape, for example.
+    public (int corners, int edges, int faces) CornerEdgeFaceCount() {
+        int corners = 0, edges = 0, faces = 0;
+        int bi = 0;
+        byte mask = 1 << 7;
+        int xl = w - 1, yl = h - 1, zl = d - 1;
+        for (int x = 0; x < w; x++) {
+            bool xyes = x == 0 || x == xl;
+            for (int y = 0; y < h; y++) {
+                bool yyes = y == 0 || y == yl;
+                for (int z = 0; z < d; z++) {
+                    bool zyes = z == 0 || z == zl;
+                    if (xyes || yyes || zyes)
+                        if ((bytes[bi] & mask) != 0)
+                            if (xyes && yyes || yyes && zyes || xyes && zyes)
+                                if (!xyes || !yyes || !zyes)
+                                    edges++;
+                                else
+                                    corners++;
+                            else
+                                faces++;
+                    mask >>= 1; if (mask == 0) { mask = 1 << 7; bi++; }
+                }
+            }
+        }
+        return (corners, edges, faces);
     }
 }
