@@ -1,4 +1,6 @@
-﻿namespace ShapeMaker;
+﻿using System.Collections;
+
+namespace ShapeMaker;
 
 /// <summary>
 /// A series of extension methods to byte[] to support 3-D shape opertaions
@@ -476,10 +478,7 @@ public class BitShape {
         int dw = w - other.w; if (dw != 0) return dw;
         int dh = h - other.h; if (dh != 0) return dh;
         int dd = d - other.d; if (dd != 0) return dd;
-        for (int i = 0; i < bytes.Length; i++)
-            if (bytes[i] != other.bytes[i])
-                return bytes[i] - other.bytes[i];
-        return 0;
+        return ((IStructuralComparable)bytes).CompareTo(other.bytes, Comparer<byte>.Default);
     }
 
     public override bool Equals(object? obj) {

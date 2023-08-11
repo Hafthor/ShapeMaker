@@ -29,6 +29,8 @@ public class Program {
 
     // Potential Optimizations / Enhancements:
     // * It would be nice if we could have a % complete rather than just current count showing progress.
+    // * We should skip where corner count>0 and edge count=0 since that's not possible. Likewise with
+    //   edge count>0 and face count=0.
     // * Removing chiral shape calculation for now. Need to add it back in later.
     // * Need to get tests working again. :)
 
