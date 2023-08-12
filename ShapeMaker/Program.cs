@@ -23,7 +23,6 @@ public class Program {
         n=13, shapes: 138,462,649, chiral shapes: 69,513,546 time: 1740.2329292
         n=14, shapes: 1,039,496,297, chiral shapes: 520,878,101 time: 16211.6567239
         n=15, shapes: 7,859,514,470, chiral shapes: 3,934,285,874 time: 144239.3006667
-        n=16, time: 108,290s to 3,3,6
         Peak memory usage: ~40GB
      */
 
@@ -31,6 +30,8 @@ public class Program {
     // * It would be nice if we could have a % complete rather than just current count showing progress.
     // * We should skip where corner count>0 and edge count=0 since that's not possible. Likewise with
     //   edge count>0 and face count=0.
+    // * We could do a counting pass to see how to best partition the data to avoid making a bunch of
+    //   passes that create few or no new polycubes.
     // * Removing chiral shape calculation for now. Need to add it back in later.
     // * Need to get tests working again. :)
 
@@ -141,27 +142,27 @@ public class Program {
             return (h, d, w); // 2,3,1 - yx
     }
 
-    // for each shape in parallel, try to add cube to it
-    // first does by adding cube to the shape in its current size
-    // then tries padding each of the 6 faces of the shape and adding a cube there
     public static long ShapesFromExtendingShapes(IEnumerable<FileScanner.Results> filelist, FileWriter fw, byte w, byte h, byte d, int tcmax) {
         var newShapes = new HashSet<byte[]>(ByteArrayEqualityComparer.Instance);
 
         long shapeCount = 0;
-        foreach (var r in filelist)
-            if (tcmax >= 0)
-                for (int cc = 0; cc <= 8; cc++)
-                    for (int ec = 0; ec <= tcmax - cc; ec++)
-                        for (int fc = 0; fc <= tcmax - cc - ec; fc++) {
-                            ShapesFromExtendingShapes(r, fw, newShapes, w, h, d, cc, ec, fc);
+        if (tcmax >= 0) {
+            int maxInteriorCount = Math.Max(0, w - 2) * Math.Max(0, h - 2) * Math.Max(0, d - 2);
+            for (int cc = 0; cc <= 8; cc++)
+                for (int ec = cc == 0 ? 0 : 1; ec <= tcmax - cc; ec++)
+                    for (int fc = ec == 0 ? 0 : 1; fc <= tcmax - cc - ec; fc++)
+                        if (cc + ec + fc >= tcmax - maxInteriorCount) {
+                            foreach (var r in filelist)
+                                ShapesFromExtendingShapes(r, fw, newShapes, w, h, d, cc, ec, fc);
                             shapeCount += newShapes.LongCount();
                             newShapes.Clear();
                         }
-            else {
+        } else { 
+            foreach (var r in filelist)
                 ShapesFromExtendingShapes(r, fw, newShapes, w, h, d, -1, -1, -1);
-                shapeCount += newShapes.LongCount();
-                newShapes.Clear();
-            }
+            shapeCount += newShapes.LongCount();
+            newShapes.Clear();
+        }
 
         //long chiralCount = 0;
         //Parallel.ForEach(newShapes, (shapeBytes) => {
@@ -172,43 +173,46 @@ public class Program {
         return shapeCount;
     }
 
-    public static void ShapesFromExtendingShapes(FileScanner.Results file, FileWriter fw, HashSet<byte[]> newShapes, byte tw, byte th, byte td, int cc, int ec, int fc) {
+    // for each shape in parallel, try to add cube to it
+    // first does by adding cube to the shape in its current size
+    // then tries padding each of the 6 faces of the shape and adding a cube there
+    public static void ShapesFromExtendingShapes(FileScanner.Results file, FileWriter fw, HashSet<byte[]> newShapes, byte tw, byte th, byte td, int tcc, int tec, int tfc) {
         byte n = file.n, w = file.w, h = file.h, d = file.d;
 
         if (w == tw && h == th && d == td) {
-            if (cc >= 0) Console.Write("*" + cc + "," + Pad2(ec) + "," + Pad2(fc) + "\b\b\b\b\b\b\b\b"); else Console.Write("*\b");
+            if (tcc >= 0) Console.Write("*" + tcc + "," + Pad2(tec) + "," + Pad2(tfc) + "\b\b\b\b\b\b\b\b"); else Console.Write("*\b");
             Parallel.ForEach(LoadShapes(n, w, h, d), (shapeBytes) => {
-                AddShapes(newShapes, fw, new BitShape(w, h, d, shapeBytes), 0, w, 0, h, 0, d, cc, ec, fc); // unpadded
+                AddShapes(newShapes, fw, new BitShape(w, h, d, shapeBytes), 0, w, 0, h, 0, d, tcc, tec, tfc); // unpadded
             });
         }
 
         var (ww, hh, dd) = MinRotation((byte)(w + 1), h, d);
         if (ww == tw && hh == th && dd == td) {
-            if (cc >= 0) Console.Write("|" + cc + "," + Pad2(ec) + "," + Pad2(fc) + "\b\b\b\b\b\b\b\b"); else Console.Write("|\b");
+            if (tcc >= 0) Console.Write("|" + tcc + "," + Pad2(tec) + "," + Pad2(tfc) + "\b\b\b\b\b\b\b\b"); else Console.Write("|\b");
             Parallel.ForEach(LoadShapes(n, w, h, d), (shapeBytes) => {
                 BitShape shape = new BitShape(w, h, d, shapeBytes);
-                AddShapes(newShapes, fw, shape.PadLeft(), 0, 1, 0, h, 0, d, cc, ec, fc);
-                AddShapes(newShapes, fw, shape.PadRight(), w, w + 1, 0, h, 0, d, cc, ec, fc);
+                AddShapes(newShapes, fw, shape.PadLeft(), 0, 1, 0, h, 0, d, tcc, tec, tfc);
+                AddShapes(newShapes, fw, shape.PadRight(), w, w + 1, 0, h, 0, d, tcc, tec, tfc);
             });
         }
 
         (ww, hh, dd) = MinRotation(w, (byte)(h + 1), d);
         if (ww == tw && hh == th && dd == td) {
-            if (cc >= 0) Console.Write("-" + cc + "," + Pad2(ec) + "," + Pad2(fc) + "\b\b\b\b\b\b\b\b"); else Console.Write("-\b");
+            if (tcc >= 0) Console.Write("-" + tcc + "," + Pad2(tec) + "," + Pad2(tfc) + "\b\b\b\b\b\b\b\b"); else Console.Write("-\b");
             Parallel.ForEach(LoadShapes(n, w, h, d), (shapeBytes) => {
                 BitShape shape = new BitShape(w, h, d, shapeBytes);
-                AddShapes(newShapes, fw, shape.PadTop(), 0, w, 0, 1, 0, d, cc, ec, fc);
-                AddShapes(newShapes, fw, shape.PadBottom(), 0, w, h, h + 1, 0, d, cc, ec, fc);
+                AddShapes(newShapes, fw, shape.PadTop(), 0, w, 0, 1, 0, d, tcc, tec, tfc);
+                AddShapes(newShapes, fw, shape.PadBottom(), 0, w, h, h + 1, 0, d, tcc, tec, tfc);
             });
         }
 
         (ww, hh, dd) = MinRotation(w, h, (byte)(d + 1));
         if (ww == tw && hh == th && dd == td) {
-            if (cc >= 0) Console.Write("/" + cc + "," + Pad2(ec) + "," + Pad2(fc) + "\b\b\b\b\b\b\b\b"); else Console.Write("/\b");
+            if (tcc >= 0) Console.Write("/" + tcc + "," + Pad2(tec) + "," + Pad2(tfc) + "\b\b\b\b\b\b\b\b"); else Console.Write("/\b");
             Parallel.ForEach(LoadShapes(n, w, h, d), (shapeBytes) => {
                 BitShape shape = new BitShape(w, h, d, shapeBytes);
-                AddShapes(newShapes, fw, shape.PadFront(), 0, w, 0, h, 0, 1, cc, ec, fc);
-                AddShapes(newShapes, fw, shape.PadBack(), 0, w, 0, h, d, d + 1, cc, ec, fc);
+                AddShapes(newShapes, fw, shape.PadFront(), 0, w, 0, h, 0, 1, tcc, tec, tfc);
+                AddShapes(newShapes, fw, shape.PadBack(), 0, w, 0, h, d, d + 1, tcc, tec, tfc);
             });
         }
     }
@@ -218,14 +222,14 @@ public class Program {
     // for each blank cube from x0 to w, y0 to h, z0 to d, if it has an adjacent neighbor
     // add that cube, find the minimum rotation, and add to the newShapes hash set (under
     // lock since we could be doing this in parallel.)
-    private static void AddShapes(HashSet<byte[]> newShapes, FileWriter fw, BitShape shape, int x0, int w, int y0, int h, int z0, int d, int cc, int ec, int fc) {
-        int c = 0, e = 0, f = 0;
-        if (cc >= 0) {
+    private static void AddShapes(HashSet<byte[]> newShapes, FileWriter fw, BitShape shape, int x0, int w, int y0, int h, int z0, int d, int tcc, int tec, int tfc) {
+        int cc = 0, ec = 0, fc = 0;
+        if (tcc >= 0) {
             var counts = shape.CornerEdgeFaceCount();
-            if (counts.corners > cc || (counts.corners + 1) < cc) return;
-            if (counts.edges > ec || (counts.edges + 1) < ec) return;
-            if (counts.faces > fc || (counts.faces + 1) < fc) return;
-            (c, e, f) = counts;
+            if (counts.corners > tcc || (counts.corners + 1) < tcc) return;
+            if (counts.edges > tec || (counts.edges + 1) < tec) return;
+            if (counts.faces > tfc || (counts.faces + 1) < tfc) return;
+            (cc, ec, fc) = counts;
         }
         int xl = w - 1, yl = h - 1, zl = d - 1;
         for (var x = x0; x < w; x++) {
@@ -233,16 +237,16 @@ public class Program {
             for (var y = y0; y < h; y++) {
                 bool yyes = y == 0 || y == yl;
                 for (var z = z0; z < d; z++) {
-                    if (cc >= 0) {
+                    if (tcc >= 0) {
                         bool zyes = z == 0 || z == zl;
                         bool isInterior = !xyes && !yyes && !zyes;
-                        if (isInterior && (cc != c || ec != e || fc != f)) continue;
+                        if (isInterior && (tcc != cc || tec != ec || tfc != fc)) continue;
                         bool isCorner = xyes && yyes && zyes;
-                        if (isCorner && cc != c + 1) continue;
+                        if (isCorner && tcc != cc + 1) continue;
                         bool isEdge = xyes && yyes || yyes && zyes || xyes && zyes;
-                        if (isEdge && ec != e + 1) continue;
+                        if (isEdge && tec != ec + 1) continue;
                         bool isFace = !isCorner && !isEdge && !isInterior;
-                        if (isFace && fc != f + 1) continue;
+                        if (isFace && tfc != fc + 1) continue;
                     }
                     if (!shape.Get(x, y, z))
                         if (shape.HasSetNeighbor(x, y, z)) {
