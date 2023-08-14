@@ -65,8 +65,8 @@ public class Program {
             var targetSizes = ShapeSizesFromExtendingShapes(list).ToList();
             long shapeCount = 0;
             foreach (var sz in targetSizes) {
-                // if the combined input size is 1GB, for example, the output is likely to be ~8GB, and ~40GB in memory
-                int tcmax = (n >= 14 && sz.sz * 8 * 5 > totalAvailableMemory && sz.w > 1 && sz.h > 1 && sz.d > 1) ? n : -1;
+                // if the combined input size is 1GB, for example, the output is likely to be ~8GB, and ~24GB in memory
+                int tcmax = (n >= 14 && sz.sz * 8 * 3 > totalAvailableMemory && sz.w > 1 && sz.h > 1 && sz.d > 1) ? n : -1;
                 if (FileReader.FileExists(n, sz.w, sz.h, sz.d)) {
                     int bytesPerShape = (sz.w * sz.h * sz.d + 7) / 8;
                     shapeCount += FileReader.FileSize(n, sz.w, sz.h, sz.d) / bytesPerShape;
@@ -84,7 +84,7 @@ public class Program {
             string ss = shapeCount.ToString("N0") + " time: " + sw.Elapsed.TotalSeconds + "      \b\b\b\b\b\b";
             s += ss;
             Console.Write(ss);
-
+            /*
             sw = Stopwatch.StartNew();
             long chiralCount = 0;
             int fi = 0, fl = targetSizes.Count;
@@ -101,7 +101,7 @@ public class Program {
             ss = ", chiral count: " + chiralCount.ToString("N0") + " time: " + sw.Elapsed.TotalSeconds;
             s += ss;
             Console.Write(ss);
-            
+            */
             Console.WriteLine();
             MarkNComplete(n, s);
         }
