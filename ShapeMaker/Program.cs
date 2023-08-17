@@ -142,7 +142,7 @@ public class Program {
                 long chiralCount = 0;
                 int fi = 0, fl = targetSizes.Count;
                 foreach (var f in targetSizes) {
-                    string sss = "$" + ++fi + "/" + fl + "=" + f.w + "x" + f.h + "x" + f.d + "," + chiralCount.ToString("N0") + ", " + sw.Elapsed.TotalSeconds.ToString("N0") + "s   ";
+                    string sss = " " + ++fi + "/" + fl + "=" + f.w + "x" + f.h + "x" + f.d + "," + chiralCount.ToString("N0") + ", " + sw.Elapsed.TotalSeconds.ToString("N0") + "s   ";
                     Console.Write(sss + new string('\b', sss.Length));
                     FileScanner.Results r = new FileScanner.Results() { n = n, w = f.w, h = f.h, d = f.d, ext = Program.FILE_EXT };
                     Parallel.ForEach(LoadShapes(r), (shape) => {
