@@ -6,6 +6,9 @@ public class Program {
     public const string FILE_PATH = "/Users/hafthor/dev/ShapeMaker/";
     public const string FILE_EXT = ".bin";
     public const string FILE_COMPLETE = "_COMPLETE";
+    public const int MAX_COMPUTE_N = 19;
+    public const bool DO_CHIRAL_COUNT = true;
+    public const bool DO_FORCE_RECOMPUTE = false;
 
     /*
         Results and timing (in seconds) from 14" 2023 MacBook Pro w/ 96GB 12-core M2 Max, .NET 7 in Release mode
@@ -24,6 +27,22 @@ public class Program {
         n=14, shapes: 1,039,496,297, chiral shapes: 520,878,101 time: 16211.6567239
         n=15, shapes: 7,859,514,470, chiral shapes: 3,934,285,874 time: 144239.3006667
         Peak memory usage: ~40GB
+
+        n=2, shapes: 1 time: 0.0166472          
+        n=3, shapes: 2 time: 0.001548           
+        n=4, shapes: 8 time: 0.002158           
+        n=5, shapes: 29 time: 0.0018264          
+        n=6, shapes: 166 time: 0.0040883          
+        n=7, shapes: 1,023 time: 0.0072473          
+        n=8, shapes: 6,922 time: 0.0326462          
+        n=9, shapes: 48,311 time: 0.2014176          
+        n=10, shapes: 346,543 time: 1.7254155          
+        n=11, shapes: 2,522,522 time: 13.6087381          
+        n=12, shapes: 18,598,427 time: 110.4653956          
+        n=13, shapes: 138,462,649 time: 1032.2354959           
+        n=14, shapes: 1,039,496,297 time: 12157.5793645           
+        n=15, shapes: 7,859,514,470 time: 123731.0088215
+        Peak memory usage: ~80GB
      */
 
     // Potential Optimizations / Enhancements:
@@ -32,7 +51,6 @@ public class Program {
     //   making a bunch of passes that create few or no new polycubes.
     // * It would be nice if we had a way to capture the time taken for each dimensions
     //   file, so we can stop and resume with the correct timing results.
-    // * Removing chiral shape calculation for now. Need to add it back in later.
 
     // Potential Features:
     // * Make a 4-D version?
@@ -68,7 +86,7 @@ public class Program {
     static void Main(string[] args) {
         var totalAvailableMemory = GC.GetGCMemoryInfo().TotalAvailableMemoryBytes;
 
-        bool recompute = false;
+        bool recompute = DO_FORCE_RECOMPUTE;
 
         string s = NCompleteString(1);
         if (recompute || s == null) {
@@ -78,7 +96,7 @@ public class Program {
             MarkNComplete(1, "n=1, shapes: 1 time: 0"); // ", chiral shapes: 1 time 0");
         }
 
-        for (byte n = 2; n < 20; n++) {
+        for (byte n = 2; n <= MAX_COMPUTE_N; n++) {
             s = NCompleteString(n);
             if (!recompute && s != null) {
                 Console.WriteLine(s);
@@ -105,9 +123,11 @@ public class Program {
                 } else {
                     var ssss = "        " + (tcmax >= 0 ? "/" + tcmax : "") + "[" + shapeCount.ToString("N0") + ", " + sw.Elapsed.TotalSeconds.ToString("N0") + "s, " + sz.w + "x" + sz.h + "x" + sz.d + "]     ";
                     Console.Write(ssss + new string('\b', ssss.Length));
-                    using (var fw = new FileWriter(n, sz.w, sz.h, sz.d)) {
-                        shapeCount += ShapesFromExtendingShapes(list, fw, sz.w, sz.h, sz.d, tcmax);
-                    }
+                    if (n < MAX_COMPUTE_N)
+                        using (var fw = new FileWriter(n, sz.w, sz.h, sz.d))
+                            shapeCount += ShapesFromExtendingShapes(list, fw, sz.w, sz.h, sz.d, tcmax);
+                    else
+                        shapeCount += ShapesFromExtendingShapes(list, null, sz.w, sz.h, sz.d, tcmax);
                 }
                 var sss = "        " + (tcmax >= 0 ? "/" + tcmax : "") + "[" + shapeCount.ToString("N0") + ", " + sw.Elapsed.TotalSeconds.ToString("N0") + "s, " + sz.w + "x" + sz.h + "x" + sz.d + "]     ";
                 Console.Write(sss + new string('\b', sss.Length));
@@ -116,23 +136,25 @@ public class Program {
             string ss = shapeCount.ToString("N0") + " time: " + sw.Elapsed.TotalSeconds + "      \b\b\b\b\b\b";
             s += ss;
             Console.Write(ss);
-            /*
-            sw = Stopwatch.StartNew();
-            long chiralCount = 0;
-            int fi = 0, fl = targetSizes.Count;
-            foreach (var f in targetSizes) {
-                var (w, h, d) = (f.w, f.h, f.d);
-                string sss = " " + ++fi + "/" + fl + "=" + w + "x" + h + "x" + d + "  ";
-                Console.Write(sss + new string('\b', sss.Length));
-                Parallel.ForEach(LoadShapes(n, w, h, d), (shape) => {
-                    if (shape.IsMinChiralRotation()) Interlocked.Increment(ref chiralCount);
-                });
+
+            if (DO_CHIRAL_COUNT) {
+                sw = Stopwatch.StartNew();
+                long chiralCount = 0;
+                int fi = 0, fl = targetSizes.Count;
+                foreach (var f in targetSizes) {
+                    string sss = "$" + ++fi + "/" + fl + "=" + f.w + "x" + f.h + "x" + f.d + "," + chiralCount.ToString("N0") + ", " + sw.Elapsed.TotalSeconds.ToString("N0") + "s   ";
+                    Console.Write(sss + new string('\b', sss.Length));
+                    FileScanner.Results r = new FileScanner.Results() { n = n, w = f.w, h = f.h, d = f.d, ext = Program.FILE_EXT };
+                    Parallel.ForEach(LoadShapes(r), (shape) => {
+                        if (shape.IsMinChiralRotation()) Interlocked.Increment(ref chiralCount);
+                    });
+                }
+                sw.Stop();
+                ss = ", chiral count: " + chiralCount.ToString("N0") + " time: " + sw.Elapsed.TotalSeconds + "    ";
+                s += ss;
+                Console.Write(ss);
             }
-            sw.Stop();
-            ss = ", chiral count: " + chiralCount.ToString("N0") + " time: " + sw.Elapsed.TotalSeconds;
-            s += ss;
-            Console.Write(ss);
-            */
+
             Console.WriteLine();
             MarkNComplete(n, s);
         }
@@ -196,7 +218,7 @@ public class Program {
         if (tcmax < 0) {
             foreach (var r in filelist)
                 ShapesFromExtendingShapes(r, newShapes, w, h, d, -1, -1, -1);
-            foreach (var shape in newShapes) fw.Write(shape);
+            if (fw != null) foreach (var shape in newShapes) fw.Write(shape);
             return newShapes.LongCount();
         }
 
@@ -208,7 +230,7 @@ public class Program {
                     if (cc + ec + fc >= tcmax - maxInteriorCount) {
                         foreach (var r in filelist)
                             ShapesFromExtendingShapes(r, newShapes, w, h, d, cc, ec, fc);
-                        foreach (var shape in newShapes) fw.Write(shape);
+                        if (fw != null) foreach (var shape in newShapes) fw.Write(shape);
                         shapeCount += newShapes.LongCount();
                         newShapes.Clear();
                     }
