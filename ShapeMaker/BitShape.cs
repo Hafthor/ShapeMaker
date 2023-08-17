@@ -3,7 +3,7 @@
 namespace ShapeMaker;
 
 /// <summary>
-/// A series of extension methods to byte[] to support 3-D shape opertaions
+/// Stores a shape of given dimensions with w*h*d bits inside to represent a shape. Supports various 3-D operations on shape.
 /// </summary>
 public class BitShape {
     public readonly byte w, h, d;
@@ -131,7 +131,6 @@ public class BitShape {
 
     private void Swap(int x0, int y0, int z0, int x1, int y1, int z1, int x2, int y2, int z2, int x3, int y3, int z3) {
         // (this[x0, y0, z0], this[x1, y1, z1], this[x2, y2, z2], this[x3, y3, z3]) = (this[x1, y1, z1], this[x2, y2, z2], this[x3, y3, z3], this[x0, y0, z0]);
-        // Pipeline optimized
         int i0 = d * (h * x0 + y0) + z0;
         int i1 = d * (h * x1 + y1) + z1;
         int i2 = d * (h * x2 + y2) + z2;
@@ -159,19 +158,41 @@ public class BitShape {
         if (d == h) { // rotate in-place
             for (int x = 0, h2 = h / 2, yl = h - 1, zl = d - 1; x < w; x++)
                 for (int y = 0, yn = yl; y < h2; y++, yn--)
-                    for (int z = y, zn = zl - y, zm = zn; z < zm; z++, zn--)
-                        Swap(x, y, z, x, zn, y, x, yn, zn, x, z, yn); // (this[x, y, z], this[x, zn, y], this[x, yn, zn], this[x, z, yn]) = (this[x, zn, y], this[x, yn, zn], this[x, z, yn], this[x, y, z]);
+                    for (int z = y, zn = zl - y, zm = zn; z < zm; z++, zn--) {
+                        // Swap(x, y, z, x, zn, y, x, yn, zn, x, z, yn); // (this[x, y, z], this[x, zn, y], this[x, yn, zn], this[x, z, yn]) = (this[x, zn, y], this[x, yn, zn], this[x, z, yn], this[x, y, z]);
+                        int hx = h * x;
+                        int i0 = d * (hx + y) + z;
+                        int i1 = d * (hx + zn) + y;
+                        int i2 = d * (hx + yn) + zn;
+                        int i3 = d * (hx + z) + yn;
+                        int bi0 = Math.DivRem(i0, BITS_PER, out int shr0);
+                        int bi1 = Math.DivRem(i1, BITS_PER, out int shr1);
+                        int bi2 = Math.DivRem(i2, BITS_PER, out int shr2);
+                        int bi3 = Math.DivRem(i3, BITS_PER, out int shr3);
+                        byte mask0 = (byte)(1 << (BITS_PER_MINUS_1 - shr0));
+                        byte mask1 = (byte)(1 << (BITS_PER_MINUS_1 - shr1));
+                        byte mask2 = (byte)(1 << (BITS_PER_MINUS_1 - shr2));
+                        byte mask3 = (byte)(1 << (BITS_PER_MINUS_1 - shr3));
+                        bool t0 = (bytes[bi0] & mask0) != 0;
+                        bool t1 = (bytes[bi1] & mask1) != 0;
+                        bool t2 = (bytes[bi2] & mask2) != 0;
+                        bool t3 = (bytes[bi3] & mask3) != 0;
+                        if (t1) bytes[bi0] |= mask0; else bytes[bi0] &= (byte)(~mask0);
+                        if (t2) bytes[bi1] |= mask1; else bytes[bi1] &= (byte)(~mask1);
+                        if (t3) bytes[bi2] |= mask2; else bytes[bi2] &= (byte)(~mask2);
+                        if (t0) bytes[bi3] |= mask3; else bytes[bi3] &= (byte)(~mask3);
+                    }
             return this;
         }
 
         var newShape = new BitShape(w, d, h);
         byte mask = MASK_FIRST;
         int bi = 0;
-        byte[] bytes = newShape.bytes;
+        byte[] newBytes = newShape.bytes;
         for (int x = 0, yl = h - 1; x < w; x++)
             for (int z = 0; z < d; z++)
                 for (int y = 0, yn = yl; y < h; y++, yn--) {
-                    if (this[x, yn, z]) bytes[bi] |= mask; // newShape[x, z, y] = true;
+                    if (this[x, yn, z]) newBytes[bi] |= mask; // newShape[x, z, y] = true;
                     mask >>= 1; if (mask == 0) { mask = MASK_FIRST; bi++; }
                 }
 
@@ -180,13 +201,37 @@ public class BitShape {
 
     // rotates in-place on X axis by 180º
     public BitShape RotateX2() {
-        for (int x = 0, h2 = h / 2, yl=h-1,zl=d-1; x < w; x++) {
+        for (int x = 0, h2 = h / 2, yl = h - 1, zl = d - 1; x < w; x++) {
             for (int y = 0, yn = yl; y < h2; y++, yn--)
-                for (int z = 0, zn = zl; z < d; z++, zn--)
-                    Swap(x, y, z, x, yn, zn); // (this[x, y, z], this[x, yn, zn]) = (this[x, yn, zn], this[x, y, z]);
+                for (int z = 0, zn = zl; z < d; z++, zn--) {
+                    // Swap(x, y, z, x, yn, zn); // (this[x, y, z], this[x, yn, zn]) = (this[x, yn, zn], this[x, y, z]);
+                    int hx = h * x;
+                    int i0 = d * (hx + y) + z;
+                    int i1 = d * (hx + yn) + zn;
+                    int bi0 = Math.DivRem(i0, BITS_PER, out int shr0);
+                    int bi1 = Math.DivRem(i1, BITS_PER, out int shr1);
+                    byte mask0 = (byte)(1 << (BITS_PER_MINUS_1 - shr0));
+                    byte mask1 = (byte)(1 << (BITS_PER_MINUS_1 - shr1));
+                    bool t0 = (bytes[bi0] & mask0) != 0;
+                    bool t1 = (bytes[bi1] & mask1) != 0;
+                    if (t1) bytes[bi0] |= mask0; else bytes[bi0] &= (byte)(~mask0);
+                    if (t0) bytes[bi1] |= mask1; else bytes[bi1] &= (byte)(~mask1);
+                }
             if (h % 2 == 1)
-                for (int z = 0, zn = d - 1; z < d / 2; z++, zn--)
-                    Swap(x, h2, z, x, h2, zn); // (this[x, h2, z], this[x, h2, zn]) = (this[x, h2, zn], this[x, h2, z]);
+                for (int z = 0, zn = d - 1; z < d / 2; z++, zn--) {
+                    // Swap(x, h2, z, x, h2, zn); // (this[x, h2, z], this[x, h2, zn]) = (this[x, h2, zn], this[x, h2, z]);
+                    int i = d * (h * x + h2);
+                    int i0 = i + z;
+                    int i1 = i + zn;
+                    int bi0 = Math.DivRem(i0, BITS_PER, out int shr0);
+                    int bi1 = Math.DivRem(i1, BITS_PER, out int shr1);
+                    byte mask0 = (byte)(1 << (BITS_PER_MINUS_1 - shr0));
+                    byte mask1 = (byte)(1 << (BITS_PER_MINUS_1 - shr1));
+                    bool t0 = (bytes[bi0] & mask0) != 0;
+                    bool t1 = (bytes[bi1] & mask1) != 0;
+                    if (t1) bytes[bi0] |= mask0; else bytes[bi0] &= (byte)(~mask0);
+                    if (t0) bytes[bi1] |= mask1; else bytes[bi1] &= (byte)(~mask1);
+                }
         }
         return this;
     }
@@ -195,8 +240,19 @@ public class BitShape {
     public BitShape MirrorX() {
         for (int x = 0, w2 = w / 2, xn = w - 1; x < w2; x++, xn--)
             for (int y = 0; y < h; y++)
-                for (int z = 0; z < d; z++)
-                    Swap(x, y, z, xn, y, z); // (this[x, y, z], this[xn, y, z]) = (this[xn, y, z], this[x, y, z]);
+                for (int z = 0; z < d; z++) {
+                    // Swap(x, y, z, xn, y, z); // (this[x, y, z], this[xn, y, z]) = (this[xn, y, z], this[x, y, z]);
+                    int i0 = d * (h * x + y) + z;
+                    int i1 = d * (h * xn + y) + z;
+                    int bi0 = Math.DivRem(i0, BITS_PER, out int shr0);
+                    int bi1 = Math.DivRem(i1, BITS_PER, out int shr1);
+                    byte mask0 = (byte)(1 << (BITS_PER_MINUS_1 - shr0));
+                    byte mask1 = (byte)(1 << (BITS_PER_MINUS_1 - shr1));
+                    bool t0 = (bytes[bi0] & mask0) != 0;
+                    bool t1 = (bytes[bi1] & mask1) != 0;
+                    if (t1) bytes[bi0] |= mask0; else bytes[bi0] &= (byte)(~mask0);
+                    if (t0) bytes[bi1] |= mask1; else bytes[bi1] &= (byte)(~mask1);
+                }
         return this;
     }
 
@@ -205,19 +261,40 @@ public class BitShape {
         if (w == d) { // rotate in-place
             for (int y = 0, d2 = d / 2, zl = d - 1, xl = w - 1; y < h; y++)
                 for (int z = 0, zn = zl; z < d2; z++, zn--)
-                    for (int x = z, xn = xl - z, xm = xn; x < xm; x++, xn--)
-                        Swap(x, y, z, zn, y, x, xn, y, zn, z, y, xn); // (this[x, y, z], this[zn, y, x], this[xn, y, zn], this[z, y, xn]) = (this[zn, y, x], this[xn, y, zn], this[z, y, xn], this[x, y, z]);
+                    for (int x = z, xn = xl - z, xm = xn; x < xm; x++, xn--) {
+                        // Swap(x, y, z, zn, y, x, xn, y, zn, z, y, xn); // (this[x, y, z], this[zn, y, x], this[xn, y, zn], this[z, y, xn]) = (this[zn, y, x], this[xn, y, zn], this[z, y, xn], this[x, y, z]);
+                        int i0 = d * (h * x + y) + z;
+                        int i1 = d * (h * zn + y) + x;
+                        int i2 = d * (h * xn + y) + zn;
+                        int i3 = d * (h * z + y) + xn;
+                        int bi0 = Math.DivRem(i0, BITS_PER, out int shr0);
+                        int bi1 = Math.DivRem(i1, BITS_PER, out int shr1);
+                        int bi2 = Math.DivRem(i2, BITS_PER, out int shr2);
+                        int bi3 = Math.DivRem(i3, BITS_PER, out int shr3);
+                        byte mask0 = (byte)(1 << (BITS_PER_MINUS_1 - shr0));
+                        byte mask1 = (byte)(1 << (BITS_PER_MINUS_1 - shr1));
+                        byte mask2 = (byte)(1 << (BITS_PER_MINUS_1 - shr2));
+                        byte mask3 = (byte)(1 << (BITS_PER_MINUS_1 - shr3));
+                        bool t0 = (bytes[bi0] & mask0) != 0;
+                        bool t1 = (bytes[bi1] & mask1) != 0;
+                        bool t2 = (bytes[bi2] & mask2) != 0;
+                        bool t3 = (bytes[bi3] & mask3) != 0;
+                        if (t1) bytes[bi0] |= mask0; else bytes[bi0] &= (byte)(~mask0);
+                        if (t2) bytes[bi1] |= mask1; else bytes[bi1] &= (byte)(~mask1);
+                        if (t3) bytes[bi2] |= mask2; else bytes[bi2] &= (byte)(~mask2);
+                        if (t0) bytes[bi3] |= mask3; else bytes[bi3] &= (byte)(~mask3);
+                    }
             return this;
         }
 
         var newShape = new BitShape(d, h, w);
         byte mask = MASK_FIRST;
         int bi = 0;
-        byte[] bytes = newShape.bytes;
-        for (int z = 0, xl=w-1; z < d; z++)
+        byte[] newBytes = newShape.bytes;
+        for (int z = 0, xl = w - 1; z < d; z++)
             for (int y = 0; y < h; y++)
                 for (int x = 0, xn = xl; x < w; x++, xn--) {
-                    if (this[xn, y, z]) bytes[bi] |= mask; // newShape[z, y, x] = true;
+                    if (this[xn, y, z]) newBytes[bi] |= mask; // newShape[z, y, x] = true;
                     mask >>= 1; if (mask == 0) { mask = MASK_FIRST; bi++; }
                 }
 
@@ -228,11 +305,34 @@ public class BitShape {
     public BitShape RotateY2() {
         for (int y = 0, w2 = w / 2, zl = d - 1; y < h; y++) {
             for (int x = 0, xn = w - 1; x < w2; x++, xn--)
-                for (int z = 0, zn = zl; z < d; z++, zn--)
-                    Swap(x, y, z, xn, y, zn); // (this[x, y, z], this[xn, y, zn]) = (this[xn, y, zn], this[x, y, z]);
+                for (int z = 0, zn = zl; z < d; z++, zn--) {
+                    // Swap(x, y, z, xn, y, zn); // (this[x, y, z], this[xn, y, zn]) = (this[xn, y, zn], this[x, y, z]);
+                    int i0 = d * (h * x + y) + z;
+                    int i1 = d * (h * xn + y) + zn;
+                    int bi0 = Math.DivRem(i0, BITS_PER, out int shr0);
+                    int bi1 = Math.DivRem(i1, BITS_PER, out int shr1);
+                    byte mask0 = (byte)(1 << (BITS_PER_MINUS_1 - shr0));
+                    byte mask1 = (byte)(1 << (BITS_PER_MINUS_1 - shr1));
+                    bool t0 = (bytes[bi0] & mask0) != 0;
+                    bool t1 = (bytes[bi1] & mask1) != 0;
+                    if (t1) bytes[bi0] |= mask0; else bytes[bi0] &= (byte)(~mask0);
+                    if (t0) bytes[bi1] |= mask1; else bytes[bi1] &= (byte)(~mask1);
+                }
             if (w % 2 == 1)
-                for (int z = 0, zn = zl, d2 = d / 2; z < d2; z++, zn--)
-                    Swap(w2, y, z, w2, y, zn); // (this[w2, y, z], this[w2, y, zn]) = (this[w2, y, zn], this[w2, y, z]);
+                for (int z = 0, zn = zl, d2 = d / 2; z < d2; z++, zn--) {
+                    // Swap(w2, y, z, w2, y, zn); // (this[w2, y, z], this[w2, y, zn]) = (this[w2, y, zn], this[w2, y, z]);
+                    int i = d * (h * w2 + y);
+                    int i0 = i + z;
+                    int i1 = i + zn;
+                    int bi0 = Math.DivRem(i0, BITS_PER, out int shr0);
+                    int bi1 = Math.DivRem(i1, BITS_PER, out int shr1);
+                    byte mask0 = (byte)(1 << (BITS_PER_MINUS_1 - shr0));
+                    byte mask1 = (byte)(1 << (BITS_PER_MINUS_1 - shr1));
+                    bool t0 = (bytes[bi0] & mask0) != 0;
+                    bool t1 = (bytes[bi1] & mask1) != 0;
+                    if (t1) bytes[bi0] |= mask0; else bytes[bi0] &= (byte)(~mask0);
+                    if (t0) bytes[bi1] |= mask1; else bytes[bi1] &= (byte)(~mask1);
+                }
         }
         return this;
     }
@@ -241,8 +341,20 @@ public class BitShape {
     public BitShape MirrorY() {
         for (int x = 0, h2 = h / 2, yl = h - 1; x < w; x++)
             for (int y = 0, yn = yl; y < h2; y++, yn--)
-                for (int z = 0; z < d; z++)
-                    Swap(x, y, z, x, yn, z); // (this[x, y, z], this[x, yn, z]) = (this[x, yn, z], this[x, y, z]);
+                for (int z = 0; z < d; z++) {
+                    // Swap(x, y, z, x, yn, z); // (this[x, y, z], this[x, yn, z]) = (this[x, yn, z], this[x, y, z]);
+                    int hx = h * x;
+                    int i0 = d * (hx + y) + z;
+                    int i1 = d * (hx + yn) + z;
+                    int bi0 = Math.DivRem(i0, BITS_PER, out int shr0);
+                    int bi1 = Math.DivRem(i1, BITS_PER, out int shr1);
+                    byte mask0 = (byte)(1 << (BITS_PER_MINUS_1 - shr0));
+                    byte mask1 = (byte)(1 << (BITS_PER_MINUS_1 - shr1));
+                    bool t0 = (bytes[bi0] & mask0) != 0;
+                    bool t1 = (bytes[bi1] & mask1) != 0;
+                    if (t1) bytes[bi0] |= mask0; else bytes[bi0] &= (byte)(~mask0);
+                    if (t0) bytes[bi1] |= mask1; else bytes[bi1] &= (byte)(~mask1);
+                }
         return this;
     }
 
@@ -251,19 +363,40 @@ public class BitShape {
         if (w == h) { // rotate in-place
             for (int z = 0, h2 = h / 2, xl = w - 1, yl = h - 1; z < d; z++)
                 for (int y = 0, yn = yl; y < h2; y++, yn--)
-                    for (int x = y, xn = xl - y, xm = xn; x < xm; x++, xn--)
-                        Swap(x, y, z, yn, x, z, xn, yn, z, y, xn, z); // (this[x, y, z], this[yn, x, z], this[xn, yn, z], this[y, xn, z]) = (this[yn, x, z], this[xn, yn, z], this[y, xn, z], this[x, y, z]);
+                    for (int x = y, xn = xl - y, xm = xn; x < xm; x++, xn--) {
+                        // Swap(x, y, z, yn, x, z, xn, yn, z, y, xn, z); // (this[x, y, z], this[yn, x, z], this[xn, yn, z], this[y, xn, z]) = (this[yn, x, z], this[xn, yn, z], this[y, xn, z], this[x, y, z]);
+                        int i0 = d * (h * x + y) + z;
+                        int i1 = d * (h * yn + x) + z;
+                        int i2 = d * (h * xn + yn) + z;
+                        int i3 = d * (h * y + xn) + z;
+                        int bi0 = Math.DivRem(i0, BITS_PER, out int shr0);
+                        int bi1 = Math.DivRem(i1, BITS_PER, out int shr1);
+                        int bi2 = Math.DivRem(i2, BITS_PER, out int shr2);
+                        int bi3 = Math.DivRem(i3, BITS_PER, out int shr3);
+                        byte mask0 = (byte)(1 << (BITS_PER_MINUS_1 - shr0));
+                        byte mask1 = (byte)(1 << (BITS_PER_MINUS_1 - shr1));
+                        byte mask2 = (byte)(1 << (BITS_PER_MINUS_1 - shr2));
+                        byte mask3 = (byte)(1 << (BITS_PER_MINUS_1 - shr3));
+                        bool t0 = (bytes[bi0] & mask0) != 0;
+                        bool t1 = (bytes[bi1] & mask1) != 0;
+                        bool t2 = (bytes[bi2] & mask2) != 0;
+                        bool t3 = (bytes[bi3] & mask3) != 0;
+                        if (t1) bytes[bi0] |= mask0; else bytes[bi0] &= (byte)(~mask0);
+                        if (t2) bytes[bi1] |= mask1; else bytes[bi1] &= (byte)(~mask1);
+                        if (t3) bytes[bi2] |= mask2; else bytes[bi2] &= (byte)(~mask2);
+                        if (t0) bytes[bi3] |= mask3; else bytes[bi3] &= (byte)(~mask3);
+                    }
             return this;
         }
 
         var newShape = new BitShape(h, w, d);
         byte mask = MASK_FIRST;
         int bi = 0;
-        byte[] bytes = newShape.bytes;
-        for (int y = 0, xl=w-1; y < h; y++)
+        byte[] newBytes = newShape.bytes;
+        for (int y = 0, xl = w - 1; y < h; y++)
             for (int x = 0, xn = xl; x < w; x++, xn--)
                 for (int z = 0; z < d; z++) {
-                    if (this[xn, y, z]) bytes[bi] |= mask; // newShape[y, x, z] = true;
+                    if (this[xn, y, z]) newBytes[bi] |= mask; // newShape[y, x, z] = true;
                     mask >>= 1; if (mask == 0) { mask = MASK_FIRST; bi++; }
                 }
 
@@ -272,13 +405,36 @@ public class BitShape {
 
     // rotates in-place on Z axis by 180º
     public BitShape RotateZ2() {
-        for (int z = 0, w2 = w / 2,xl=w-1,yl=h-1; z < d; z++) {
+        for (int z = 0, w2 = w / 2, xl = w - 1, yl = h - 1; z < d; z++) {
             for (int x = 0, xn = xl; x < w2; x++, xn--)
-                for (int y = 0, yn = yl; y < h; y++, yn--)
-                    Swap(x, y, z, xn, yn, z); // (this[x, y, z], this[xn, yn, z]) = (this[xn, yn, z], this[x, y, z]);
+                for (int y = 0, yn = yl; y < h; y++, yn--) {
+                    // Swap(x, y, z, xn, yn, z); // (this[x, y, z], this[xn, yn, z]) = (this[xn, yn, z], this[x, y, z]);
+                    int i0 = d * (h * x + y) + z;
+                    int i1 = d * (h * xn + yn) + z;
+                    int bi0 = Math.DivRem(i0, BITS_PER, out int shr0);
+                    int bi1 = Math.DivRem(i1, BITS_PER, out int shr1);
+                    byte mask0 = (byte)(1 << (BITS_PER_MINUS_1 - shr0));
+                    byte mask1 = (byte)(1 << (BITS_PER_MINUS_1 - shr1));
+                    bool t0 = (bytes[bi0] & mask0) != 0;
+                    bool t1 = (bytes[bi1] & mask1) != 0;
+                    if (t1) bytes[bi0] |= mask0; else bytes[bi0] &= (byte)(~mask0);
+                    if (t0) bytes[bi1] |= mask1; else bytes[bi1] &= (byte)(~mask1);
+                }
             if (w % 2 == 1)
-                for (int y = 0, h2=h/2, yn = yl; y < h2; y++, yn--)
-                    Swap(w2, y, z, w2, yn, z); // (this[w2, y, z], this[w2, yn, z]) = (this[w2, yn, z], this[w2, y, z]);
+                for (int y = 0, h2 = h / 2, yn = yl; y < h2; y++, yn--) {
+                    // Swap(w2, y, z, w2, yn, z); // (this[w2, y, z], this[w2, yn, z]) = (this[w2, yn, z], this[w2, y, z]);
+                    int hx = h * w2;
+                    int i0 = d * (hx + y) + z;
+                    int i1 = d * (hx + yn) + z;
+                    int bi0 = Math.DivRem(i0, BITS_PER, out int shr0);
+                    int bi1 = Math.DivRem(i1, BITS_PER, out int shr1);
+                    byte mask0 = (byte)(1 << (BITS_PER_MINUS_1 - shr0));
+                    byte mask1 = (byte)(1 << (BITS_PER_MINUS_1 - shr1));
+                    bool t0 = (bytes[bi0] & mask0) != 0;
+                    bool t1 = (bytes[bi1] & mask1) != 0;
+                    if (t1) bytes[bi0] |= mask0; else bytes[bi0] &= (byte)(~mask0);
+                    if (t0) bytes[bi1] |= mask1; else bytes[bi1] &= (byte)(~mask1);
+                }
         }
         return this;
     }
@@ -287,8 +443,20 @@ public class BitShape {
     public BitShape MirrorZ() {
         for (int x = 0, d2 = d / 2, zl = d - 1; x < w; x++)
             for (int y = 0; y < h; y++)
-                for (int z = 0, zn = zl; z < d2; z++, zn--)
-                    Swap(x, y, z, x, y, zn); // (this[x, y, z], this[x, y, zn]) = (this[x, y, zn], this[x, y, z]);
+                for (int z = 0, zn = zl; z < d2; z++, zn--) {
+                    // Swap(x, y, z, x, y, zn); // (this[x, y, z], this[x, y, zn]) = (this[x, y, zn], this[x, y, z]);
+                    int i = d * (h * x + y);
+                    int i0 = i + z;
+                    int i1 = i + zn;
+                    int bi0 = Math.DivRem(i0, BITS_PER, out int shr0);
+                    int bi1 = Math.DivRem(i1, BITS_PER, out int shr1);
+                    byte mask0 = (byte)(1 << (BITS_PER_MINUS_1 - shr0));
+                    byte mask1 = (byte)(1 << (BITS_PER_MINUS_1 - shr1));
+                    bool t0 = (bytes[bi0] & mask0) != 0;
+                    bool t1 = (bytes[bi1] & mask1) != 0;
+                    if (t1) bytes[bi0] |= mask0; else bytes[bi0] &= (byte)(~mask0);
+                    if (t0) bytes[bi1] |= mask1; else bytes[bi1] &= (byte)(~mask1);
+                }
         return this;
     }
 
@@ -330,6 +498,7 @@ public class BitShape {
         throw new ApplicationException("Unexpected situation");
     }
 
+    // generates all 8 possible rotations for when w, h, and d are unique
     private IEnumerable<BitShape> All8Rotations() {
         yield return this;
         yield return RotateX2();
@@ -342,6 +511,7 @@ public class BitShape {
         RotateZ2(); // restore
     }
 
+    // generates all 16 possible rotations for when h=d but w is different
     private IEnumerable<BitShape> All16RotationsY2Z2() {
         var shape = new BitShape(this);
         foreach (var s in shape.AllRotationsOfX()) yield return s;
@@ -356,6 +526,7 @@ public class BitShape {
         foreach (var s in shape.AllRotationsOfX()) yield return s;
     }
 
+    // generates all 16 possible rotations for when w=h but d is different
     private IEnumerable<BitShape> All16RotationsX2Y2() {
         var shape = new BitShape(this);
         foreach (var s in shape.AllRotationsOfZ()) yield return s;
@@ -370,7 +541,7 @@ public class BitShape {
         foreach (var s in shape.AllRotationsOfZ()) yield return s;
     }
 
-    // generates all 24 possible rotations of this shape
+    // generates all 24 possible rotations of this shape for when w, h and d are the same
     private IEnumerable<BitShape> All24Rotations() {
         var shape = new BitShape(this);
         foreach (var s in shape.AllRotationsOfX()) yield return s;
@@ -470,6 +641,8 @@ public class BitShape {
         return best;
     }
 
+    // check all rotations for each mirrored possibility (8)
+    // to see if current shape is the minimal rotation.
     public bool IsMinChiralRotation() {
         var that = new BitShape(this);
         foreach (var s in AllMinRotations())
@@ -480,7 +653,6 @@ public class BitShape {
     }
 
     // returns <0 if this is lower than other, 0 if equal, >0 if other is lower
-    // assumes equal sizes
     public int CompareTo(BitShape other) {
         if (this == other) return 0;
         int dw = w - other.w; if (dw != 0) return dw;
@@ -494,7 +666,7 @@ public class BitShape {
     }
 
     public bool HasSetNeighbor(int x, int y, int z) {
-        // minor opt: we do easier comparisons first with short-circuiting
+        // minor opt: we do easier comparisons first
         if (x > 0 && this[x - 1, y, z]) return true;
         if (y > 0 && this[x, y - 1, z]) return true;
         if (z > 0 && this[x, y, z - 1]) return true;
@@ -504,8 +676,9 @@ public class BitShape {
         return false;
     }
 
-    // returns the number of corners, edges and faces set - this is rotationally independent so can be used
-    // to shard shape work - value returned will be between 0 and 98 for a 5x5x5 shape, for example.
+    // returns the number of corners, edges and faces set - this is rotationally independent so can be used to shard
+    // shape work without having to find minimal rotation first - values returned will be, for an example 5x5x5 shape:
+    // 0 and 8 for corner count, 0 and 3*12(36) for edge count, 0 and 3*3*6(54) for face count.
     public (int corners, int edges, int faces) CornerEdgeFaceCount() {
         int corners = 0, edges = 0, faces = 0;
         int bi = 0;

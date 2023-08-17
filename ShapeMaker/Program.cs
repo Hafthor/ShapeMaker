@@ -33,9 +33,20 @@ public class Program {
     // * It would be nice if we had a way to capture the time taken for each dimensions
     //   file, so we can stop and resume with the correct timing results.
     // * Removing chiral shape calculation for now. Need to add it back in later.
-    
+
     // Potential Features:
     // * Make a 4-D version?
+
+    // Limits:
+    // Currently limited by RAM because of the need to hashset the shapes to find the unique ones. We
+    // extend this a bit by sharding by the shape dimension first, that is, we find all the shapes of
+    // a particular size together at the same time, even when it means we have to reread source shape
+    // a few times. When it becomes necessary, we also shard it by corner/edge/face counts. This is a
+    // rotationally independent counting process so it is done before finding the minimal rotation.
+    // By sharding by corner count alone, it is estimated that this would extend the maximum effective
+    // memory by a factor of 4. By sharding it also by edges and faces, as we do, it should provide a
+    // further factor of 5 improvement, for a total of 20. This should allow us to easily compute n=16
+    // and possibly n=17 on a 96GB machine.
 
     /// <summary>
     /// How it works:
@@ -48,8 +59,11 @@ public class Program {
     /// to generate all possible targets. When extending a shape, we attempt to extend it within the
     /// bounds of the prior shape, but we also test extending the shape by growing its boundaries. To
     /// scale this, we will, when it looks like the hashset for a specific dimension will exceed the
-    /// host's memory we will shard by shape features that are rotationally indepenedent, such as the
-    /// number of corners, edges, or faces set.
+    /// host's memory, shard by shape features that are rotationally indepenedent, such as the number
+    /// of corners, edges, or faces set.
+    /// Note that this program writes out the shapes it finds as it goes. It is safe to terminate the
+    /// program and run again to resume, although it will not have the correct time elapsed shown in
+    /// that case.
     /// </summary>
     static void Main(string[] args) {
         var totalAvailableMemory = GC.GetGCMemoryInfo().TotalAvailableMemoryBytes;
