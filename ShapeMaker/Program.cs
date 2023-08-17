@@ -123,7 +123,7 @@ public class Program {
                     int bytesPerShape = (sz.w * sz.h * sz.d + 7) / 8;
                     shapeCount += FileReader.FileSize(n, sz.w, sz.h, sz.d) / bytesPerShape;
                 } else {
-                    var ssss = "        " + (tcmax >= 0 ? "/" + tcmax : "") + "[" + shapeCount.ToString("N0") + ", " + sw.Elapsed.TotalSeconds.ToString("N0") + "s, " + sz.w + "x" + sz.h + "x" + sz.d + " " + fi + "/" + fl"]     ";
+                    var ssss = "        " + (tcmax >= 0 ? "/" + tcmax : "") + "[" + shapeCount.ToString("N0") + ", " + sw.Elapsed.TotalSeconds.ToString("N0") + "s, " + sz.w + "x" + sz.h + "x" + sz.d + " " + fi + "/" + fl + "]     ";
                     Console.Write(ssss + new string('\b', ssss.Length));
                     if (n < MAX_COMPUTE_N)
                         using (var fw = new FileWriter(n, sz.w, sz.h, sz.d))
@@ -142,7 +142,7 @@ public class Program {
             if (DO_CHIRAL_COUNT) {
                 sw = Stopwatch.StartNew();
                 long chiralCount = 0;
-                int fi = 0, fl = targetSizes.Count;
+                fi = 0;
                 foreach (var f in targetSizes) {
                     string sss = " " + ++fi + "/" + fl + "=" + f.w + "x" + f.h + "x" + f.d + "," + chiralCount.ToString("N0") + ", " + sw.Elapsed.TotalSeconds.ToString("N0") + "s   ";
                     Console.Write(sss + new string('\b', sss.Length));
