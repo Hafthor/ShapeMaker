@@ -110,6 +110,7 @@ public class Program {
             var list = new FileScanner((byte)(n - 1)).List;
             var targetSizes = ShapeSizesFromExtendingShapes(list).ToList();
             long shapeCount = 0;
+            int fi = 0, fl = targetSizes.Count;
             foreach (var sz in targetSizes) {
                 int tcmax = -1;
                 // if the combined input size is 1GB, for example, the output is likely to be ~8GB, and ~24GB in memory
@@ -117,11 +118,12 @@ public class Program {
                     long inMemSize = sz.sz * 8 * 3;
                     if (inMemSize > totalAvailableMemory) tcmax = n;
                 }
+                fi++;
                 if (FileReader.FileExists(n, sz.w, sz.h, sz.d)) {
                     int bytesPerShape = (sz.w * sz.h * sz.d + 7) / 8;
                     shapeCount += FileReader.FileSize(n, sz.w, sz.h, sz.d) / bytesPerShape;
                 } else {
-                    var ssss = "        " + (tcmax >= 0 ? "/" + tcmax : "") + "[" + shapeCount.ToString("N0") + ", " + sw.Elapsed.TotalSeconds.ToString("N0") + "s, " + sz.w + "x" + sz.h + "x" + sz.d + "]     ";
+                    var ssss = "        " + (tcmax >= 0 ? "/" + tcmax : "") + "[" + shapeCount.ToString("N0") + ", " + sw.Elapsed.TotalSeconds.ToString("N0") + "s, " + sz.w + "x" + sz.h + "x" + sz.d + " " + fi + "/" + fl"]     ";
                     Console.Write(ssss + new string('\b', ssss.Length));
                     if (n < MAX_COMPUTE_N)
                         using (var fw = new FileWriter(n, sz.w, sz.h, sz.d))
@@ -129,7 +131,7 @@ public class Program {
                     else
                         shapeCount += ShapesFromExtendingShapes(list, null, sz.w, sz.h, sz.d, tcmax);
                 }
-                var sss = "        " + (tcmax >= 0 ? "/" + tcmax : "") + "[" + shapeCount.ToString("N0") + ", " + sw.Elapsed.TotalSeconds.ToString("N0") + "s, " + sz.w + "x" + sz.h + "x" + sz.d + "]     ";
+                var sss = "        " + (tcmax >= 0 ? "/" + tcmax : "") + "[" + shapeCount.ToString("N0") + ", " + sw.Elapsed.TotalSeconds.ToString("N0") + "s, " + sz.w + "x" + sz.h + "x" + sz.d + " " + fi + "/" + fl + "]     ";
                 Console.Write(sss + new string('\b', sss.Length));
             }
             sw.Stop();
