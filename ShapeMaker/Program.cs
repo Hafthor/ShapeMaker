@@ -3,7 +3,7 @@
 namespace ShapeMaker;
 
 public class Program {
-    public static readonly string FILE_PATH = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads", "ShapeMaker");
+    public static readonly string FILE_PATH = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "dev", "ShapeMaker2");
     public const string FILE_EXT = ".bin";
     public const string FILE_COMPLETE = "_COMPLETE";
     public const int MAX_COMPUTE_N = 19;
@@ -471,7 +471,8 @@ public class FileWriter : IDisposable {
     public void Write(byte[] shape) {
         if (shape.Length != length) throw new ArgumentOutOfRangeException(nameof(shape), shape.Length, "unexpected shape length - should be " + length);
         if (fs == null)
-            fs = File.Open(path + ".tmp", FileMode.Append);
+            //fs = File.Open(path + ".tmp", FileMode.Append);
+            fs = new FileStream(path + ".tmp", FileMode.Append, FileAccess.Write, FileShare.None, 65536, FileOptions.None);
         fs.Write(shape);
     }
 
@@ -495,7 +496,8 @@ public class FileReader : IDisposable {
     }
 
     public FileReader(int n, int w, int h, int d) {
-        fs = File.OpenRead(Path.Combine(Program.FILE_PATH, n.ToString(), w + "," + h + "," + d + Program.FILE_EXT));
+        fs = new FileStream(Path.Combine(Program.FILE_PATH, n.ToString(), w + "," + h + "," + d + Program.FILE_EXT), FileMode.Open, FileAccess.Read, FileShare.None, 65536, FileOptions.None);
+        //fs = File.OpenRead(Path.Combine(Program.FILE_PATH, n.ToString(), w + "," + h + "," + d + Program.FILE_EXT));
         length = new BitShape((byte)w, (byte)h, (byte)d).bytes.Length;
     }
 
