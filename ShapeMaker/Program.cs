@@ -50,6 +50,23 @@ public class Program {
     //   making a bunch of passes that create few or no new polycubes.
     // * It would be nice if we had a way to capture the time taken for each dimensions
     //   file, so we can stop and resume with the correct timing results.
+    // * Make ultra-specific add-only concurrenthashset implementation to lower locking time, avoid
+    //   having to hash, lower memory usage and make .Add faster.
+    //   Make 16777216 buckets of 1KB pages. Each page holds bytes from value, minus 3 bytes used to
+    //   determine bucket, which in our case would be the last 3 full bit bytes. In the interest of
+    //   speed and simplicity, we would always use the last 4 bytes minus the last byte. .Add would
+    //   first determine bucket, scan bucket for remaining bytes, if found return false, else it
+    //   would lock the bucket, scan any new entries added to the bucket, then add to the bucket and
+    //   return true. Each page would have a bucket page list and a last bucket page entry count.
+    //   For a 3 byte values, the page would just have an empty list of pages allocated to indicate
+    //   presense of value. For smaller values, it would just be value zero-padded for bucket index.
+    //   Here are some dimension and their byte sizes:
+    //
+    //   dimensions bits bytes in-bucket page
+    //   2x2x2        8    1       0        *
+    //   3x3x3       27    4       1     1024
+    //   4x4x4       64    8       5      204
+    //   5x5x5      125   16      11       93
 
     // Potential Features:
     // * Make a 4-D version?
@@ -228,6 +245,7 @@ public class Program {
 
     public static long ShapesFromExtendingShapes(IEnumerable<FileScanner.Results> filelist, FileWriter fw, byte w, byte h, byte d, int tcmax) {
         var newShapes = new HashSet<byte[]>(ByteArrayEqualityComparer.Instance);
+        //var newShapes = new BitShapeHashSet((w * h * d + 7) / 8);
 
         if (tcmax < 0) {
             foreach (var r in filelist)
@@ -377,9 +395,8 @@ public class Program {
                             var newShape = new BitShape(shape);
                             newShape[x, y, z] = true;
                             var s = newShape.MinRotation().bytes;
-                            lock (newShapes) {
-                                newShapes.Add(s);
-                            }
+                            lock (newShapes) newShapes.Add(s);
+                            //newShapes.Add(s);
                         }
                 }
             }
@@ -434,7 +451,7 @@ public class FileScanner {
 }
 
 public class FileWriter : IDisposable {
-    private FileStream fs = null;
+    private FileStream? fs = null;
     private readonly int length;
     private readonly string path;
 
