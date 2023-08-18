@@ -2,6 +2,9 @@
 
 namespace ShapeMaker;
 
+//using MyHashSet = HashSet<byte[]>;
+using MyHashSet = BitShapeHashSet;
+
 public class Program {
     public static readonly string FILE_PATH = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "dev", "ShapeMaker2");
     public const string FILE_EXT = ".bin";
@@ -244,8 +247,8 @@ public class Program {
     }
 
     public static long ShapesFromExtendingShapes(IEnumerable<FileScanner.Results> filelist, FileWriter fw, byte w, byte h, byte d, int tcmax) {
-        var newShapes = new HashSet<byte[]>(ByteArrayEqualityComparer.Instance);
-        //var newShapes = new BitShapeHashSet((w * h * d + 7) / 8);
+        //var newShapes = new HashSet<byte[]>(ByteArrayEqualityComparer.Instance);
+        var newShapes = new BitShapeHashSet((w * h * d + 7) / 8);
 
         if (tcmax < 0) {
             foreach (var r in filelist)
@@ -273,7 +276,7 @@ public class Program {
     // for each shape in parallel, try to add cube to it
     // first does by adding cube to the shape in its current size
     // then tries padding each of the 6 faces of the shape and adding a cube there
-    public static void ShapesFromExtendingShapes(FileScanner.Results file, HashSet<byte[]> newShapes, byte tw, byte th, byte td, int tcc, int tec, int tfc) {
+    public static void ShapesFromExtendingShapes(FileScanner.Results file, MyHashSet newShapes, byte tw, byte th, byte td, int tcc, int tec, int tfc) {
         byte w = file.w, h = file.h, d = file.d;
         int shapeSizeInBytes = new BitShape(w, h, d).bytes.Length;
         long sourceShapes = FileReader.FileSize(file.n, w, h, d) / shapeSizeInBytes;
@@ -364,7 +367,7 @@ public class Program {
     // for each blank cube from x0 to w, y0 to h, z0 to d, if it has an adjacent neighbor
     // add that cube, find the minimum rotation, and add to the newShapes hash set (under
     // lock since we could be doing this in parallel.)
-    private static void AddShapes(HashSet<byte[]> newShapes, BitShape shape, int x0, int w, int y0, int h, int z0, int d, int tcc, int tec, int tfc) {
+    private static void AddShapes(MyHashSet newShapes, BitShape shape, int x0, int w, int y0, int h, int z0, int d, int tcc, int tec, int tfc) {
         int cc = 0, ec = 0, fc = 0;
         if (tcc >= 0) {
             var counts = shape.CornerEdgeFaceCount();
