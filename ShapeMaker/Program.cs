@@ -3,7 +3,7 @@
 namespace ShapeMaker;
 
 public class Program {
-    public const string FILE_PATH = "/Users/hafthor/dev/ShapeMaker2/";
+    public static readonly string FILE_PATH = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads", "ShapeMaker");
     public const string FILE_EXT = ".bin";
     public const string FILE_COMPLETE = "_COMPLETE";
     public const int MAX_COMPUTE_N = 19;
@@ -46,7 +46,6 @@ public class Program {
      */
 
     // Potential Optimizations / Enhancements:
-    // * A % complete rather than just current count showing progress.
     // * We could do a counting pass to see how to best partition the data to avoid
     //   making a bunch of passes that create few or no new polycubes.
     // * It would be nice if we had a way to capture the time taken for each dimensions
@@ -120,7 +119,7 @@ public class Program {
                 }
                 fi++;
                 if (FileReader.FileExists(n, sz.w, sz.h, sz.d)) {
-                    int bytesPerShape = (sz.w * sz.h * sz.d + 7) / 8;
+                    int bytesPerShape = new BitShape(sz.w, sz.h, sz.d).bytes.Length;
                     shapeCount += FileReader.FileSize(n, sz.w, sz.h, sz.d) / bytesPerShape;
                 } else {
                     var ssss = "            " + (tcmax >= 0 ? "/" + tcmax : "") + "[" + shapeCount.ToString("N0") + ", " + sw.Elapsed.TotalSeconds.ToString("N0") + "s, " + sz.w + "x" + sz.h + "x" + sz.d + " " + fi + "/" + fl + "]     ";
@@ -147,7 +146,7 @@ public class Program {
                     string sss = "     " + ++fi + "/" + fl + "=" + f.w + "x" + f.h + "x" + f.d + ", " + chiralCount.ToString("N0") + ", " + sw.Elapsed.TotalSeconds.ToString("N0") + "s   ";
                     Console.Write(sss + new string('\b', sss.Length));
                     FileScanner.Results r = new FileScanner.Results() { n = n, w = f.w, h = f.h, d = f.d, ext = Program.FILE_EXT };
-                    int shapeSizeInBytes = (f.w * f.h * f.d + 7) / 8;
+                    int shapeSizeInBytes = new BitShape(f.w, f.h, f.d).bytes.Length;
                     long sourceShapes = FileReader.FileSize(n, f.w, f.h, f.d) / shapeSizeInBytes;
                     long sourceShapeCount = 0;
                     Parallel.ForEach(LoadShapes(r), (shape) => {
@@ -176,11 +175,11 @@ public class Program {
     }
 
     private static string NCompleteString(int n) {
-        return File.Exists(Program.FILE_PATH + n + "/" + Program.FILE_COMPLETE) ? File.ReadAllText(Program.FILE_PATH + n + "/" + Program.FILE_COMPLETE) : null;
+        return File.Exists(Path.Combine(Program.FILE_PATH, n.ToString(), Program.FILE_COMPLETE)) ? File.ReadAllText(Program.FILE_PATH + n + "/" + Program.FILE_COMPLETE) : null;
     }
 
     private static void MarkNComplete(int n, string s) {
-        File.WriteAllText(Program.FILE_PATH + n + "/" + Program.FILE_COMPLETE, s);
+        File.WriteAllText(Path.Combine(Program.FILE_PATH, n.ToString(), Program.FILE_COMPLETE), s);
     }
 
     private static IEnumerable<BitShape> LoadShapes(FileScanner.Results file) {
@@ -258,7 +257,7 @@ public class Program {
     // then tries padding each of the 6 faces of the shape and adding a cube there
     public static void ShapesFromExtendingShapes(FileScanner.Results file, HashSet<byte[]> newShapes, byte tw, byte th, byte td, int tcc, int tec, int tfc) {
         byte w = file.w, h = file.h, d = file.d;
-        int shapeSizeInBytes = (w * h * d + 7) / 8;
+        int shapeSizeInBytes = new BitShape(w, h, d).bytes.Length;
         long sourceShapes = FileReader.FileSize(file.n, w, h, d) / shapeSizeInBytes;
 
         if (w == tw && h == th && d == td) {
@@ -412,14 +411,14 @@ public class FileScanner {
     public class Results {
         public byte w, h, d, n;
         public required string ext;
-        public string filepath => Program.FILE_PATH + n + "/" + w + "," + h + "," + d + ext;
+        public string filepath => Path.Combine(Program.FILE_PATH, n.ToString(), w + "," + h + "," + d + ext);
         public long size;
     }
 
     public readonly List<Results> List = new();
 
     public FileScanner(byte n, string ext = Program.FILE_EXT) {
-        var di = new DirectoryInfo(Program.FILE_PATH + n);
+        var di = new DirectoryInfo(Path.Combine(Program.FILE_PATH, n.ToString()));
         var files = di.GetFiles("*" + ext).OrderBy(f => f.Length);
         foreach (var file in files) {
             if (file.Name.EndsWith(ext)) {
@@ -440,7 +439,7 @@ public class FileWriter : IDisposable {
     private readonly string path;
 
     public static void Clear(byte n) {
-        var di = new DirectoryInfo(Program.FILE_PATH + n);
+        var di = new DirectoryInfo(Path.Combine(Program.FILE_PATH, n.ToString()));
         if (!di.Exists)
             di.Create();
         else {
@@ -450,13 +449,13 @@ public class FileWriter : IDisposable {
             var list2 = new FileScanner(n, ".tmp").List;
             foreach (var f in list2)
                 File.Delete(f.filepath);
-            if (File.Exists(Program.FILE_PATH + n + "/" + Program.FILE_COMPLETE))
-                File.Delete(Program.FILE_PATH + n + "/" + Program.FILE_COMPLETE);
+            if (File.Exists(Path.Combine(Program.FILE_PATH, n.ToString(), Program.FILE_COMPLETE)))
+                File.Delete(Path.Combine(Program.FILE_PATH, n.ToString(), Program.FILE_COMPLETE));
         }
     }
 
     public static void ClearTmp(byte n) {
-        var di = new DirectoryInfo(Program.FILE_PATH + n);
+        var di = new DirectoryInfo(Path.Combine(Program.FILE_PATH, n.ToString()));
         if (!di.Exists)
             di.Create();
         else
@@ -465,8 +464,8 @@ public class FileWriter : IDisposable {
     }
 
     public FileWriter(int n, int w, int h, int d) {
-        path = Program.FILE_PATH + n + "/" + w + "," + h + "," + d;
-        length = (w * h * d + 7) / 8;
+        path = Path.Combine(Program.FILE_PATH, n.ToString(), w + "," + h + "," + d);
+        length = new BitShape((byte)w, (byte)h, (byte)d).bytes.Length;
     }
 
     public void Write(byte[] shape) {
@@ -487,17 +486,17 @@ public class FileReader : IDisposable {
     private readonly FileStream fs;
     private readonly int length;
 
-    public static bool FileExists(int n, int w, int h, int d) => File.Exists(Program.FILE_PATH + n + "/" + w + "," + h + "," + d + Program.FILE_EXT);
+    public static bool FileExists(int n, int w, int h, int d) => File.Exists(Path.Combine(Program.FILE_PATH, n.ToString(), w + "," + h + "," + d + Program.FILE_EXT));
 
     public static long FileSize(int n, int w, int h, int d) {
-        var fi = new FileInfo(Program.FILE_PATH + n + "/" + w + "," + h + "," + d + Program.FILE_EXT);
+        var fi = new FileInfo(Path.Combine(Program.FILE_PATH, n.ToString(), w + "," + h + "," + d + Program.FILE_EXT));
         if (!fi.Exists) return -1;
         return fi.Length;
     }
 
     public FileReader(int n, int w, int h, int d) {
-        fs = File.OpenRead(Program.FILE_PATH + n + "/" + w + "," + h + "," + d + Program.FILE_EXT);
-        length = (w * h * d + 7) / 8;
+        fs = File.OpenRead(Path.Combine(Program.FILE_PATH, n.ToString(), w + "," + h + "," + d + Program.FILE_EXT));
+        length = new BitShape((byte)w, (byte)h, (byte)d).bytes.Length;
     }
 
     public byte[] Read() {
