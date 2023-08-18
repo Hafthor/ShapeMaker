@@ -175,7 +175,7 @@ public class Program {
     }
 
     private static string NCompleteString(int n) {
-        return File.Exists(Path.Combine(Program.FILE_PATH, n.ToString(), Program.FILE_COMPLETE)) ? File.ReadAllText(Program.FILE_PATH + n + "/" + Program.FILE_COMPLETE) : null;
+        return File.Exists(Path.Combine(Program.FILE_PATH, n.ToString(), Program.FILE_COMPLETE)) ? File.ReadAllText(Path.Combine(Program.FILE_PATH, n.ToString(), Program.FILE_COMPLETE)) : null;
     }
 
     private static void MarkNComplete(int n, string s) {
