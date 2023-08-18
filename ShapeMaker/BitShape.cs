@@ -74,14 +74,14 @@ public class BitShape {
             var bi = d * (h * x + y) + z;
             //var si = Math.DivRem(bi, BITS_PER, out int shr);
             int si = bi >> BITS_SHR, shr = bi & BITS_PER_MINUS_1;
-            byte mask = (byte)(1 << (BITS_PER_MINUS_1 - shr));
+            byte mask = (byte)(MASK_FIRST >> shr);
             return (bytes[si] & mask) != 0;
         }
         set {
             var bi = d * (h * x + y) + z;
             //var di = Math.DivRem(bi, BITS_PER, out int shr);
             int di = bi >> BITS_SHR, shr = bi & BITS_PER_MINUS_1;
-            byte mask = (byte)(1 << (BITS_PER_MINUS_1 - shr));
+            byte mask = (byte)(MASK_FIRST >> shr);
             if (value) bytes[di] |= mask; else bytes[di] &= (byte)~mask;
         }
     }
@@ -126,8 +126,8 @@ public class BitShape {
         //int bi1 = Math.DivRem(i1, BITS_PER, out int shr1);
         int bi0 = i0 >> BITS_SHR, shr0 = i0 & BITS_PER_MINUS_1;
         int bi1 = i1 >> BITS_SHR, shr1 = i1 & BITS_PER_MINUS_1;
-        byte mask0 = (byte)(1 << (BITS_PER_MINUS_1 - shr0));
-        byte mask1 = (byte)(1 << (BITS_PER_MINUS_1 - shr1));
+        byte mask0 = (byte)(MASK_FIRST >> shr0);
+        byte mask1 = (byte)(MASK_FIRST >> shr1);
         bool t0 = (bytes[bi0] & mask0) != 0;
         bool t1 = (bytes[bi1] & mask1) != 0;
         //if (t1) bytes[bi0] |= mask0; else bytes[bi0] &= (byte)(~mask0);
@@ -149,10 +149,10 @@ public class BitShape {
         int bi1 = i1 >> BITS_SHR, shr1 = i1 & BITS_PER_MINUS_1;
         int bi2 = i2 >> BITS_SHR, shr2 = i2 & BITS_PER_MINUS_1;
         int bi3 = i3 >> BITS_SHR, shr3 = i3 & BITS_PER_MINUS_1;
-        byte mask0 = (byte)(1 << (BITS_PER_MINUS_1 - shr0));
-        byte mask1 = (byte)(1 << (BITS_PER_MINUS_1 - shr1));
-        byte mask2 = (byte)(1 << (BITS_PER_MINUS_1 - shr2));
-        byte mask3 = (byte)(1 << (BITS_PER_MINUS_1 - shr3));
+        byte mask0 = (byte)(MASK_FIRST >> shr0);
+        byte mask1 = (byte)(MASK_FIRST >> shr1);
+        byte mask2 = (byte)(MASK_FIRST >> shr2);
+        byte mask3 = (byte)(MASK_FIRST >> shr3);
         bool t0 = (bytes[bi0] & mask0) != 0;
         bool t1 = (bytes[bi1] & mask1) != 0;
         bool t2 = (bytes[bi2] & mask2) != 0;
@@ -183,10 +183,10 @@ public class BitShape {
                         int bi1 = i1 >> BITS_SHR, shr1 = i1 & BITS_PER_MINUS_1;
                         int bi2 = i2 >> BITS_SHR, shr2 = i2 & BITS_PER_MINUS_1;
                         int bi3 = i3 >> BITS_SHR, shr3 = i3 & BITS_PER_MINUS_1;
-                        byte mask0 = (byte)(1 << (BITS_PER_MINUS_1 - shr0));
-                        byte mask1 = (byte)(1 << (BITS_PER_MINUS_1 - shr1));
-                        byte mask2 = (byte)(1 << (BITS_PER_MINUS_1 - shr2));
-                        byte mask3 = (byte)(1 << (BITS_PER_MINUS_1 - shr3));
+                        byte mask0 = (byte)(MASK_FIRST >> shr0);
+                        byte mask1 = (byte)(MASK_FIRST >> shr1);
+                        byte mask2 = (byte)(MASK_FIRST >> shr2);
+                        byte mask3 = (byte)(MASK_FIRST >> shr3);
                         bool t0 = (bytes[bi0] & mask0) != 0;
                         bool t1 = (bytes[bi1] & mask1) != 0;
                         bool t2 = (bytes[bi2] & mask2) != 0;
@@ -226,8 +226,8 @@ public class BitShape {
                     //int bi1 = Math.DivRem(i1, BITS_PER, out int shr1);
                     int bi0 = i0 >> BITS_SHR, shr0 = i0 & BITS_PER_MINUS_1;
                     int bi1 = i1 >> BITS_SHR, shr1 = i1 & BITS_PER_MINUS_1;
-                    byte mask0 = (byte)(1 << (BITS_PER_MINUS_1 - shr0));
-                    byte mask1 = (byte)(1 << (BITS_PER_MINUS_1 - shr1));
+                    byte mask0 = (byte)(MASK_FIRST >> shr0);
+                    byte mask1 = (byte)(MASK_FIRST >> shr1);
                     bool t0 = (bytes[bi0] & mask0) != 0;
                     bool t1 = (bytes[bi1] & mask1) != 0;
                     //if (t1) bytes[bi0] |= mask0; else bytes[bi0] &= (byte)(~mask0);
@@ -244,8 +244,8 @@ public class BitShape {
                     //int bi1 = Math.DivRem(i1, BITS_PER, out int shr1);
                     int bi0 = i0 >> BITS_SHR, shr0 = i0 & BITS_PER_MINUS_1;
                     int bi1 = i1 >> BITS_SHR, shr1 = i1 & BITS_PER_MINUS_1;
-                    byte mask0 = (byte)(1 << (BITS_PER_MINUS_1 - shr0));
-                    byte mask1 = (byte)(1 << (BITS_PER_MINUS_1 - shr1));
+                    byte mask0 = (byte)(MASK_FIRST >> shr0);
+                    byte mask1 = (byte)(MASK_FIRST >> shr1);
                     bool t0 = (bytes[bi0] & mask0) != 0;
                     bool t1 = (bytes[bi1] & mask1) != 0;
                     //if (t1) bytes[bi0] |= mask0; else bytes[bi0] &= (byte)(~mask0);
@@ -268,8 +268,8 @@ public class BitShape {
                     //int bi1 = Math.DivRem(i1, BITS_PER, out int shr1);
                     int bi0 = i0 >> BITS_SHR, shr0 = i0 & BITS_PER_MINUS_1;
                     int bi1 = i1 >> BITS_SHR, shr1 = i1 & BITS_PER_MINUS_1;
-                    byte mask0 = (byte)(1 << (BITS_PER_MINUS_1 - shr0));
-                    byte mask1 = (byte)(1 << (BITS_PER_MINUS_1 - shr1));
+                    byte mask0 = (byte)(MASK_FIRST >> shr0);
+                    byte mask1 = (byte)(MASK_FIRST >> shr1);
                     bool t0 = (bytes[bi0] & mask0) != 0;
                     bool t1 = (bytes[bi1] & mask1) != 0;
                     //if (t1) bytes[bi0] |= mask0; else bytes[bi0] &= (byte)(~mask0);
@@ -298,10 +298,10 @@ public class BitShape {
                         int bi1 = i1 >> BITS_SHR, shr1 = i1 & BITS_PER_MINUS_1;
                         int bi2 = i2 >> BITS_SHR, shr2 = i2 & BITS_PER_MINUS_1;
                         int bi3 = i3 >> BITS_SHR, shr3 = i3 & BITS_PER_MINUS_1;
-                        byte mask0 = (byte)(1 << (BITS_PER_MINUS_1 - shr0));
-                        byte mask1 = (byte)(1 << (BITS_PER_MINUS_1 - shr1));
-                        byte mask2 = (byte)(1 << (BITS_PER_MINUS_1 - shr2));
-                        byte mask3 = (byte)(1 << (BITS_PER_MINUS_1 - shr3));
+                        byte mask0 = (byte)(MASK_FIRST >> shr0);
+                        byte mask1 = (byte)(MASK_FIRST >> shr1);
+                        byte mask2 = (byte)(MASK_FIRST >> shr2);
+                        byte mask3 = (byte)(MASK_FIRST >> shr3);
                         bool t0 = (bytes[bi0] & mask0) != 0;
                         bool t1 = (bytes[bi1] & mask1) != 0;
                         bool t2 = (bytes[bi2] & mask2) != 0;
@@ -340,8 +340,8 @@ public class BitShape {
                     //int bi1 = Math.DivRem(i1, BITS_PER, out int shr1);
                     int bi0 = i0 >> BITS_SHR, shr0 = i0 & BITS_PER_MINUS_1;
                     int bi1 = i1 >> BITS_SHR, shr1 = i1 & BITS_PER_MINUS_1;
-                    byte mask0 = (byte)(1 << (BITS_PER_MINUS_1 - shr0));
-                    byte mask1 = (byte)(1 << (BITS_PER_MINUS_1 - shr1));
+                    byte mask0 = (byte)(MASK_FIRST >> shr0);
+                    byte mask1 = (byte)(MASK_FIRST >> shr1);
                     bool t0 = (bytes[bi0] & mask0) != 0;
                     bool t1 = (bytes[bi1] & mask1) != 0;
                     //if (t1) bytes[bi0] |= mask0; else bytes[bi0] &= (byte)(~mask0);
@@ -358,8 +358,8 @@ public class BitShape {
                     //int bi1 = Math.DivRem(i1, BITS_PER, out int shr1);
                     int bi0 = i0 >> BITS_SHR, shr0 = i0 & BITS_PER_MINUS_1;
                     int bi1 = i1 >> BITS_SHR, shr1 = i1 & BITS_PER_MINUS_1;
-                    byte mask0 = (byte)(1 << (BITS_PER_MINUS_1 - shr0));
-                    byte mask1 = (byte)(1 << (BITS_PER_MINUS_1 - shr1));
+                    byte mask0 = (byte)(MASK_FIRST >> shr0);
+                    byte mask1 = (byte)(MASK_FIRST >> shr1);
                     bool t0 = (bytes[bi0] & mask0) != 0;
                     bool t1 = (bytes[bi1] & mask1) != 0;
                     //if (t1) bytes[bi0] |= mask0; else bytes[bi0] &= (byte)(~mask0);
@@ -383,8 +383,8 @@ public class BitShape {
                     //int bi1 = Math.DivRem(i1, BITS_PER, out int shr1);
                     int bi0 = i0 >> BITS_SHR, shr0 = i0 & BITS_PER_MINUS_1;
                     int bi1 = i1 >> BITS_SHR, shr1 = i1 & BITS_PER_MINUS_1;
-                    byte mask0 = (byte)(1 << (BITS_PER_MINUS_1 - shr0));
-                    byte mask1 = (byte)(1 << (BITS_PER_MINUS_1 - shr1));
+                    byte mask0 = (byte)(MASK_FIRST >> shr0);
+                    byte mask1 = (byte)(MASK_FIRST >> shr1);
                     bool t0 = (bytes[bi0] & mask0) != 0;
                     bool t1 = (bytes[bi1] & mask1) != 0;
                     //if (t1) bytes[bi0] |= mask0; else bytes[bi0] &= (byte)(~mask0);
@@ -413,10 +413,10 @@ public class BitShape {
                         int bi1 = i1 >> BITS_SHR, shr1 = i1 & BITS_PER_MINUS_1;
                         int bi2 = i2 >> BITS_SHR, shr2 = i2 & BITS_PER_MINUS_1;
                         int bi3 = i3 >> BITS_SHR, shr3 = i3 & BITS_PER_MINUS_1;
-                        byte mask0 = (byte)(1 << (BITS_PER_MINUS_1 - shr0));
-                        byte mask1 = (byte)(1 << (BITS_PER_MINUS_1 - shr1));
-                        byte mask2 = (byte)(1 << (BITS_PER_MINUS_1 - shr2));
-                        byte mask3 = (byte)(1 << (BITS_PER_MINUS_1 - shr3));
+                        byte mask0 = (byte)(MASK_FIRST >> shr0);
+                        byte mask1 = (byte)(MASK_FIRST >> shr1);
+                        byte mask2 = (byte)(MASK_FIRST >> shr2);
+                        byte mask3 = (byte)(MASK_FIRST >> shr3);
                         bool t0 = (bytes[bi0] & mask0) != 0;
                         bool t1 = (bytes[bi1] & mask1) != 0;
                         bool t2 = (bytes[bi2] & mask2) != 0;
@@ -455,8 +455,8 @@ public class BitShape {
                     //int bi1 = Math.DivRem(i1, BITS_PER, out int shr1);
                     int bi0 = i0 >> BITS_SHR, shr0 = i0 & BITS_PER_MINUS_1;
                     int bi1 = i1 >> BITS_SHR, shr1 = i1 & BITS_PER_MINUS_1;
-                    byte mask0 = (byte)(1 << (BITS_PER_MINUS_1 - shr0));
-                    byte mask1 = (byte)(1 << (BITS_PER_MINUS_1 - shr1));
+                    byte mask0 = (byte)(MASK_FIRST >> shr0);
+                    byte mask1 = (byte)(MASK_FIRST >> shr1);
                     bool t0 = (bytes[bi0] & mask0) != 0;
                     bool t1 = (bytes[bi1] & mask1) != 0;
                     //if (t1) bytes[bi0] |= mask0; else bytes[bi0] &= (byte)(~mask0);
@@ -473,8 +473,8 @@ public class BitShape {
                     //int bi1 = Math.DivRem(i1, BITS_PER, out int shr1);
                     int bi0 = i0 >> BITS_SHR, shr0 = i0 & BITS_PER_MINUS_1;
                     int bi1 = i1 >> BITS_SHR, shr1 = i1 & BITS_PER_MINUS_1;
-                    byte mask0 = (byte)(1 << (BITS_PER_MINUS_1 - shr0));
-                    byte mask1 = (byte)(1 << (BITS_PER_MINUS_1 - shr1));
+                    byte mask0 = (byte)(MASK_FIRST >> shr0);
+                    byte mask1 = (byte)(MASK_FIRST >> shr1);
                     bool t0 = (bytes[bi0] & mask0) != 0;
                     bool t1 = (bytes[bi1] & mask1) != 0;
                     //if (t1) bytes[bi0] |= mask0; else bytes[bi0] &= (byte)(~mask0);
@@ -498,8 +498,8 @@ public class BitShape {
                     //int bi1 = Math.DivRem(i1, BITS_PER, out int shr1);
                     int bi0 = i0 >> BITS_SHR, shr0 = i0 & BITS_PER_MINUS_1;
                     int bi1 = i1 >> BITS_SHR, shr1 = i1 & BITS_PER_MINUS_1;
-                    byte mask0 = (byte)(1 << (BITS_PER_MINUS_1 - shr0));
-                    byte mask1 = (byte)(1 << (BITS_PER_MINUS_1 - shr1));
+                    byte mask0 = (byte)(MASK_FIRST >> shr0);
+                    byte mask1 = (byte)(MASK_FIRST >> shr1);
                     bool t0 = (bytes[bi0] & mask0) != 0;
                     bool t1 = (bytes[bi1] & mask1) != 0;
                     //if (t1) bytes[bi0] |= mask0; else bytes[bi0] &= (byte)(~mask0);
