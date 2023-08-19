@@ -8,7 +8,7 @@ using MyHashSet = HashSet<byte[]>;
 //using MyHashSet = ConcurrentDictionary<byte[], byte>;
 
 public class Program {
-    public static readonly string FILE_PATH = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads", "ShapeMaker");
+    public static readonly string FILE_PATH = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "dev", "ShapeMaker2");
     public const string FILE_EXT = ".bin";
     public const string FILE_COMPLETE = "_COMPLETE";
     public const int MAX_COMPUTE_N = 19;
@@ -232,15 +232,17 @@ public class Program {
     }
 
     public static long ShapesFromExtendingShapes(IEnumerable<FileScanner.Results> filelist, FileWriter fw, byte w, byte h, byte d, int tcmax) {
-        var newShapes = new HashSet<byte[]>(ByteArrayEqualityComparer.Instance);
+        //var newShapes = new HashSet<byte[]>(ByteArrayEqualityComparer.Instance);
         //var newShapes = new BitShapeHashSet((w * h * d + 7) / 8);
         //var newShapes = new ConcurrentDictionary<byte[], byte>(ByteArrayEqualityComparer.Instance);
+        var newShapes = new HashSet<byte[]>[256];
+        for (int i = 0; i < 256; i++) newShapes[i] = new HashSet<byte[]>(ByteArrayEqualityComparer.Instance);
 
         if (tcmax < 0) {
             foreach (var r in filelist)
                 ShapesFromExtendingShapes(r, newShapes, w, h, d, -1, -1, -1);
-            if (fw != null) foreach (var shape in newShapes) fw.Write(shape);
-            return newShapes.LongCount();
+            if (fw != null) foreach(var hs in newShapes) foreach (var shape in hs) fw.Write(shape);
+            return newShapes.Sum(_ => _.LongCount());
         }
 
         long shapeCount = 0;
@@ -251,9 +253,10 @@ public class Program {
                     if (cc + ec + fc >= tcmax - maxInteriorCount) {
                         foreach (var r in filelist)
                             ShapesFromExtendingShapes(r, newShapes, w, h, d, cc, ec, fc);
-                        if (fw != null) foreach (var shape in newShapes) fw.Write(shape);
-                        shapeCount += newShapes.LongCount();
-                        newShapes.Clear();
+                        if (fw != null) foreach(var hs in newShapes) foreach (var shape in hs) fw.Write(shape);
+                        //shapeCount += newShapes.LongCount();
+                        foreach (var hs in newShapes) { shapeCount += hs.LongCount(); hs.Clear(); }
+                        //newShapes.Clear();
                     }
 
         return shapeCount;
@@ -262,7 +265,7 @@ public class Program {
     // for each shape in parallel, try to add cube to it
     // first does by adding cube to the shape in its current size
     // then tries padding each of the 6 faces of the shape and adding a cube there
-    public static void ShapesFromExtendingShapes(FileScanner.Results file, MyHashSet newShapes, byte tw, byte th, byte td, int tcc, int tec, int tfc) {
+    public static void ShapesFromExtendingShapes(FileScanner.Results file, MyHashSet[] newShapes, byte tw, byte th, byte td, int tcc, int tec, int tfc) {
         byte w = file.w, h = file.h, d = file.d;
         int shapeSizeInBytes = new BitShape(w, h, d).bytes.Length;
         long sourceShapes = FileReader.FileSize(file.n, w, h, d) / shapeSizeInBytes;
@@ -353,7 +356,7 @@ public class Program {
     // for each blank cube from x0 to w, y0 to h, z0 to d, if it has an adjacent neighbor
     // add that cube, find the minimum rotation, and add to the newShapes hash set (under
     // lock since we could be doing this in parallel.)
-    private static void AddShapes(MyHashSet newShapes, BitShape shape, int x0, int w, int y0, int h, int z0, int d, int tcc, int tec, int tfc) {
+    private static void AddShapes(MyHashSet[] newShapes, BitShape shape, int x0, int w, int y0, int h, int z0, int d, int tcc, int tec, int tfc) {
         int cc = 0, ec = 0, fc = 0;
         if (tcc >= 0) {
             var counts = shape.CornerEdgeFaceCount();
@@ -384,9 +387,11 @@ public class Program {
                             var newShape = new BitShape(shape);
                             newShape[x, y, z] = true;
                             var s = newShape.MinRotation().bytes;
-                            lock (newShapes) newShapes.Add(s);
+                            //lock (newShapes) newShapes.Add(s);
                             //newShapes.Add(s);
                             //newShapes.TryAdd(s, 0);
+                            int l = s.Length; byte lfb = l < 3 ? s[0] : s[l - 2];
+                            lock (newShapes[lfb]) newShapes[lfb].Add(s);
                         }
                 }
             }
