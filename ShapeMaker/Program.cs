@@ -6,7 +6,7 @@ namespace ShapeMaker;
 using MyHashSet = BitShapeHashSet;
 
 public class Program {
-    public static readonly string FILE_PATH = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads", "ShapeMaker");
+    public static readonly string FILE_PATH = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "dev", "ShapeMaker");
     public const string FILE_EXT = ".bin";
     public const string FILE_COMPLETE = "_COMPLETE";
     public const int MAX_COMPUTE_N = 19;
@@ -381,8 +381,8 @@ public class Program {
                             var newShape = new BitShape(shape);
                             newShape[x, y, z] = true;
                             var s = newShape.MinRotation().bytes;
-                            lock (newShapes) newShapes.Add(s);
-                            //newShapes.Add(s);
+                            // lock (newShapes) newShapes.Add(s);
+                            newShapes.Add(s);
                         }
                 }
             }
