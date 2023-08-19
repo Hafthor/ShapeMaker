@@ -5,7 +5,7 @@ namespace ShapeMakerTests;
 
 [TestClass]
 public class BitShapeTests {
-    
+
     [TestMethod]
     public void TestHashSetForByteArray() {
         // do hashset of BitArray test
@@ -22,7 +22,7 @@ public class BitShapeTests {
         test2.Add((2, 2));
         Assert.AreEqual(2, test2.Count);
     }
-    
+
     [TestMethod]
     public void TestSerializeDeserialize() {
         var shape = new BitShape("1,1,1,*");
@@ -128,7 +128,7 @@ public class BitShapeTests {
 
         Assert.AreEqual("1,1,2,*.", shape.Serialize());
     }
-    
+
     [TestMethod]
     public void TestInPlaceRotateXMini() {
         var shape = new BitShape("1,3,3,.** .** ...");
@@ -148,8 +148,8 @@ public class BitShapeTests {
         // ijkl    kgc
         //         lhd
         var shape = new BitShape(2, 3, 4);
-        shape[0, 0, 0]= true;
-        shape[1, 1, 1]= true;
+        shape[0, 0, 0] = true;
+        shape[1, 1, 1] = true;
         var newShape = shape.RotateX();
         Assert.IsFalse(object.ReferenceEquals(shape, newShape));
         Assert.AreEqual(2, newShape.w);
@@ -176,8 +176,8 @@ public class BitShapeTests {
         // pqrst    jihgf
         // uvwxy    edcba
         var shape = new BitShape(2, 5, 5);
-        shape[0, 0, 0]=true;
-        shape[1, 1, 1]=true;
+        shape[0, 0, 0] = true;
+        shape[1, 1, 1] = true;
         var newShape = shape.RotateX2(); // should rotate in-place
         Assert.IsTrue(object.ReferenceEquals(shape, newShape));
 
@@ -194,8 +194,8 @@ public class BitShapeTests {
     [TestMethod]
     public void TestInPlaceMirrorX() {
         var shape = new BitShape(2, 5, 5);
-        shape[0, 0, 0]= true;
-        shape[1, 1, 1]= true;
+        shape[0, 0, 0] = true;
+        shape[1, 1, 1] = true;
         var newShape = shape.MirrorX(); // should mirror in-place
         Assert.IsTrue(object.ReferenceEquals(shape, newShape));
 

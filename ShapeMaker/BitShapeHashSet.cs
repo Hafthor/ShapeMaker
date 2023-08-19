@@ -34,7 +34,7 @@ public class BitShapeHashSet : IEnumerable<byte[]> {
 
     // this cannot be easily changed - lots of the code depends on this specific value
     // might be able to change it to 65536 without too much effort.
-    private const int NUMBER_OF_BUCKETS = 16777216; 
+    private const int NUMBER_OF_BUCKETS = 16777216;
 
     public BitShapeHashSet(int bytesLength) {
         this.bytesLength = bytesLength; // number of bytes in each entry
@@ -42,7 +42,7 @@ public class BitShapeHashSet : IEnumerable<byte[]> {
         bytesStored = Math.Max(0, bytesLength - 3); // number of bytes actually stored in the bucket pages per entry
         hashIndex = Math.Max(0, bytesLength - 4); // start index of bytes in entry to be used as bucket index
 
-        switch(bytesLength) {
+        switch (bytesLength) {
             case < 1:
                 throw new ArgumentOutOfRangeException(nameof(bytesLength), bytesLength, "range 1 to " + PAGE_SIZE);
             case > PAGE_SIZE:
@@ -70,7 +70,7 @@ public class BitShapeHashSet : IEnumerable<byte[]> {
     }
 
     public void Clear() {
-        switch(bytesLength) {
+        switch (bytesLength) {
             case 1:
             case 2:
             case 3:
@@ -140,7 +140,7 @@ public class BitShapeHashSet : IEnumerable<byte[]> {
                         }
                     }
                     if (bucket.pages == null) {
-                        lock(bucket) {
+                        lock (bucket) {
                             if (bucket.pages == null) bucket.pages = new List<byte[]>(1) { new byte[256 / 8] };
                         }
                     }

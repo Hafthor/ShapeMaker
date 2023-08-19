@@ -4,19 +4,19 @@ namespace ShapeMakerTests;
 
 [TestClass]
 public class BitShapeHashSetTests {
-	[TestMethod]
-	public void OneByteHashSet() {
-		var r = new Random();
-		var ra = Enumerable.Range(0, 256).Select(_ => (byte)r.Next(256)).ToList();
-		var rs = new HashSet<byte>();
-		var bshs = new BitShapeHashSet(1);
+    [TestMethod]
+    public void OneByteHashSet() {
+        var r = new Random();
+        var ra = Enumerable.Range(0, 256).Select(_ => (byte)r.Next(256)).ToList();
+        var rs = new HashSet<byte>();
+        var bshs = new BitShapeHashSet(1);
 
-		foreach (var v in ra)
-			Assert.AreEqual(rs.Add(v), bshs.Add(new byte[] { v }));
+        foreach (var v in ra)
+            Assert.AreEqual(rs.Add(v), bshs.Add(new byte[] { v }));
 
-		foreach (var ba in bshs)
+        foreach (var ba in bshs)
             Assert.IsTrue(rs.Remove(ba[0]));
-		Assert.AreEqual(0, rs.Count);
+        Assert.AreEqual(0, rs.Count);
 
         // test parallel operations
         // note would have been possible for this test to fail if two threads are both working with the same
@@ -33,13 +33,13 @@ public class BitShapeHashSetTests {
                 Assert.AreEqual(added, bshs.Add(new byte[] { v }));
             }
         });
-        foreach(var ba in bshs)
+        foreach (var ba in bshs)
             Assert.IsTrue(rs.Remove(ba[0]));
         Assert.AreEqual(0, rs.Count);
-	}
+    }
 
-	[TestMethod]
-	public void TwoByteHashSet() {
+    [TestMethod]
+    public void TwoByteHashSet() {
         var r = new Random();
         var ra = Enumerable.Range(0, 65536).Select(_ => (ushort)r.Next(65536)).ToList();
         var rs = new HashSet<ushort>();
@@ -49,7 +49,7 @@ public class BitShapeHashSetTests {
             Assert.AreEqual(rs.Add(v), bshs.Add(new byte[] { (byte)(v >> 8), (byte)v }));
 
         foreach (var ba in bshs)
-			Assert.IsTrue(rs.Remove((ushort)((ba[0] << 8) + ba[1])));
+            Assert.IsTrue(rs.Remove((ushort)((ba[0] << 8) + ba[1])));
         Assert.AreEqual(0, rs.Count);
 
         // test parallel operations
@@ -72,7 +72,7 @@ public class BitShapeHashSetTests {
         Assert.AreEqual(0, rs.Count);
     }
 
-	[TestMethod]
+    [TestMethod]
     public void ThreeByteHashSet() {
         var r = new Random();
         var ra = Enumerable.Range(0, 65280).Select(_ => r.Next(65280) * 257).ToList();
@@ -185,7 +185,7 @@ public class BitShapeHashSetTests {
 
         foreach (var v in ra)
             Assert.AreEqual(rs.Add(v), bshs.Add(new byte[] { (byte)(v >> 40), (byte)(v >> 32), (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
-        
+
         foreach (var ba in bshs)
             Assert.IsTrue(rs.Remove(((long)ba[0] << 40) + ((long)ba[1] << 32) + ((long)ba[2] << 24) + (ba[3] << 16) + (ba[4] << 8) + ba[5]));
         Assert.AreEqual(0, rs.Count);
@@ -197,7 +197,7 @@ public class BitShapeHashSetTests {
 
         foreach (var v in ra2)
             Assert.AreEqual(rs.Add(v), bshs.Add(new byte[] { (byte)(v >> 40), (byte)(v >> 32), (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
-        
+
         foreach (var ba in bshs)
             Assert.IsTrue(rs.Remove(((long)ba[0] << 40) + ((long)ba[1] << 32) + ((long)ba[2] << 24) + (ba[3] << 16) + (ba[4] << 8) + ba[5]));
         Assert.AreEqual(0, rs.Count);
@@ -240,4 +240,3 @@ public class BitShapeHashSetTests {
         Assert.AreEqual(0, rs.Count);
     }
 }
-

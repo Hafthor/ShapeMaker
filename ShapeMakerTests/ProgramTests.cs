@@ -7,8 +7,8 @@ namespace ShapeMakerTests;
 
 [TestClass]
 public class ProgramTests {
-	[TestMethod]
-	public void TestPolycubes() {
+    [TestMethod]
+    public void TestPolycubes() {
         // ref: https://en.wikipedia.org/wiki/Polycube
         /*
         var shapes1 = new HashSet<byte[]>() { Encoding.UTF8.GetBytes("1,1,1,1") };
