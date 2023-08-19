@@ -7,7 +7,7 @@ public class BitShapeHashSetTests {
 	[TestMethod]
 	public void OneByteHashSet() {
 		var r = new Random();
-		var ra = Enumerable.Range(0, 256).Select(_ => (byte)r.Next(256));
+		var ra = Enumerable.Range(0, 256).Select(_ => (byte)r.Next(256)).ToList();
 		var rs = new HashSet<byte>();
 		var bshs = new BitShapeHashSet(1);
 
@@ -19,11 +19,19 @@ public class BitShapeHashSetTests {
 		Assert.AreEqual(0, rs.Count);
 
         // test parallel operations
+        // note would have been possible for this test to fail if two threads are both working with the same
+        // number and thread A executes just the rs.Add, then thread B executes the whole test. It will fail
+        // since rs already had the value, while the BitShapeHashSet did not. In order to safe guard against
+        // this we need an object for each element in ra that we can place a lock on.
+        var lo = new Dictionary<byte, object>();
+        foreach (var v in ra) if (!lo.ContainsKey(v)) lo.Add(v, new object());
         rs.Clear();
         bshs.Clear();
         Parallel.ForEach(ra, v => {
-            bool added; lock (rs) added = rs.Add(v);
-            Assert.AreEqual(added, bshs.Add(new byte[] { v }));
+            lock (lo[v]) {
+                bool added; lock (rs) added = rs.Add(v);
+                Assert.AreEqual(added, bshs.Add(new byte[] { v }));
+            }
         });
         foreach(var ba in bshs)
             Assert.IsTrue(rs.Remove(ba[0]));
@@ -33,7 +41,7 @@ public class BitShapeHashSetTests {
 	[TestMethod]
 	public void TwoByteHashSet() {
         var r = new Random();
-        var ra = Enumerable.Range(0, 65536).Select(_ => (ushort)r.Next(65536));
+        var ra = Enumerable.Range(0, 65536).Select(_ => (ushort)r.Next(65536)).ToList();
         var rs = new HashSet<ushort>();
         var bshs = new BitShapeHashSet(2);
 
@@ -45,11 +53,19 @@ public class BitShapeHashSetTests {
         Assert.AreEqual(0, rs.Count);
 
         // test parallel operations
+        // note would have been possible for this test to fail if two threads are both working with the same
+        // number and thread A executes just the rs.Add, then thread B executes the whole test. It will fail
+        // since rs already had the value, while the BitShapeHashSet did not. In order to safe guard against
+        // this we need an object for each element in ra that we can place a lock on.
+        var lo = new Dictionary<ushort, object>();
+        foreach (var v in ra) if (!lo.ContainsKey(v)) lo.Add(v, new object());
         rs.Clear();
         bshs.Clear();
         Parallel.ForEach(ra, v => {
-            bool added; lock (rs) added = rs.Add(v);
-            Assert.AreEqual(added, bshs.Add(new byte[] { (byte)(v >> 8), (byte)v }));
+            lock (lo[v]) {
+                bool added; lock (rs) added = rs.Add(v);
+                Assert.AreEqual(added, bshs.Add(new byte[] { (byte)(v >> 8), (byte)v }));
+            }
         });
         foreach (var ba in bshs)
             Assert.IsTrue(rs.Remove((ushort)((ba[0] << 8) + ba[1])));
@@ -59,7 +75,7 @@ public class BitShapeHashSetTests {
 	[TestMethod]
     public void ThreeByteHashSet() {
         var r = new Random();
-        var ra = Enumerable.Range(0, 65280).Select(_ => r.Next(65280) * 257);
+        var ra = Enumerable.Range(0, 65280).Select(_ => r.Next(65280) * 257).ToList();
         var rs = new HashSet<int>();
         var bshs = new BitShapeHashSet(3);
 
@@ -71,11 +87,19 @@ public class BitShapeHashSetTests {
         Assert.AreEqual(0, rs.Count);
 
         // test parallel operations
+        // note would have been possible for this test to fail if two threads are both working with the same
+        // number and thread A executes just the rs.Add, then thread B executes the whole test. It will fail
+        // since rs already had the value, while the BitShapeHashSet did not. In order to safe guard against
+        // this we need an object for each element in ra that we can place a lock on.
+        var lo = new Dictionary<int, object>();
+        foreach (var v in ra) if (!lo.ContainsKey(v)) lo.Add(v, new object());
         rs.Clear();
         bshs.Clear();
         Parallel.ForEach(ra, v => {
-            bool added; lock (rs) added = rs.Add(v);
-            Assert.AreEqual(added, bshs.Add(new byte[] { (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
+            lock (lo[v]) {
+                bool added; lock (rs) added = rs.Add(v);
+                Assert.AreEqual(added, bshs.Add(new byte[] { (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
+            }
         });
         foreach (var ba in bshs)
             Assert.IsTrue(rs.Remove((ba[0] << 16) + (ba[1] << 8) + ba[2]));
@@ -85,7 +109,7 @@ public class BitShapeHashSetTests {
     [TestMethod]
     public void FourByteHashSet() {
         var r = new Random();
-        var ra = Enumerable.Range(0, 65535).Select(_ => (uint)r.Next(65535) * 65537u);
+        var ra = Enumerable.Range(0, 65535).Select(_ => (uint)r.Next(65535) * 65537u).ToList();
         var rs = new HashSet<uint>();
         var bshs = new BitShapeHashSet(4);
 
@@ -97,11 +121,19 @@ public class BitShapeHashSetTests {
         Assert.AreEqual(0, rs.Count);
 
         // test parallel operations
+        // note would have been possible for this test to fail if two threads are both working with the same
+        // number and thread A executes just the rs.Add, then thread B executes the whole test. It will fail
+        // since rs already had the value, while the BitShapeHashSet did not. In order to safe guard against
+        // this we need an object for each element in ra that we can place a lock on.
+        var lo = new Dictionary<uint, object>();
+        foreach (var v in ra) if (!lo.ContainsKey(v)) lo.Add(v, new object());
         rs.Clear();
         bshs.Clear();
         Parallel.ForEach(ra, v => {
-            bool added; lock (rs) added = rs.Add(v);
-            Assert.AreEqual(added, bshs.Add(new byte[] { (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
+            lock (lo[v]) {
+                bool added; lock (rs) added = rs.Add(v);
+                Assert.AreEqual(added, bshs.Add(new byte[] { (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
+            }
         });
 
         foreach (var ba in bshs)
@@ -112,7 +144,7 @@ public class BitShapeHashSetTests {
     [TestMethod]
     public void FiveByteHashSet() {
         var r = new Random();
-        var ra = Enumerable.Range(0, 65535).Select(_ => r.Next(65535) * 65280L * 257L);
+        var ra = Enumerable.Range(0, 65535).Select(_ => r.Next(65535) * 65280L * 257L).ToList();
         var rs = new HashSet<long>();
         var bshs = new BitShapeHashSet(5);
 
@@ -124,11 +156,19 @@ public class BitShapeHashSetTests {
         Assert.AreEqual(0, rs.Count);
 
         // test parallel operations
+        // note would have been possible for this test to fail if two threads are both working with the same
+        // number and thread A executes just the rs.Add, then thread B executes the whole test. It will fail
+        // since rs already had the value, while the BitShapeHashSet did not. In order to safe guard against
+        // this we need an object for each element in ra that we can place a lock on.
+        var lo = new Dictionary<long, object>();
+        foreach (var v in ra) if (!lo.ContainsKey(v)) lo.Add(v, new object());
         rs.Clear();
         bshs.Clear();
         Parallel.ForEach(ra, v => {
-            bool added; lock (rs) added = rs.Add(v);
-            Assert.AreEqual(added, bshs.Add(new byte[] { (byte)(v >> 32), (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
+            lock (lo[v]) {
+                bool added; lock (rs) added = rs.Add(v);
+                Assert.AreEqual(added, bshs.Add(new byte[] { (byte)(v >> 32), (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
+            }
         });
 
         foreach (var ba in bshs)
@@ -139,7 +179,7 @@ public class BitShapeHashSetTests {
     [TestMethod]
     public void SixByteHashSet() {
         var r = new Random();
-        var ra = Enumerable.Range(0, 65535).Select(_ => r.Next(65535) * 65535L * 65537L);
+        var ra = Enumerable.Range(0, 65535).Select(_ => r.Next(65535) * 65535L * 65537L).ToList();
         var rs = new HashSet<long>();
         var bshs = new BitShapeHashSet(6);
 
@@ -151,7 +191,7 @@ public class BitShapeHashSetTests {
         Assert.AreEqual(0, rs.Count);
 
         // test overloading a page
-        var ra2 = Enumerable.Range(0, 65535).Select(_ => (long)r.Next(65535) << 24);
+        var ra2 = Enumerable.Range(0, 65535).Select(_ => (long)r.Next(65535) << 24).ToList();
         rs.Clear();
         bshs.Clear();
 
@@ -163,11 +203,19 @@ public class BitShapeHashSetTests {
         Assert.AreEqual(0, rs.Count);
 
         // test parallel operations
+        // note would have been possible for this test to fail if two threads are both working with the same
+        // number and thread A executes just the rs.Add, then thread B executes the whole test. It will fail
+        // since rs already had the value, while the BitShapeHashSet did not. In order to safe guard against
+        // this we need an object for each element in ra that we can place a lock on.
+        var lo = new Dictionary<long, object>();
+        foreach (var v in ra) if (!lo.ContainsKey(v)) lo.Add(v, new object());
         rs.Clear();
         bshs.Clear();
         Parallel.ForEach(ra, v => {
-            bool added; lock (rs) added = rs.Add(v);
-            Assert.AreEqual(added, bshs.Add(new byte[] { (byte)(v >> 40), (byte)(v >> 32), (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
+            lock (lo[v]) {
+                bool added; lock (rs) added = rs.Add(v);
+                Assert.AreEqual(added, bshs.Add(new byte[] { (byte)(v >> 40), (byte)(v >> 32), (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
+            }
         });
 
         foreach (var ba in bshs)
@@ -175,12 +223,16 @@ public class BitShapeHashSetTests {
         Assert.AreEqual(0, rs.Count);
 
         // test overloading a page
+        var lo2 = new Dictionary<long, object>();
+        foreach (var v in ra2) if (!lo2.ContainsKey(v)) lo2.Add(v, new object());
         rs.Clear();
         bshs.Clear();
 
         Parallel.ForEach(ra2, v => {
-            bool added; lock (rs) added = rs.Add(v);
-            Assert.AreEqual(added, bshs.Add(new byte[] { (byte)(v >> 40), (byte)(v >> 32), (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
+            lock (lo2[v]) {
+                bool added; lock (rs) added = rs.Add(v);
+                Assert.AreEqual(added, bshs.Add(new byte[] { (byte)(v >> 40), (byte)(v >> 32), (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
+            }
         });
 
         foreach (var ba in bshs)
