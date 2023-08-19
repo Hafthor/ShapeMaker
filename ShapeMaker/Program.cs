@@ -1,12 +1,14 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 
 namespace ShapeMaker;
 
-//using MyHashSet = HashSet<byte[]>;
-using MyHashSet = BitShapeHashSet;
+using MyHashSet = HashSet<byte[]>;
+//using MyHashSet = BitShapeHashSet;
+//using MyHashSet = ConcurrentDictionary<byte[], byte>;
 
 public class Program {
-    public static readonly string FILE_PATH = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "dev", "ShapeMaker");
+    public static readonly string FILE_PATH = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads", "ShapeMaker");
     public const string FILE_EXT = ".bin";
     public const string FILE_COMPLETE = "_COMPLETE";
     public const int MAX_COMPUTE_N = 19;
@@ -115,9 +117,9 @@ public class Program {
             int fi = 0, fl = targetSizes.Count;
             foreach (var sz in targetSizes) {
                 int tcmax = -1;
-                // if the combined input size is 1GB, for example, the output is likely to be ~8GB, and ~8GB in memory
+                // if the combined input size is 1GB, for example, the output is likely to be ~8GB, and ~24GB in memory
                 if (n >= 14 && sz.w > 1 && sz.h > 1 && sz.d > 1) {
-                    long inMemSize = sz.sz * 8;
+                    long inMemSize = sz.sz * 8 * 3;
                     if (inMemSize > totalAvailableMemory) tcmax = n;
                 }
                 fi++;
@@ -230,8 +232,9 @@ public class Program {
     }
 
     public static long ShapesFromExtendingShapes(IEnumerable<FileScanner.Results> filelist, FileWriter fw, byte w, byte h, byte d, int tcmax) {
-        //var newShapes = new HashSet<byte[]>(ByteArrayEqualityComparer.Instance);
-        var newShapes = new BitShapeHashSet((w * h * d + 7) / 8);
+        var newShapes = new HashSet<byte[]>(ByteArrayEqualityComparer.Instance);
+        //var newShapes = new BitShapeHashSet((w * h * d + 7) / 8);
+        //var newShapes = new ConcurrentDictionary<byte[], byte>(ByteArrayEqualityComparer.Instance);
 
         if (tcmax < 0) {
             foreach (var r in filelist)
@@ -274,7 +277,7 @@ public class Program {
                     int perc = (int)(oldShapeCount * 100 / sourceShapes);
                     int perc2 = (int)(newShapeCount * 100 / sourceShapes);
                     if (perc < perc2) {
-                        var s = "* " + perc2 + "% ";
+                        var s = "*" + perc2 + "%";
                         lock (file) Console.Write(s + new string('\b', s.Length));
                     }
                 }
@@ -293,7 +296,7 @@ public class Program {
                     int perc = (int)(oldShapeCount * 100 / sourceShapes);
                     int perc2 = (int)(newShapeCount * 100 / sourceShapes);
                     if (perc < perc2) {
-                        var s = "| " + perc2 + "% ";
+                        var s = "|" + perc2 + "%";
                         lock (file) Console.Write(s + new string('\b', s.Length));
                     }
                 }
@@ -313,7 +316,7 @@ public class Program {
                     int perc = (int)(oldShapeCount * 100 / sourceShapes);
                     int perc2 = (int)(newShapeCount * 100 / sourceShapes);
                     if (perc < perc2) {
-                        var s = "- " + perc2 + "% ";
+                        var s = "-" + perc2 + "%";
                         lock (file) Console.Write(s + new string('\b', s.Length));
                     }
                 }
@@ -333,7 +336,7 @@ public class Program {
                     int perc = (int)(oldShapeCount * 100 / sourceShapes);
                     int perc2 = (int)(newShapeCount * 100 / sourceShapes);
                     if (perc < perc2) {
-                        var s = "/ " + perc2 + "% ";
+                        var s = "/" + perc2 + "%";
                         lock (file) Console.Write(s + new string('\b', s.Length));
                     }
                 }
@@ -381,8 +384,9 @@ public class Program {
                             var newShape = new BitShape(shape);
                             newShape[x, y, z] = true;
                             var s = newShape.MinRotation().bytes;
-                            // lock (newShapes) newShapes.Add(s);
-                            newShapes.Add(s);
+                            lock (newShapes) newShapes.Add(s);
+                            //newShapes.Add(s);
+                            //newShapes.TryAdd(s, 0);
                         }
                 }
             }
