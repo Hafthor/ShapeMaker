@@ -75,16 +75,16 @@ public class Program {
 
         bool recompute = DO_FORCE_RECOMPUTE;
 
-        string completeString = NCompleteString(1);
+        string completeString = FileReader.NCompleteString(1);
         if (recompute || completeString == null) {
             if (recompute) FileWriter.Clear(1); else FileWriter.ClearTmp(1);
             using (var writer = new FileWriter(1, 1, 1, 1))
                 writer.Write(new BitShape("1,1,1,*").bytes);
-            MarkNComplete(1, DO_CHIRAL_COUNT ? "n=1, shapes: 1 time: 0, chiral count: 1 time: 0" : "n=1, shapes: 1 time: 0");
+            FileWriter.MarkNComplete(1, DO_CHIRAL_COUNT ? "n=1, shapes: 1 time: 0, chiral count: 1 time: 0" : "n=1, shapes: 1 time: 0");
         }
 
         for (byte n = 2; n <= MAX_COMPUTE_N; n++) {
-            completeString = NCompleteString(n);
+            completeString = FileReader.NCompleteString(n);
             if (!recompute && completeString != null) {
                 Console.WriteLine(completeString);
                 continue;
@@ -96,7 +96,7 @@ public class Program {
             Stopwatch sw = Stopwatch.StartNew();
             TimeSpan additionalTime = TimeSpan.Zero;
             var inputFileList = new FileScanner((byte)(n - 1)).List;
-            var targetSizes = ShapeSizesFromExtendingShapes(inputFileList).ToList();
+            var targetSizes = ShapeMakerEstimator.ShapeSizesFromExtendingShapes(inputFileList).ToList();
             long shapeCount = 0;
             int currentSizeIndex = 0, targetSizesCount = targetSizes.Count;
             foreach (var size in targetSizes) {
@@ -118,9 +118,9 @@ public class Program {
                     Console.Write(progress + new string('\b', progress.Length));
                     if (n < MAX_COMPUTE_N)
                         using (var writer = new FileWriter(n, size.w, size.h, size.d))
-                            shapeCount += ShapesFromExtendingShapes(inputFileList, writer, size.w, size.h, size.d, shardCount);
+                            shapeCount += ShapeMaker.ShapesFromExtendingShapes(inputFileList, writer, size.w, size.h, size.d, shardCount);
                     else
-                        shapeCount += ShapesFromExtendingShapes(inputFileList, null, size.w, size.h, size.d, shardCount);
+                        shapeCount += ShapeMaker.ShapesFromExtendingShapes(inputFileList, null, size.w, size.h, size.d, shardCount);
                 }
                 {
                     double totalSeconds = additionalTime.Add(sw.Elapsed).TotalSeconds;
@@ -137,62 +137,53 @@ public class Program {
             }
 
             if (DO_CHIRAL_COUNT) {
-                sw = Stopwatch.StartNew();
-                long chiralCount = 0;
-                currentSizeIndex = 0;
-                foreach (var size in targetSizes) {
-                    string progress = "     " + ++currentSizeIndex + "/" + targetSizesCount + "=" + size.w + "x" + size.h + "x" + size.d + ", " + chiralCount.ToString("N0") + ", " + sw.Elapsed.TotalSeconds.ToString("N0") + "s   ";
-                    Console.Write(progress + new string('\b', progress.Length));
-                    FileScanner.Results fileInfo = new FileScanner.Results() { n = n, w = size.w, h = size.h, d = size.d, ext = Program.FILE_EXT };
-                    int shapeSizeInBytes = new BitShape(size.w, size.h, size.d).bytes.Length;
-                    long sourceShapes = FileReader.FileSize(n, size.w, size.h, size.d) / shapeSizeInBytes;
-                    long sourceShapes100 = sourceShapes / 100;
-                    long sourceShapeCount = 0, nextShapeCount = sourceShapes100;
-                    int percent = 0;
-                    Parallel.ForEach(LoadShapes(fileInfo), (shape) => {
-                        long newShapeCount = Interlocked.Increment(ref sourceShapeCount);
-                        if (newShapeCount == nextShapeCount) {
-                            percent++;
-                            nextShapeCount += sourceShapes100;
-                            var progress2 = " " + percent + "%";
-                            lock (fileInfo) Console.Write(progress2 + new string('\b', progress2.Length));
-                        }
-                        if (shape.IsMinChiralRotation()) Interlocked.Increment(ref chiralCount);
-                    });
-                }
-                sw.Stop();
-                {
-                    string progress = ", chiral count: " + chiralCount.ToString("N0") + " time: " + sw.Elapsed.TotalSeconds + "    ";
-                    completeString += progress;
-                    Console.Write(progress);
-                }
+                completeString += DoChiralCount(n, targetSizes);
             }
 
             Console.WriteLine();
-            MarkNComplete(n, completeString);
+            FileWriter.MarkNComplete(n, completeString);
         }
     }
 
-    private static string NCompleteString(int n) {
-        var path = Path.Combine(Program.FILE_PATH, n.ToString(), Program.FILE_COMPLETE);
-        return File.Exists(path) ? File.ReadAllText(path) : null;
+    private static string DoChiralCount(byte n, List<(byte w, byte h, byte d, long sz)> targetSizes)
+    {
+        var sw = Stopwatch.StartNew();
+        long chiralCount = 0;
+        int currentSizeIndex = 0;
+        int targetSizesCount = targetSizes.Count;
+        foreach (var size in targetSizes)
+        {
+            string progress = "     " + ++currentSizeIndex + "/" + targetSizesCount + "=" + size.w + "x" + size.h + "x" + size.d + ", " + chiralCount.ToString("N0") + ", " + sw.Elapsed.TotalSeconds.ToString("N0") + "s   ";
+            Console.Write(progress + new string('\b', progress.Length));
+            FileScanner.Results fileInfo = new FileScanner.Results() { n = n, w = size.w, h = size.h, d = size.d, ext = Program.FILE_EXT };
+            int shapeSizeInBytes = new BitShape(size.w, size.h, size.d).bytes.Length;
+            long sourceShapes = FileReader.FileSize(n, size.w, size.h, size.d) / shapeSizeInBytes;
+            long sourceShapes100 = sourceShapes / 100;
+            long sourceShapeCount = 0, nextShapeCount = sourceShapes100;
+            int percent = 0;
+            Parallel.ForEach(FileReader.LoadShapes(fileInfo), (shape) =>
+            {
+                long newShapeCount = Interlocked.Increment(ref sourceShapeCount);
+                if (newShapeCount == nextShapeCount)
+                {
+                    percent++;
+                    nextShapeCount += sourceShapes100;
+                    var progress2 = " " + percent + "%";
+                    lock (fileInfo) Console.Write(progress2 + new string('\b', progress2.Length));
+                }
+                if (shape.IsMinChiralRotation()) Interlocked.Increment(ref chiralCount);
+            });
+        }
+        sw.Stop();
+        {
+            string progress = ", chiral count: " + chiralCount.ToString("N0") + " time: " + sw.Elapsed.TotalSeconds + "    ";
+            Console.Write(progress);
+            return progress;
+        }
     }
+}
 
-    private static void MarkNComplete(int n, string s) {
-        var path = Path.Combine(Program.FILE_PATH, n.ToString(), Program.FILE_COMPLETE);
-        File.WriteAllText(path, s);
-    }
-
-    private static IEnumerable<BitShape> LoadShapes(FileScanner.Results fileInfo) {
-        byte n = fileInfo.n, w = fileInfo.w, h = fileInfo.h, d = fileInfo.d;
-        using (var reader = new FileReader(n, w, h, d))
-            for (; ; ) {
-                var bytes = reader.Read();
-                if (bytes == null) break;
-                yield return new BitShape(w, h, d, bytes);
-            }
-    }
-
+public static class ShapeMakerEstimator {
     public static IEnumerable<(byte w, byte h, byte d, long sz)> ShapeSizesFromExtendingShapes(IEnumerable<FileScanner.Results> inputFileList) {
         var totalFileSizeForDimensions = new Dictionary<(byte w, byte h, byte d), long>();
         foreach (var fileInfo in inputFileList)
@@ -204,17 +195,19 @@ public class Program {
             .Select(i => (i.Key.w, i.Key.h, i.Key.d, i.Value));
     }
 
-    public static IEnumerable<(byte w, byte h, byte d, long sz)> ShapeSizesFromExtendingShapes(FileScanner.Results fileInfo) {
+    private static IEnumerable<(byte w, byte h, byte d, long sz)> ShapeSizesFromExtendingShapes(FileScanner.Results fileInfo) {
         byte n = fileInfo.n, w = fileInfo.w, h = fileInfo.h, d = fileInfo.d;
         if (n < w * h * d) yield return (w, h, d, fileInfo.size);
-        var (w1, h1, d1) = MinRotation((byte)(w + 1), h, d);
+        var (w1, h1, d1) = ShapeMakerHelper.MinRotation((byte)(w + 1), h, d);
         yield return (w1, h1, d1, fileInfo.size);
-        var (w2, h2, d2) = MinRotation(w, (byte)(h + 1), d);
+        var (w2, h2, d2) = ShapeMakerHelper.MinRotation(w, (byte)(h + 1), d);
         yield return (w2, h2, d2, fileInfo.size);
-        var (w3, h3, d3) = MinRotation(w, h, (byte)(d + 1));
+        var (w3, h3, d3) = ShapeMakerHelper.MinRotation(w, h, (byte)(d + 1));
         yield return (w3, h3, d3, fileInfo.size);
     }
+}
 
+public static class ShapeMakerHelper {
     public static (byte w, byte h, byte d) MinRotation(byte w, byte h, byte d) {
         if (w <= h && h <= d)
             return (w, h, d); // 1,2,3 - no rotation
@@ -229,7 +222,9 @@ public class Program {
         else
             return (h, d, w); // 2,3,1 - yx
     }
+}
 
+public static class ShapeMaker {
     public static long ShapesFromExtendingShapes(IEnumerable<FileScanner.Results> fileList, FileWriter writer, byte w, byte h, byte d, int shardCount) {
         //var newShapes = new HashSet<byte[]>(ByteArrayEqualityComparer.Instance);
         //var newShapes = new BitShapeHashSet((w * h * d + 7) / 8);
@@ -240,7 +235,7 @@ public class Program {
         if (shardCount < 0) {
             foreach (var fileInfo in fileList)
                 ShapesFromExtendingShapes(fileInfo, newShapes, w, h, d, -1, -1, -1);
-            if (writer != null) foreach(var hs in newShapes) foreach (var shape in hs) writer.Write(shape);
+            if (writer != null) foreach (var hs in newShapes) foreach (var shape in hs) writer.Write(shape);
             return newShapes.Sum(_ => _.LongCount());
         }
 
@@ -252,7 +247,7 @@ public class Program {
                     if (cornerIndex + edgeIndex + faceIndex >= shardCount - maxInteriorCount) {
                         foreach (var fileInfo in fileList)
                             ShapesFromExtendingShapes(fileInfo, newShapes, w, h, d, cornerIndex, edgeIndex, faceIndex);
-                        if (writer != null) foreach(var hs in newShapes) foreach (var shape in hs) writer.Write(shape);
+                        if (writer != null) foreach (var hs in newShapes) foreach (var shape in hs) writer.Write(shape);
                         foreach (var hs in newShapes) { shapeCount += hs.LongCount(); hs.Clear(); }
                         //shapeCount += newShapes.LongCount();
                         //newShapes.Clear();
@@ -264,7 +259,7 @@ public class Program {
     // for each shape in parallel, try to add cube to it
     // first does by adding cube to the shape in its current size
     // then tries padding each of the 6 faces of the shape and adding a cube there
-    public static void ShapesFromExtendingShapes(FileScanner.Results fileInfo, MyHashSet[] newShapes, byte targetWidth, byte targetHeight, byte targetDepth, int targetCornerCount, int targetEdgeCount, int targetFaceCount) {
+    private static void ShapesFromExtendingShapes(FileScanner.Results fileInfo, MyHashSet[] newShapes, byte targetWidth, byte targetHeight, byte targetDepth, int targetCornerCount, int targetEdgeCount, int targetFaceCount) {
         byte w = fileInfo.w, h = fileInfo.h, d = fileInfo.d;
         int shapeSizeInBytes = new BitShape(w, h, d).bytes.Length;
         long sourceShapes = FileReader.FileSize(fileInfo.n, w, h, d) / shapeSizeInBytes;
@@ -274,7 +269,7 @@ public class Program {
             StatusUpdate('*', targetCornerCount, targetEdgeCount, targetFaceCount);
             long sourceShapeCount = 0, nextShapeCount = sourceShapes100;
             int percent = 0;
-            Parallel.ForEach(LoadShapes(fileInfo), (shape) => {
+            Parallel.ForEach(FileReader.LoadShapes(fileInfo), (shape) => {
                 long newShapeCount = Interlocked.Increment(ref sourceShapeCount);
                 if (newShapeCount == nextShapeCount) {
                     percent++;
@@ -286,12 +281,12 @@ public class Program {
             });
         }
 
-        var (wMin, hMin, dMin) = MinRotation((byte)(w + 1), h, d);
+        var (wMin, hMin, dMin) = ShapeMakerHelper.MinRotation((byte)(w + 1), h, d);
         if (wMin == targetWidth && hMin == targetHeight && dMin == targetDepth) {
             StatusUpdate('|', targetCornerCount, targetEdgeCount, targetFaceCount);
             long sourceShapeCount = 0, nextShapeCount = sourceShapes100;
             int percent = 0;
-            Parallel.ForEach(LoadShapes(fileInfo), (shape) => {
+            Parallel.ForEach(FileReader.LoadShapes(fileInfo), (shape) => {
                 long newShapeCount = Interlocked.Increment(ref sourceShapeCount);
                 if (newShapeCount == nextShapeCount) {
                     percent++;
@@ -304,12 +299,12 @@ public class Program {
             });
         }
 
-        (wMin, hMin, dMin) = MinRotation(w, (byte)(h + 1), d);
+        (wMin, hMin, dMin) = ShapeMakerHelper.MinRotation(w, (byte)(h + 1), d);
         if (wMin == targetWidth && hMin == targetHeight && dMin == targetDepth) {
             StatusUpdate('-', targetCornerCount, targetEdgeCount, targetFaceCount);
             long sourceShapeCount = 0, nextShapeCount = sourceShapes100;
             int percent = 0;
-            Parallel.ForEach(LoadShapes(fileInfo), (shape) => {
+            Parallel.ForEach(FileReader.LoadShapes(fileInfo), (shape) => {
                 long newShapeCount = Interlocked.Increment(ref sourceShapeCount);
                 if (newShapeCount == nextShapeCount) {
                     percent++;
@@ -322,12 +317,12 @@ public class Program {
             });
         }
 
-        (wMin, hMin, dMin) = MinRotation(w, h, (byte)(d + 1));
+        (wMin, hMin, dMin) = ShapeMakerHelper.MinRotation(w, h, (byte)(d + 1));
         if (wMin == targetWidth && hMin == targetHeight && dMin == targetDepth) {
             StatusUpdate('/', targetCornerCount, targetEdgeCount, targetFaceCount);
             long sourceShapeCount = 0, nextShapeCount = sourceShapes100;
             int percent = 0;
-            Parallel.ForEach(LoadShapes(fileInfo), (shape) => {
+            Parallel.ForEach(FileReader.LoadShapes(fileInfo), (shape) => {
                 long newShapeCount = Interlocked.Increment(ref sourceShapeCount);
                 if (newShapeCount == nextShapeCount) {
                     percent++;
@@ -471,6 +466,11 @@ public class FileWriter : IDisposable {
                 File.Delete(f.filepath);
     }
 
+    public static void MarkNComplete(int n, string s) {
+        var path = Path.Combine(Program.FILE_PATH, n.ToString(), Program.FILE_COMPLETE);
+        File.WriteAllText(path, s);
+    }
+
     public FileWriter(int n, int w, int h, int d) {
         path = FileReader.FilePath(n, w, h, d, "");
         length = new BitShape((byte)w, (byte)h, (byte)d).bytes.Length;
@@ -513,6 +513,21 @@ public class FileReader : IDisposable {
         var fi = new FileInfo(FilePath(n, w, h, d));
         if (!fi.Exists) return TimeSpan.Zero;
         return fi.LastWriteTimeUtc - fi.CreationTimeUtc;
+    }
+
+    public static string NCompleteString(int n) {
+        var path = Path.Combine(Program.FILE_PATH, n.ToString(), Program.FILE_COMPLETE);
+        return File.Exists(path) ? File.ReadAllText(path) : null;
+    }
+
+    public static IEnumerable<BitShape> LoadShapes(FileScanner.Results fileInfo) {
+        byte n = fileInfo.n, w = fileInfo.w, h = fileInfo.h, d = fileInfo.d;
+        using (var reader = new FileReader(n, w, h, d))
+            for (; ; ) {
+                var bytes = reader.Read();
+                if (bytes == null) break;
+                yield return new BitShape(w, h, d, bytes);
+            }
     }
 
     public FileReader(int n, int w, int h, int d) {
