@@ -72,17 +72,16 @@ public class BitShape {
     public bool this[int x, int y, int z] {
         get {
             var bitIndex = d * (h * x + y) + z;
-            //var si = Math.DivRem(bi, BITS_PER, out int shr);
             int byteIndex = bitIndex >> BITS_SHR, shr = bitIndex & BITS_PER_MINUS_1;
             byte mask = (byte)(MASK_FIRST >> shr);
             return (bytes[byteIndex] & mask) != 0;
         }
         set {
             var bitIndex = d * (h * x + y) + z;
-            //var di = Math.DivRem(bi, BITS_PER, out int shr);
             int byteIndex = bitIndex >> BITS_SHR, shr = bitIndex & BITS_PER_MINUS_1;
             byte mask = (byte)(MASK_FIRST >> shr);
-            if (value) bytes[byteIndex] |= mask; else bytes[byteIndex] &= (byte)~mask;
+            byte b = bytes[byteIndex];
+            if (value == ((b & mask) != 0)) bytes[byteIndex] = (byte)(b ^ mask);
         }
     }
 
