@@ -51,10 +51,8 @@ public class Program {
      */
 
     // Potential Optimizations / Enhancements:
-    // * We could do a counting pass to see how to best partition the data to avoid
-    //   making a bunch of passes that create few or no new polycubes.
-    // * It would be nice if we had a way to capture the time taken for each dimensions
-    //   file, so we can stop and resume with the correct timing results.
+    // * We could do a counting pass to see how to best partition the data to avoid makeing a bunch
+    //   of sharding passes that create few or no new polycubes.
 
     // Potential Features:
     // * Make a 4-D version?
@@ -111,6 +109,7 @@ public class Program {
             completeString = "n=" + n + ", shapes: ";
             Console.Write(completeString);
             Stopwatch sw = Stopwatch.StartNew();
+            TimeSpan additionalTime = TimeSpan.Zero;
             var inputFileList = new FileScanner((byte)(n - 1)).List;
             var targetSizes = ShapeSizesFromExtendingShapes(inputFileList).ToList();
             long shapeCount = 0;
@@ -126,8 +125,11 @@ public class Program {
                 if (FileReader.FileExists(n, size.w, size.h, size.d)) {
                     int bytesPerShape = new BitShape(size.w, size.h, size.d).bytes.Length;
                     shapeCount += FileReader.FileSize(n, size.w, size.h, size.d) / bytesPerShape;
+                    TimeSpan timeTaken = FileReader.FileTime(n, size.w, size.h, size.d);
+                    additionalTime += timeTaken;
                 } else {
-                    var progress = "            " + (shardCount >= 0 ? "/" + shardCount : "") + "[" + shapeCount.ToString("N0") + ", " + sw.Elapsed.TotalSeconds.ToString("N0") + "s, " + size.w + "x" + size.h + "x" + size.d + " " + currentSizeIndex + "/" + targetSizesCount + "]     ";
+                    double totalSeconds = additionalTime.Add(sw.Elapsed).TotalSeconds;
+                    var progress = "            " + (shardCount >= 0 ? "/" + shardCount : "") + "[" + shapeCount.ToString("N0") + ", " + totalSeconds.ToString("N0") + "s, " + size.w + "x" + size.h + "x" + size.d + " " + currentSizeIndex + "/" + targetSizesCount + "]     ";
                     Console.Write(progress + new string('\b', progress.Length));
                     if (n < MAX_COMPUTE_N)
                         using (var writer = new FileWriter(n, size.w, size.h, size.d))
@@ -136,13 +138,15 @@ public class Program {
                         shapeCount += ShapesFromExtendingShapes(inputFileList, null, size.w, size.h, size.d, shardCount);
                 }
                 {
-                    var progress = "            " + (shardCount >= 0 ? "/" + shardCount : "") + "[" + shapeCount.ToString("N0") + ", " + sw.Elapsed.TotalSeconds.ToString("N0") + "s, " + size.w + "x" + size.h + "x" + size.d + " " + currentSizeIndex + "/" + targetSizesCount + "]     ";
+                    double totalSeconds = additionalTime.Add(sw.Elapsed).TotalSeconds;
+                    var progress = "            " + (shardCount >= 0 ? "/" + shardCount : "") + "[" + shapeCount.ToString("N0") + ", " + totalSeconds.ToString("N0") + "s, " + size.w + "x" + size.h + "x" + size.d + " " + currentSizeIndex + "/" + targetSizesCount + "]     ";
                     Console.Write(progress + new string('\b', progress.Length));
                 }
             }
             sw.Stop();
             {
-                string progress = shapeCount.ToString("N0") + " time: " + sw.Elapsed.TotalSeconds + "      \b\b\b\b\b\b";
+                double totalSeconds = additionalTime.Add(sw.Elapsed).TotalSeconds;
+                string progress = shapeCount.ToString("N0") + " time: " + totalSeconds + "      \b\b\b\b\b\b";
                 completeString += progress;
                 Console.Write(progress);
             }
@@ -454,6 +458,7 @@ public class FileWriter : IDisposable {
     private FileStream? fs = null;
     private readonly int length;
     private readonly string path;
+    private readonly DateTime createTime;
 
     public static void Clear(byte n) {
         var di = new DirectoryInfo(Path.Combine(Program.FILE_PATH, n.ToString()));
@@ -484,6 +489,7 @@ public class FileWriter : IDisposable {
     public FileWriter(int n, int w, int h, int d) {
         path = FileReader.FilePath(n, w, h, d, "");
         length = new BitShape((byte)w, (byte)h, (byte)d).bytes.Length;
+        createTime = DateTime.UtcNow;
     }
 
     public void Write(byte[] shape) {
@@ -495,8 +501,12 @@ public class FileWriter : IDisposable {
 
     public void Dispose() {
         fs?.Dispose();
-        if (File.Exists(path + ".tmp"))
+        if (File.Exists(path + ".tmp")) {
+            var updateTime = DateTime.UtcNow;
+            File.SetCreationTimeUtc(path + ".tmp", createTime);
+            File.SetLastWriteTimeUtc(path + ".tmp", updateTime);
             File.Move(path + ".tmp", path + Program.FILE_EXT);
+        }
     }
 }
 
@@ -512,6 +522,12 @@ public class FileReader : IDisposable {
         var fi = new FileInfo(FilePath(n, w, h, d));
         if (!fi.Exists) return -1;
         return fi.Length;
+    }
+
+    public static TimeSpan FileTime(int n, int w, int h, int d) {
+        var fi = new FileInfo(FilePath(n, w, h, d));
+        if (!fi.Exists) return TimeSpan.Zero;
+        return fi.LastWriteTimeUtc - fi.CreationTimeUtc;
     }
 
     public FileReader(int n, int w, int h, int d) {
