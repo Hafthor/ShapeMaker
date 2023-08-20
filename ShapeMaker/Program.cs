@@ -17,37 +17,22 @@ public class Program {
 
     /*
         Results and timing (in seconds) from 14" 2023 MacBook Pro w/ 96GB 12-core M2 Max, .NET 7 in Release mode
-        n=2, shapes: 1, chiral shapes: 1 time: 0.071802
-        n=3, shapes: 2, chiral shapes: 2 time: 0.002224
-        n=4, shapes: 8, chiral shapes: 7 time: 0.0802893
-        n=5, shapes: 29, chiral shapes: 23 time: 0.0306935
-        n=6, shapes: 166, chiral shapes: 112 time: 0.0861341
-        n=7, shapes: 1,023, chiral shapes: 607 time: 0.2358299
-        n=8, shapes: 6,922, chiral shapes: 3,811 time: 0.3127255
-        n=9, shapes: 48,311, chiral shapes: 25,413 time: 0.7920315
-        n=10, shapes: 346,543, chiral shapes: 178,083 time: 4.2821279
-        n=11, shapes: 2,522,522, chiral shapes: 1,279,537 time: 21.4681853
-        n=12, shapes: 18,598,427, chiral shapes: 9,371,094 time: 172.5449822
-        n=13, shapes: 138,462,649, chiral shapes: 69,513,546 time: 1740.2329292
-        n=14, shapes: 1,039,496,297, chiral shapes: 520,878,101 time: 16211.6567239
-        n=15, shapes: 7,859,514,470, chiral shapes: 3,934,285,874 time: 144239.3006667
+        n=2, shapes: 1 time: 0.0183248, chiral count: 1 time: 0.0006542
+        n=3, shapes: 2 time: 0.0013687, chiral count: 2 time: 0.000129
+        n=4, shapes: 8 time: 0.0023709, chiral count: 7 time: 0.0002405
+        n=5, shapes: 29 time: 0.0021787, chiral count: 23 time: 0.0007507
+        n=6, shapes: 166 time: 0.0074994, chiral count: 112 time: 0.001262
+        n=7, shapes: 1,023 time: 0.0096493, chiral count: 607 time: 0.0043927
+        n=8, shapes: 6,922 time: 0.0280305, chiral count: 3,811 time: 0.0214148
+        n=9, shapes: 48,311 time: 0.2259835, chiral count: 25,413 time: 0.1807897
+        n=10, shapes: 346,543 time: 1.587241, chiral count: 178,083 time: 0.5748292
+        n=11, shapes: 2,522,522 time: 13.1223066, chiral count: 1,279,537 time: 4.313887
+        n=12, shapes: 18,598,427 time: 106.563318, chiral count: 9,371,094 time: 36.8076492
+        n=13, shapes: 138,462,649 time: 962.6670521, chiral count: 69,513,546 time: 409.4930811
+        n=14, shapes: 1,039,496,297 time: 9737.4709864, chiral count: 520,878,101 time: 3823.9919743
+        n=15, shapes: 7,859,514,470 time: ?, chiral count: 3,934,285,874 time: ?
+        n=16, shapes: 59,795,121,480 time: ?, chiral count: 29,915,913,663 time: ?
         Peak memory usage: ~40GB
-
-        n=2, shapes: 1 time: 0.0166472          
-        n=3, shapes: 2 time: 0.001548           
-        n=4, shapes: 8 time: 0.002158           
-        n=5, shapes: 29 time: 0.0018264          
-        n=6, shapes: 166 time: 0.0040883          
-        n=7, shapes: 1,023 time: 0.0072473          
-        n=8, shapes: 6,922 time: 0.0326462          
-        n=9, shapes: 48,311 time: 0.2014176          
-        n=10, shapes: 346,543 time: 1.7254155          
-        n=11, shapes: 2,522,522 time: 13.6087381          
-        n=12, shapes: 18,598,427 time: 110.4653956          
-        n=13, shapes: 138,462,649 time: 1032.2354959           
-        n=14, shapes: 1,039,496,297 time: 12157.5793645           
-        n=15, shapes: 7,859,514,470 time: 123731.0088215
-        Peak memory usage: ~80GB
      */
 
     // Potential Optimizations / Enhancements:
@@ -95,7 +80,7 @@ public class Program {
             if (recompute) FileWriter.Clear(1); else FileWriter.ClearTmp(1);
             using (var writer = new FileWriter(1, 1, 1, 1))
                 writer.Write(new BitShape("1,1,1,*").bytes);
-            MarkNComplete(1, DO_CHIRAL_COUNT ? "n=1, shapes: 1 time: 0, chiral count: 1 time 0" : "n=1, shapes: 1 time 0");
+            MarkNComplete(1, DO_CHIRAL_COUNT ? "n=1, shapes: 1 time: 0, chiral count: 1 time: 0" : "n=1, shapes: 1 time: 0");
         }
 
         for (byte n = 2; n <= MAX_COMPUTE_N; n++) {
@@ -301,8 +286,8 @@ public class Program {
             });
         }
 
-        var (ww, hh, dd) = MinRotation((byte)(w + 1), h, d);
-        if (ww == targetWidth && hh == targetHeight && dd == targetDepth) {
+        var (wMin, hMin, dMin) = MinRotation((byte)(w + 1), h, d);
+        if (wMin == targetWidth && hMin == targetHeight && dMin == targetDepth) {
             StatusUpdate('|', targetCornerCount, targetEdgeCount, targetFaceCount);
             long sourceShapeCount = 0, nextShapeCount = sourceShapes100;
             int percent = 0;
@@ -319,8 +304,8 @@ public class Program {
             });
         }
 
-        (ww, hh, dd) = MinRotation(w, (byte)(h + 1), d);
-        if (ww == targetWidth && hh == targetHeight && dd == targetDepth) {
+        (wMin, hMin, dMin) = MinRotation(w, (byte)(h + 1), d);
+        if (wMin == targetWidth && hMin == targetHeight && dMin == targetDepth) {
             StatusUpdate('-', targetCornerCount, targetEdgeCount, targetFaceCount);
             long sourceShapeCount = 0, nextShapeCount = sourceShapes100;
             int percent = 0;
@@ -337,8 +322,8 @@ public class Program {
             });
         }
 
-        (ww, hh, dd) = MinRotation(w, h, (byte)(d + 1));
-        if (ww == targetWidth && hh == targetHeight && dd == targetDepth) {
+        (wMin, hMin, dMin) = MinRotation(w, h, (byte)(d + 1));
+        if (wMin == targetWidth && hMin == targetHeight && dMin == targetDepth) {
             StatusUpdate('/', targetCornerCount, targetEdgeCount, targetFaceCount);
             long sourceShapeCount = 0, nextShapeCount = sourceShapes100;
             int percent = 0;
