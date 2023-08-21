@@ -81,7 +81,7 @@ public class BitShape {
             int byteIndex = bitIndex >> BITS_SHR, shr = bitIndex & BITS_PER_MINUS_1;
             byte mask = (byte)(MASK_FIRST >> shr);
             byte b = bytes[byteIndex];
-            if (value == ((b & mask) != 0)) bytes[byteIndex] = (byte)(b ^ mask);
+            if (value != ((b & mask) != 0)) bytes[byteIndex] = (byte)(b ^ mask);
         }
     }
 
