@@ -200,12 +200,12 @@ public class BitShape {
 
     // mirrors in-place
     public BitShape MirrorX() {
-        for (int x = 0, w2 = w / 2, yNot = w - 1; x < w2; x++, yNot--)
+        for (int x = 0, w2 = w / 2, xNot = w - 1; x < w2; x++, xNot--)
             for (int y = 0; y < h; y++)
                 for (int z = 0; z < d; z++) {
                     // (this[x, y, z], this[xn, y, z]) = (this[xn, y, z], this[x, y, z]);
                     int index0 = d * (h * x + y) + z;
-                    int index1 = d * (h * yNot + y) + z;
+                    int index1 = d * (h * xNot + y) + z;
                     int byteIndex0 = index0 >> BITS_SHR, shr0 = index0 & BITS_PER_MINUS_1;
                     int byteIndex1 = index1 >> BITS_SHR, shr1 = index1 & BITS_PER_MINUS_1;
                     byte mask0 = (byte)(MASK_FIRST >> shr0);
