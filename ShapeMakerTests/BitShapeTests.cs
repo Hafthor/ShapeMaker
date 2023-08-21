@@ -335,48 +335,53 @@ public class BitShapeTests {
         Assert.AreEqual("2,5,5," + bits, shape.MirrorYOpt().Serialize());
     }
 
-    /*
     [TestMethod]
     public void TestInPlaceRotateZ() {
-        var alpha = "aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyY";
-        var shape = NewShape(5, 5, 2, alpha);
+        // alpha = "aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyY";
+        var bits = "*..*.*.**..*.*.**..*.*.*.*.**..*.*.*.*.**..*.*.**.";
+        var shape = new BitShape("5,5,2," + bits);
         var newShape = shape.RotateZ(); // should rotate in-place
         Assert.IsTrue(object.ReferenceEquals(shape, newShape));
-        var s = SerializeShape(shape);
-        Assert.AreEqual("uUpPkKfFaAvVqQlLgGbBwWrRmMhHcCxXsSnNiIdDyYtToOjJeE", s);
+        var s = shape.Serialize();
+        //    Assert.AreEqual("uUpPkKfFaAvVqQlLgGbBwWrRmMhHcCxXsSnNiIdDyYtToOjJeE", s);
+        Assert.AreEqual("5,5,2,*..*.*.**..*.*.*.*.*.*.*.*.*.*.*.*.**..**..**..**.", s);
 
         shape.RotateZ().RotateZ().RotateZ();
-        Assert.AreEqual(alpha, SerializeShape(shape));
+        Assert.AreEqual("5,5,2," + bits, shape.Serialize());
     }
 
     [TestMethod]
     public void TestRotateZ() {
-        var alpha = "aAbBcCdDeEfFgGhHiIjJkKlL";
-        var shape = NewShape(3, 4, 2, alpha); // z is case, x=row, y=letter
+        // alpha = "aAbBcCdDeEfFgGhHiIjJkKlL";
+        var bits = "*..*.*.**..*.*.**..*.*.*";
+        var shape = new BitShape("3,4,2," + bits);
         var newShape = shape.RotateZ();
         Assert.IsFalse(object.ReferenceEquals(shape, newShape));
         Assert.AreEqual(4, newShape.w);
         Assert.AreEqual(3, newShape.h);
         Assert.AreEqual(2, newShape.d);
-        var s = SerializeShape(newShape);
-        Assert.AreEqual("iIeEaAjJfFbBkKgGcClLhHdD", s);
+        var s = newShape.Serialize();
+        //    Assert.AreEqual("iIeEaAjJfFbBkKgGcClLhHdD", s);
+        Assert.AreEqual("4,3,2,*.*.*..*.*.*.*.*.*.*.*.*", s);
 
         newShape = newShape.RotateZ().RotateZ().RotateZ();
-        Assert.AreEqual(alpha, SerializeShape(newShape));
+        Assert.AreEqual("3,4,2," + bits, newShape.Serialize());
     }
 
     [TestMethod]
     public void TestInPlaceRotateZ2() {
-        var alpha = "aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyY";
-        var shape = NewShape(5, 5, 2, alpha);
+        // alpha = "aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyY";
+        var bits = "*..*.*.**..*.*.**..*.*.*.*.**..*.*.*.*.**..*.*.**.";
+        var shape = new BitShape("5,5,2," + bits);
         var newShape = shape.RotateZ2(); // should rotate in-place
         Assert.IsTrue(object.ReferenceEquals(shape, newShape));
-        var s = SerializeShape(shape);
-        Assert.AreEqual("yYxXwWvVuUtTsSrRqQpPoOnNmMlLkKjJiIhHgGfFeEdDcCbBaA", s);
+        var s = shape.Serialize();
+        //    Assert.AreEqual("yYxXwWvVuUtTsSrRqQpPoOnNmMlLkKjJiIhHgGfFeEdDcCbBaA", s);
+        Assert.AreEqual("5,5,2,*..*.*.**..*.*.*.*.**..*.*.*.*.**..*.*.**..*.*.**.", s);
 
-        Assert.AreEqual(alpha, SerializeShape(shape.RotateZ2()));
+        Assert.AreEqual("5,5,2," + bits, shape.RotateZ2().Serialize());
     }
-*/
+
     [TestMethod]
     public void TestInPlaceMirrorZ() {
         // abcde    edcba
