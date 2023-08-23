@@ -30,28 +30,50 @@ public class Program {
         shape555.bytes[shape555.bytes.Length - 1] &= 0xF8;
     }
 
-    [Benchmark]
+    // Benchmarks   M2Max
+    [Benchmark] // 159.4ns
     public void RotateX2() => shape555.RotateX2();
 
-    [Benchmark]
+    [Benchmark] // 155.0ns
     public void RotateX2Opt() => shape555.RotateX2Opt();
 
-    [Benchmark]
+    [Benchmark] // 144.9ns
+    public void RotateX2Opt1() => shape555.RotateX2Opt1();
+
+    [Benchmark] // 122.0ns
+    public void RotateX2Opt2() => shape555.RotateX2Opt2();
+
+    [Benchmark] // 122.5ns
+    public void RotateX2Opt3() => shape555.RotateX2Opt3();
+
+    [Benchmark] // 119.2ns
+    public void RotateX2Opt4() => shape555.RotateX2Opt4();
+
+    [Benchmark] // 110.78ns
     public void MirrorX() => shape555.MirrorX();
 
-    [Benchmark]
+    [Benchmark] // 128.04ns
     public void MirrorXOpt() => shape555.MirrorXOpt();
 
-    [Benchmark]
+    [Benchmark] //  82.78ns
+    public void MirrorXOpt2() => shape555.MirrorXOpt2();
+
+    [Benchmark] // 107.82ns
     public void MirrorY() => shape555.MirrorY();
 
-    [Benchmark]
+    [Benchmark] // 127.97ns
     public void MirrorYOpt() => shape555.MirrorYOpt();
 
-    [Benchmark]
+    [Benchmark] // 114.8ns
+    public void MirrorYOpt2() => shape555.MirrorYOpt2();
+
+    [Benchmark] // 156.74ns
     public void MirrorZ() => shape555.MirrorZ();
 
-    [Benchmark]
+    [Benchmark] // 149.78ns
     public void MirrorZOpt() => shape555.MirrorZOpt();
+
+    [Benchmark] // 154.8ns
+    public void MirrorZOpt2() => shape555.MirrorZOpt2();
 }
 

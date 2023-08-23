@@ -30,7 +30,7 @@ public class Program {
         n=12, shapes: 18,598,427 time: 106.563318, chiral count: 9,371,094 time: 36.8076492
         n=13, shapes: 138,462,649 time: 962.6670521, chiral count: 69,513,546 time: 409.4930811
         n=14, shapes: 1,039,496,297 time: 9737.4709864, chiral count: 520,878,101 time: 3823.9919743
-        n=15, shapes: 7,859,514,470 time: ?, chiral count: 3,934,285,874 time: ?
+        n=15, shapes: 7,859,514,470 time: 83117.6538951, chiral count: 3,934,285,874 time: 25384.3347744
         n=16, shapes: 59,795,121,480 time: ?, chiral count: 29,915,913,663 time: ?
         Peak memory usage: ~40GB
      */
@@ -354,6 +354,10 @@ public static class ShapeMaker {
             if (counts.faces > targetFaceCount || (counts.faces + 1) < targetFaceCount) return;
             (cornerCount, edgeCount, faceCount) = counts;
         }
+        var newShape = new BitShape(shape);
+        var newShapeBytes = newShape.bytes;
+        var shapeBytes = shape.bytes;
+        var shapeBytesLength = shapeBytes.Length;
         int xLimit = shape.w - 1, yLimit = shape.h - 1, zLimit = shape.d - 1;
         for (var x = xStart; x < w; x++) {
             bool xFace = x == 0 || x == xLimit;
@@ -373,7 +377,8 @@ public static class ShapeMaker {
                     }
                     if (!shape[x, y, z])
                         if (shape.HasSetNeighbor(x, y, z)) {
-                            var newShape = new BitShape(shape);
+                            //var newShape = new BitShape(shape);
+                            Array.Copy(shapeBytes, newShapeBytes, shapeBytesLength);
                             newShape[x, y, z] = true;
                             var bytes = newShape.MinRotation().bytes;
                             //lock (newShapes) newShapes.Add(bytes);
