@@ -5,15 +5,16 @@ namespace ShapeMaker;
 
 using MyHashSet = HashSet<byte[]>;
 //using MyHashSet = BitShapeHashSet;
+//using MyHashSet = BitShapeHashSet64k;
 //using MyHashSet = ConcurrentDictionary<byte[], byte>;
 
 public class Program {
-    public static readonly string FILE_PATH = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads", "ShapeMaker");
+    public static string FILE_PATH = "~/Downloads/ShapeMaker";
     public const string FILE_EXT = ".bin";
     public const string FILE_COMPLETE = "_COMPLETE";
     public const int MAX_COMPUTE_N = 19;
-    public const bool DO_CHIRAL_COUNT = true;
-    public const bool DO_FORCE_RECOMPUTE = false;
+    public static bool DO_CHIRAL_COUNT = true;
+    public static bool DO_FORCE_RECOMPUTE = false;
 
     /*
         Results and timing (in seconds) from 14" 2023 MacBook Pro w/ 96GB 12-core M2 Max, .NET 7 in Release mode
@@ -71,6 +72,24 @@ public class Program {
     /// that case.
     /// </summary>
     static void Main(string[] args) {
+        for (int i = 1; i < args.Length; i++) {
+            var arg = args[i];
+            if (arg.StartsWith("--"))
+                if (arg == "--no-chiral-count")
+                    DO_CHIRAL_COUNT = false;
+                else if (arg == "--force-recompute")
+                    DO_FORCE_RECOMPUTE = true;
+                else
+                    throw new ArgumentException("Unrecognized parameter " + arg);
+            else
+                FILE_PATH = arg;
+        }
+
+        if (FILE_PATH == "~")
+            FILE_PATH = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        else if (FILE_PATH.StartsWith("~/"))
+            FILE_PATH = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), FILE_PATH.Substring("~/".Length));
+
         var totalAvailableMemory = GC.GetGCMemoryInfo().TotalAvailableMemoryBytes;
 
         bool recompute = DO_FORCE_RECOMPUTE;
@@ -103,7 +122,7 @@ public class Program {
                 int shardCount = -1; // don't shard
                 // if the combined input size is 1GB, for example, the output is likely to be ~8GB, and ~24GB in memory
                 if (n >= 14 && size.w > 1 && size.h > 1 && size.d > 1) {
-                    long inMemSize = size.sz * 8 * 3;
+                    long inMemSize = size.sz * 8 * 3; // should be *8*3 normally, but just *8 for BitShapeHashSet
                     if (inMemSize > totalAvailableMemory) shardCount = n;
                 }
                 currentSizeIndex++;
@@ -228,6 +247,7 @@ public static class ShapeMaker {
     public static long ShapesFromExtendingShapes(IEnumerable<FileScanner.Results> fileList, FileWriter writer, byte w, byte h, byte d, int shardCount) {
         //var newShapes = new HashSet<byte[]>(ByteArrayEqualityComparer.Instance);
         //var newShapes = new BitShapeHashSet((w * h * d + 7) / 8);
+        //var newShapes = new BitShapeHashSet64k((w * h * d + 7) / 8);
         //var newShapes = new ConcurrentDictionary<byte[], byte>(ByteArrayEqualityComparer.Instance);
         var newShapes = new HashSet<byte[]>[256];
         for (int i = 0; i < 256; i++) newShapes[i] = new HashSet<byte[]>(ByteArrayEqualityComparer.Instance);
@@ -237,6 +257,8 @@ public static class ShapeMaker {
                 ShapesFromExtendingShapes(fileInfo, newShapes, w, h, d, -1, -1, -1);
             if (writer != null) foreach (var hs in newShapes) foreach (var shape in hs) writer.Write(shape);
             return newShapes.Sum(_ => _.LongCount());
+            //if (writer != null) foreach (var shape in newShapes) writer.Write(shape);
+            //return newShapes.LongLength;
         }
 
         long shapeCount = 0;
@@ -249,6 +271,7 @@ public static class ShapeMaker {
                             ShapesFromExtendingShapes(fileInfo, newShapes, w, h, d, cornerIndex, edgeIndex, faceIndex);
                         if (writer != null) foreach (var hs in newShapes) foreach (var shape in hs) writer.Write(shape);
                         foreach (var hs in newShapes) { shapeCount += hs.LongCount(); hs.Clear(); }
+                        //if (writer != null) foreach (var shape in newShapes) writer.Write(shape);
                         //shapeCount += newShapes.LongCount();
                         //newShapes.Clear();
                     }
@@ -377,7 +400,6 @@ public static class ShapeMaker {
                     }
                     if (!shape[x, y, z])
                         if (shape.HasSetNeighbor(x, y, z)) {
-                            //var newShape = new BitShape(shape);
                             Array.Copy(shapeBytes, newShapeBytes, shapeBytesLength);
                             newShape[x, y, z] = true;
                             var bytes = newShape.MinRotation().bytes;

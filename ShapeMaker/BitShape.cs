@@ -164,7 +164,7 @@ public class BitShape {
     }
 
     // rotates in-place on X axis by 180º
-    public BitShape RotateX2() {
+    public BitShape RotateX2Org() {
         for (int x = 0, h2 = h / 2, yLimit = h - 1, zLimit = d - 1; x < w; x++) {
             for (int y = 0, yNot = yLimit; y < h2; y++, yNot--)
                 for (int z = 0, zNot = zLimit; z < d; z++, zNot--) {
@@ -199,7 +199,7 @@ public class BitShape {
     }
 
     // mirrors in-place
-    public BitShape MirrorX() {
+    public BitShape MirrorXOrg() {
         for (int x = 0, w2 = w / 2, xNot = w - 1; x < w2; x++, xNot--)
             for (int y = 0; y < h; y++)
                 for (int z = 0; z < d; z++) {
@@ -396,7 +396,7 @@ public class BitShape {
     }
 
     // mirrors in-place
-    public BitShape MirrorZ() {
+    public BitShape MirrorZOrg() {
         for (int x = 0, d2 = d / 2, zLimit = d - 1; x < w; x++)
             for (int y = 0; y < h; y++)
                 for (int z = 0, zNot = zLimit; z < d2; z++, zNot--) {
@@ -491,7 +491,7 @@ public class BitShape {
         return this;
     }
 
-    public BitShape RotateX2Opt4() {
+    public BitShape RotateX2() { // was RotateX2Opt4
         int hd = h * d, hd2 = hd / 2;
         int index0 = 0, index1 = hd - 1;
         for (int x = 0; x < w; x++, index0 += hd, index1 += hd) {
@@ -531,7 +531,7 @@ public class BitShape {
         return this;
     }
 
-    public BitShape MirrorXOpt2() {
+    public BitShape MirrorX() { // was MirrorXOpt2
         int index0 = 0;
         int hd = h * d;
         int index1 = hd * w;
@@ -601,7 +601,7 @@ public class BitShape {
         return this;
     }
 
-    public BitShape MirrorZOpt() {
+    public BitShape MirrorZ() { // was MirrorZOpt
         for (int x = 0, d2 = d / 2, zLimit = d - 1; x < w; x++)
             for (int y = 0; y < h; y++) {
                 int index0 = d * (h * x + y);
@@ -863,24 +863,55 @@ public class BitShape {
     // 0 and 8 for corner count, 0 and 3*12(36) for edge count, 0 and 3*3*6(54) for face count.
     public (int corners, int edges, int faces) CornerEdgeFaceCount() {
         int corners = 0, edges = 0, faces = 0;
-        int byteIndex = 0;
-        byte mask = MASK_FIRST;
+        int bitIndex = 0;
         int xLimit = w - 1, yLimit = h - 1, zLimit = d - 1;
         for (int x = 0; x <= xLimit; x++) {
             bool xFace = x == 0 || x == xLimit;
             for (int y = 0; y <= yLimit; y++) {
                 bool yFace = y == 0 || y == yLimit;
-                for (int z = 0; z <= zLimit; z++) {
+                for (int z = 0; z <= zLimit; z++, bitIndex++) {
                     bool zFace = z == 0 || z == zLimit;
-                    if (xFace || yFace || zFace)
+                    if (xFace || yFace || zFace) {
+                        int byteIndex = bitIndex >> BITS_SHR;
+                        int shr = bitIndex & BITS_PER_MINUS_1;
+                        byte mask = (byte)(MASK_FIRST >> shr);
                         if ((bytes[byteIndex] & mask) != 0)
                             if (xFace && yFace || yFace && zFace || xFace && zFace)
-                                if (!xFace || !yFace || !zFace)
-                                    edges++;
-                                else
+                                if (xFace && yFace && zFace)
                                     corners++;
+                                else
+                                    edges++;
                             else
                                 faces++;
+                    }
+                }
+            }
+        }
+        return (corners, edges, faces);
+    }
+
+    public (int corners, int edges, int faces) CornerEdgeFaceCountOrg() {
+        int corners = 0, edges = 0, faces = 0;
+        int byteIndex = 0;
+        byte mask = MASK_FIRST;
+        int bitIndex = 0;
+        int xLimit = w - 1, yLimit = h - 1, zLimit = d - 1;
+        for (int x = 0; x <= xLimit; x++) {
+            bool xFace = x == 0 || x == xLimit;
+            for (int y = 0; y <= yLimit; y++) {
+                bool yFace = y == 0 || y == yLimit;
+                for (int z = 0; z <= zLimit; z++, bitIndex++) {
+                    bool zFace = z == 0 || z == zLimit;
+                    if (xFace || yFace || zFace) {
+                        if ((bytes[byteIndex] & mask) != 0)
+                            if (xFace && yFace || yFace && zFace || xFace && zFace)
+                                if (xFace && yFace && zFace)
+                                    corners++;
+                                else
+                                    edges++;
+                            else
+                                faces++;
+                    }
                     mask >>= 1; if (mask == 0) { mask = MASK_FIRST; byteIndex++; }
                 }
             }

@@ -29,10 +29,10 @@ public class Program {
             shape555.bytes[i] = (byte)r.Next(256);
         shape555.bytes[shape555.bytes.Length - 1] &= 0xF8;
     }
-
+    /*
     // Benchmarks   M2Max    Intel
     [Benchmark] // 159.4ns  180.76ns
-    public void RotateX2() => shape555.RotateX2();
+    public void RotateX2Org() => shape555.RotateX2Org();
 
     [Benchmark] // 155.0ns  107.91ns <= best Intel
     public void RotateX2Opt() => shape555.RotateX2Opt();
@@ -47,21 +47,21 @@ public class Program {
     public void RotateX2Opt3() => shape555.RotateX2Opt3();
 
     [Benchmark] // 119.2ns  142.00ns <= best M2Max
-    public void RotateX2Opt4() => shape555.RotateX2Opt4();
+    public void RotateX2Opt4() => shape555.RotateX2();
 
 
     [Benchmark] // 110.78ns  127.15ns
-    public void MirrorX() => shape555.MirrorX();
+    public void MirrorXOrg() => shape555.MirrorXOrg();
 
     [Benchmark] // 128.04ns   93.42ns <= best Intel
     public void MirrorXOpt() => shape555.MirrorXOpt();
 
     [Benchmark] //  82.78ns  115.81ns <= best M2Max
-    public void MirrorXOpt2() => shape555.MirrorXOpt2();
+    public void MirrorXOpt2() => shape555.MirrorX();
 
 
     [Benchmark] // 107.82ns  155.28ns <= best M2Max
-    public void MirrorY() => shape555.MirrorY();
+    public void MirrorYOrg() => shape555.MirrorY();
 
     [Benchmark] // 127.97ns  109.72ns <= best Intel
     public void MirrorYOpt() => shape555.MirrorYOpt();
@@ -71,12 +71,19 @@ public class Program {
 
 
     [Benchmark] // 156.74ns  158.32ns
-    public void MirrorZ() => shape555.MirrorZ();
+    public void MirrorZOrg() => shape555.MirrorZOrg();
 
     [Benchmark] // 149.78ns  146.59ns <= best M2Max/Intel
-    public void MirrorZOpt() => shape555.MirrorZOpt();
+    public void MirrorZOpt() => shape555.MirrorZ();
 
     [Benchmark] // 154.8ns   149.30ns
     public void MirrorZOpt2() => shape555.MirrorZOpt2();
+    */
+
+    [Benchmark] // 221.0ns <= best M2Max
+    public void CornerEdgeFaceCount() => shape555.CornerEdgeFaceCount();
+
+    [Benchmark] // 290.0ns
+    public void CornerEdgeFaceCountOrg() => shape555.CornerEdgeFaceCountOrg();
 }
 
