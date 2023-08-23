@@ -30,50 +30,53 @@ public class Program {
         shape555.bytes[shape555.bytes.Length - 1] &= 0xF8;
     }
 
-    // Benchmarks   M2Max
-    [Benchmark] // 159.4ns
+    // Benchmarks   M2Max    Intel
+    [Benchmark] // 159.4ns  180.76ns
     public void RotateX2() => shape555.RotateX2();
 
-    [Benchmark] // 155.0ns
+    [Benchmark] // 155.0ns  107.91ns <= best Intel
     public void RotateX2Opt() => shape555.RotateX2Opt();
 
-    [Benchmark] // 144.9ns
+    [Benchmark] // 144.9ns  108.13ns
     public void RotateX2Opt1() => shape555.RotateX2Opt1();
 
-    [Benchmark] // 122.0ns
+    [Benchmark] // 122.0ns  140.56ns
     public void RotateX2Opt2() => shape555.RotateX2Opt2();
 
-    [Benchmark] // 122.5ns
+    [Benchmark] // 122.5ns  140.60ns
     public void RotateX2Opt3() => shape555.RotateX2Opt3();
 
-    [Benchmark] // 119.2ns
+    [Benchmark] // 119.2ns  142.00ns <= best M2Max
     public void RotateX2Opt4() => shape555.RotateX2Opt4();
 
-    [Benchmark] // 110.78ns
+
+    [Benchmark] // 110.78ns  127.15ns
     public void MirrorX() => shape555.MirrorX();
 
-    [Benchmark] // 128.04ns
+    [Benchmark] // 128.04ns   93.42ns <= best Intel
     public void MirrorXOpt() => shape555.MirrorXOpt();
 
-    [Benchmark] //  82.78ns
+    [Benchmark] //  82.78ns  115.81ns <= best M2Max
     public void MirrorXOpt2() => shape555.MirrorXOpt2();
 
-    [Benchmark] // 107.82ns
+
+    [Benchmark] // 107.82ns  155.28ns <= best M2Max
     public void MirrorY() => shape555.MirrorY();
 
-    [Benchmark] // 127.97ns
+    [Benchmark] // 127.97ns  109.72ns <= best Intel
     public void MirrorYOpt() => shape555.MirrorYOpt();
 
-    [Benchmark] // 114.8ns
+    [Benchmark] // 114.8ns   124.18ns
     public void MirrorYOpt2() => shape555.MirrorYOpt2();
 
-    [Benchmark] // 156.74ns
+
+    [Benchmark] // 156.74ns  158.32ns
     public void MirrorZ() => shape555.MirrorZ();
 
-    [Benchmark] // 149.78ns
+    [Benchmark] // 149.78ns  146.59ns <= best M2Max/Intel
     public void MirrorZOpt() => shape555.MirrorZOpt();
 
-    [Benchmark] // 154.8ns
+    [Benchmark] // 154.8ns   149.30ns
     public void MirrorZOpt2() => shape555.MirrorZOpt2();
 }
 
