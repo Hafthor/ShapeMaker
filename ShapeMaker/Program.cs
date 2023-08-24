@@ -3,13 +3,13 @@ using System.Diagnostics;
 
 namespace ShapeMaker;
 
-using MyHashSet = HashSet<byte[]>;
+//using MyHashSet = HashSet<byte[]>;
 //using MyHashSet = BitShapeHashSet;
-//using MyHashSet = BitShapeHashSet64k;
+using MyHashSet = BitShapeHashSet64k;
 //using MyHashSet = ConcurrentDictionary<byte[], byte>;
 
 public class Program {
-    public static string FILE_PATH = "~/Downloads/ShapeMaker";
+    public static string FILE_PATH = "~/dev/ShapeMaker";
     public const string FILE_EXT = ".bin";
     public const string FILE_COMPLETE = "_COMPLETE";
     public const int MAX_COMPUTE_N = 19;
@@ -119,11 +119,16 @@ public class Program {
             long shapeCount = 0;
             int currentSizeIndex = 0, targetSizesCount = targetSizes.Count;
             foreach (var size in targetSizes) {
-                int shardCount = -1; // don't shard
+                int shardCount = 0; // don't shard
                 // if the combined input size is 1GB, for example, the output is likely to be ~8GB, and ~24GB in memory
                 if (n >= 14 && size.w > 1 && size.h > 1 && size.d > 1) {
-                    long inMemSize = size.sz * 8 * 3; // should be *8*3 normally, but just *8 for BitShapeHashSet
-                    if (inMemSize > totalAvailableMemory) shardCount = n;
+                    long inMemSize = size.sz * 8; // should be *8*3 normally, but just *8 for BitShapeHashSet
+                    if (inMemSize > totalAvailableMemory) {
+                        shardCount = -8; // just shard on corner count
+                        if (inMemSize / 4 > totalAvailableMemory) { // unless that's not enough
+                            shardCount = n; // shard on corner/edge/face counts
+                        }
+                    }
                 }
                 currentSizeIndex++;
                 if (FileReader.FileExists(n, size.w, size.h, size.d)) {
@@ -133,7 +138,7 @@ public class Program {
                     additionalTime += timeTaken;
                 } else {
                     double totalSeconds = additionalTime.Add(sw.Elapsed).TotalSeconds;
-                    var progress = "            " + (shardCount >= 0 ? "/" + shardCount : "") + "[" + shapeCount.ToString("N0") + ", " + totalSeconds.ToString("N0") + "s, " + size.w + "x" + size.h + "x" + size.d + " " + currentSizeIndex + "/" + targetSizesCount + "]     ";
+                    var progress = "            " + (shardCount != 0 ? "/" + shardCount : "") + "[" + shapeCount.ToString("N0") + ", " + totalSeconds.ToString("N0") + "s, " + size.w + "x" + size.h + "x" + size.d + " " + currentSizeIndex + "/" + targetSizesCount + "]     ";
                     Console.Write(progress + new string('\b', progress.Length));
                     if (n < MAX_COMPUTE_N)
                         using (var writer = new FileWriter(n, size.w, size.h, size.d))
@@ -143,7 +148,7 @@ public class Program {
                 }
                 {
                     double totalSeconds = additionalTime.Add(sw.Elapsed).TotalSeconds;
-                    var progress = "            " + (shardCount >= 0 ? "/" + shardCount : "") + "[" + shapeCount.ToString("N0") + ", " + totalSeconds.ToString("N0") + "s, " + size.w + "x" + size.h + "x" + size.d + " " + currentSizeIndex + "/" + targetSizesCount + "]     ";
+                    var progress = "            " + (shardCount != 0 ? "/" + shardCount : "") + "[" + shapeCount.ToString("N0") + ", " + totalSeconds.ToString("N0") + "s, " + size.w + "x" + size.h + "x" + size.d + " " + currentSizeIndex + "/" + targetSizesCount + "]     ";
                     Console.Write(progress + new string('\b', progress.Length));
                 }
             }
@@ -245,44 +250,55 @@ public static class ShapeMakerHelper {
 
 public static class ShapeMaker {
     public static long ShapesFromExtendingShapes(IEnumerable<FileScanner.Results> fileList, FileWriter writer, byte w, byte h, byte d, int shardCount) {
-        //var newShapes = new HashSet<byte[]>(ByteArrayEqualityComparer.Instance);
-        //var newShapes = new BitShapeHashSet((w * h * d + 7) / 8);
-        //var newShapes = new BitShapeHashSet64k((w * h * d + 7) / 8);
-        //var newShapes = new ConcurrentDictionary<byte[], byte>(ByteArrayEqualityComparer.Instance);
-        var newShapes = new HashSet<byte[]>[256];
-        for (int i = 0; i < 256; i++) newShapes[i] = new HashSet<byte[]>(ByteArrayEqualityComparer.Instance);
+        var newShapes = new MyHashSet((w * h * d + 7) / 8);
+        //var newShapes = new MyHashSet(ByteArrayEqualityComparer.Instance);
+        //var newShapes = new MyHashSet[256];
+        //for (int i = 0; i < 256; i++) newShapes[i] = new HashSet<byte[]>(ByteArrayEqualityComparer.Instance);
 
-        if (shardCount < 0) {
+        if (shardCount == 0) {
             foreach (var fileInfo in fileList)
                 ShapesFromExtendingShapes(fileInfo, newShapes, w, h, d, -1, -1, -1);
-            if (writer != null) foreach (var hs in newShapes) foreach (var shape in hs) writer.Write(shape);
-            return newShapes.Sum(_ => _.LongCount());
-            //if (writer != null) foreach (var shape in newShapes) writer.Write(shape);
-            //return newShapes.LongLength;
+            //if (writer != null) foreach (var hs in newShapes) foreach (var shape in hs) writer.Write(shape);
+            //return newShapes.Sum(_ => _.LongCount());
+            if (writer != null) foreach (var shape in newShapes) writer.Write(shape);
+            return newShapes.LongCount();
         }
 
         long shapeCount = 0;
-        int maxInteriorCount = Math.Max(0, w - 2) * Math.Max(0, h - 2) * Math.Max(0, d - 2);
-        for (int cornerIndex = 0; cornerIndex <= 8; cornerIndex++)
-            for (int edgeIndex = cornerIndex == 0 ? 0 : 1; edgeIndex <= shardCount - cornerIndex; edgeIndex++)
-                for (int faceIndex = edgeIndex == 0 ? 0 : 1; faceIndex <= shardCount - cornerIndex - edgeIndex; faceIndex++)
-                    if (cornerIndex + edgeIndex + faceIndex >= shardCount - maxInteriorCount) {
-                        foreach (var fileInfo in fileList)
-                            ShapesFromExtendingShapes(fileInfo, newShapes, w, h, d, cornerIndex, edgeIndex, faceIndex);
-                        if (writer != null) foreach (var hs in newShapes) foreach (var shape in hs) writer.Write(shape);
-                        foreach (var hs in newShapes) { shapeCount += hs.LongCount(); hs.Clear(); }
-                        //if (writer != null) foreach (var shape in newShapes) writer.Write(shape);
-                        //shapeCount += newShapes.LongCount();
-                        //newShapes.Clear();
-                    }
+        if (shardCount < 0) { // just corner count sharding
+            for (int cornerIndex = 0; cornerIndex <= 8; cornerIndex++) {
+                foreach (var fileInfo in fileList)
+                    ShapesFromExtendingShapes(fileInfo, newShapes, w, h, d, cornerIndex, -1, -1);
+                //if (writer != null) foreach (var hs in newShapes) foreach (var shape in hs) writer.Write(shape);
+                //foreach (var hs in newShapes) { shapeCount += hs.LongCount(); hs.Clear(); }
+                if (writer != null) foreach (var shape in newShapes) writer.Write(shape);
+                shapeCount += newShapes.LongCount();
+                newShapes.Clear();
+            }
 
+        } else {
+            int maxInteriorCount = Math.Max(0, w - 2) * Math.Max(0, h - 2) * Math.Max(0, d - 2);
+            for (int cornerIndex = 0; cornerIndex <= 8; cornerIndex++)
+                for (int edgeIndex = cornerIndex == 0 ? 0 : 1; edgeIndex <= shardCount - cornerIndex; edgeIndex++)
+                    for (int faceIndex = edgeIndex == 0 ? 0 : 1; faceIndex <= shardCount - cornerIndex - edgeIndex; faceIndex++)
+                        if (cornerIndex + edgeIndex + faceIndex >= shardCount - maxInteriorCount) {
+                            foreach (var fileInfo in fileList)
+                                ShapesFromExtendingShapes(fileInfo, newShapes, w, h, d, cornerIndex, edgeIndex, faceIndex);
+                            //if (writer != null) foreach (var hs in newShapes) foreach (var shape in hs) writer.Write(shape);
+                            //foreach (var hs in newShapes) { shapeCount += hs.LongCount(); hs.Clear(); }
+                            if (writer != null) foreach (var shape in newShapes) writer.Write(shape);
+                            shapeCount += newShapes.LongCount();
+                            newShapes.Clear();
+                        }
+
+        }
         return shapeCount;
     }
 
     // for each shape in parallel, try to add cube to it
     // first does by adding cube to the shape in its current size
     // then tries padding each of the 6 faces of the shape and adding a cube there
-    private static void ShapesFromExtendingShapes(FileScanner.Results fileInfo, MyHashSet[] newShapes, byte targetWidth, byte targetHeight, byte targetDepth, int targetCornerCount, int targetEdgeCount, int targetFaceCount) {
+    private static void ShapesFromExtendingShapes(FileScanner.Results fileInfo, MyHashSet newShapes, byte targetWidth, byte targetHeight, byte targetDepth, int targetCornerCount, int targetEdgeCount, int targetFaceCount) {
         byte w = fileInfo.w, h = fileInfo.h, d = fileInfo.d;
         int shapeSizeInBytes = new BitShape(w, h, d).bytes.Length;
         long sourceShapes = FileReader.FileSize(fileInfo.n, w, h, d) / shapeSizeInBytes;
@@ -368,13 +384,15 @@ public static class ShapeMaker {
     // for each blank cube from x0 to w, y0 to h, z0 to d, if it has an adjacent neighbor
     // add that cube, find the minimum rotation, and add to the newShapes hash set (under
     // lock since we could be doing this in parallel.)
-    private static void AddShapes(MyHashSet[] newShapes, BitShape shape, int xStart, int w, int yStart, int h, int zStart, int d, int targetCornerCount, int targetEdgeCount, int targetFaceCount) {
+    private static void AddShapes(MyHashSet newShapes, BitShape shape, int xStart, int w, int yStart, int h, int zStart, int d, int targetCornerCount, int targetEdgeCount, int targetFaceCount) {
         int cornerCount = 0, edgeCount = 0, faceCount = 0;
         if (targetCornerCount >= 0) {
             var counts = shape.CornerEdgeFaceCount();
             if (counts.corners > targetCornerCount || (counts.corners + 1) < targetCornerCount) return;
-            if (counts.edges > targetEdgeCount || (counts.edges + 1) < targetEdgeCount) return;
-            if (counts.faces > targetFaceCount || (counts.faces + 1) < targetFaceCount) return;
+            if (targetEdgeCount >= 0) {
+                if (counts.edges > targetEdgeCount || (counts.edges + 1) < targetEdgeCount) return;
+                if (counts.faces > targetFaceCount || (counts.faces + 1) < targetFaceCount) return;
+            }
             (cornerCount, edgeCount, faceCount) = counts;
         }
         var newShape = new BitShape(shape);
@@ -393,10 +411,12 @@ public static class ShapeMaker {
                         if (isInterior && (targetCornerCount != cornerCount || targetEdgeCount != edgeCount || targetFaceCount != faceCount)) continue;
                         bool isCorner = xFace && yFace && zFace;
                         if (isCorner && targetCornerCount != cornerCount + 1) continue;
-                        bool isEdge = xFace && yFace || yFace && zFace || xFace && zFace;
-                        if (isEdge && targetEdgeCount != edgeCount + 1) continue;
-                        bool isFace = !isCorner && !isEdge && !isInterior;
-                        if (isFace && targetFaceCount != faceCount + 1) continue;
+                        if (targetEdgeCount >= 0) {
+                            bool isEdge = xFace && yFace || yFace && zFace || xFace && zFace;
+                            if (isEdge && targetEdgeCount != edgeCount + 1) continue;
+                            bool isFace = !isCorner && !isEdge && !isInterior;
+                            if (isFace && targetFaceCount != faceCount + 1) continue;
+                        }
                     }
                     if (!shape[x, y, z])
                         if (shape.HasSetNeighbor(x, y, z)) {
@@ -404,10 +424,10 @@ public static class ShapeMaker {
                             newShape[x, y, z] = true;
                             var bytes = newShape.MinRotation().bytes;
                             //lock (newShapes) newShapes.Add(bytes);
-                            //newShapes.Add(bytes);
+                            newShapes.Add(bytes);
                             //newShapes.TryAdd(bytes, 0);
-                            int len = bytes.Length; byte hashIndex = len < 3 ? bytes[0] : bytes[len - 2]; // use last full byte
-                            lock (newShapes[hashIndex]) newShapes[hashIndex].Add(bytes);
+                            //int len = bytes.Length; byte hashIndex = len < 3 ? bytes[0] : bytes[len - 2]; // use last full byte
+                            //lock (newShapes[hashIndex]) newShapes[hashIndex].Add(bytes);
                         }
                 }
             }
