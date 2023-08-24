@@ -40,7 +40,7 @@ namespace ShapeMaker;
 #endif
 
 public class Program {
-    public static string FILE_PATH = "~/dev/ShapeMaker";
+    public static string FILE_PATH = "~/Downloads/ShapeMaker";
     public const string FILE_EXT = ".bin";
     public const string FILE_COMPLETE = "_COMPLETE";
     public const int MAX_COMPUTE_N = 19;
@@ -145,7 +145,9 @@ public class Program {
             Console.Write(completeString);
             Stopwatch sw = Stopwatch.StartNew();
             TimeSpan additionalTime = TimeSpan.Zero;
-            var inputFileList = new FileScanner((byte)(n - 1)).List;
+            var inputFileList = new FileScanner((byte)(n - 1)).List
+                .OrderByDescending(f => f.w * 65536 + f.h * 256 + f.d)
+                .ToList();
             var targetSizes = ShapeMakerEstimator.ShapeSizesFromExtendingShapes(inputFileList).ToList();
             long shapeCount = 0;
             int currentSizeIndex = 0, targetSizesCount = targetSizes.Count;
@@ -294,62 +296,20 @@ public static class ShapeMaker {
         for (int i = 0; i < 256; i++) newShapes[i] = new HashSet<byte[]>(ByteArrayEqualityComparer.Instance);
 #endif
 
-        if (shardCount == 0) {
-            foreach (var fileInfo in fileList)
-                ShapesFromExtendingShapes(fileInfo, newShapes, w, h, d, -1, -1, -1);
-#if USE_HASHSETARRAY
-            if (writer != null) foreach (var hs in newShapes) foreach (var shape in hs) writer.Write(shape);
-            return newShapes.Sum(_ => _.LongCount());
-#elif USE_CONCURRENTDICTIONARY
-            if (writer != null) foreach (var shape in newShapes.Keys) writer.Write(shape);
-            return newShapes.Keys.LongCount();
-#else
-            if (writer != null) foreach (var shape in newShapes) writer.Write(shape);
-            return newShapes.LongCount();
-#endif
-        }
+        if (shardCount == 0)
+            return ShapesFromExtendingShapes(fileList, writer, newShapes, w, h, d, -1, -1, -1);
 
         long shapeCount = 0;
-        if (shardCount < 0) { // just corner count sharding
-            for (int cornerIndex = 0; cornerIndex <= 8; cornerIndex++) {
-                foreach (var fileInfo in fileList)
-                    ShapesFromExtendingShapes(fileInfo, newShapes, w, h, d, cornerIndex, -1, -1);
-#if USE_HASHSETARRAY
-                if (writer != null) foreach (var hs in newShapes) foreach (var shape in hs) writer.Write(shape);
-                foreach (var hs in newShapes) { shapeCount += hs.LongCount(); hs.Clear(); }
-#elif USE_CONCURRENTDICTIONARY
-                if (writer != null) foreach (var shape in newShapes.Keys) writer.Write(shape);
-                shapeCount += newShapes.Keys.LongCount();
-                newShapes.Clear();
-#else
-                if (writer != null) foreach (var shape in newShapes) writer.Write(shape);
-                shapeCount += newShapes.LongCount();
-                newShapes.Clear();
-#endif
-            }
-
-        } else {
+        if (shardCount < 0) // just corner count sharding
+            for (int cornerIndex = 0; cornerIndex <= 8; cornerIndex++)
+                shapeCount += ShapesFromExtendingShapes(fileList, writer, newShapes, w, h, d, cornerIndex, -1, -1);
+        else {
             int maxInteriorCount = Math.Max(0, w - 2) * Math.Max(0, h - 2) * Math.Max(0, d - 2);
             for (int cornerIndex = 0; cornerIndex <= 8; cornerIndex++)
                 for (int edgeIndex = cornerIndex == 0 ? 0 : 1; edgeIndex <= shardCount - cornerIndex; edgeIndex++)
                     for (int faceIndex = edgeIndex == 0 ? 0 : 1; faceIndex <= shardCount - cornerIndex - edgeIndex; faceIndex++)
-                        if (cornerIndex + edgeIndex + faceIndex >= shardCount - maxInteriorCount) {
-                            foreach (var fileInfo in fileList)
-                                ShapesFromExtendingShapes(fileInfo, newShapes, w, h, d, cornerIndex, edgeIndex, faceIndex);
-#if USE_HASHSETARRAY
-                            if (writer != null) foreach (var hs in newShapes) foreach (var shape in hs) writer.Write(shape);
-                            foreach (var hs in newShapes) { shapeCount += hs.LongCount(); hs.Clear(); }
-#elif USE_CONCURRENTDICTIONARY
-                            if (writer != null) foreach (var shape in newShapes.Keys) writer.Write(shape);
-                            shapeCount += newShapes.Keys.LongCount();
-                            newShapes.Clear();
-#else
-                            if (writer != null) foreach (var shape in newShapes) writer.Write(shape);
-                            shapeCount += newShapes.LongCount();
-                            newShapes.Clear();
-#endif
-                        }
-
+                        if (cornerIndex + edgeIndex + faceIndex >= shardCount - maxInteriorCount)
+                            shapeCount += ShapesFromExtendingShapes(fileList, writer, newShapes, w, h, d, cornerIndex, edgeIndex, faceIndex);
         }
         return shapeCount;
     }
@@ -357,6 +317,29 @@ public static class ShapeMaker {
     // for each shape in parallel, try to add cube to it
     // first does by adding cube to the shape in its current size
     // then tries padding each of the 6 faces of the shape and adding a cube there
+#if USE_HASHSETARRAY
+    private static long ShapesFromExtendingShapes(IEnumerable<FileScanner.Results> fileList, FileWriter writer, MyHashSet[] newShapes, byte targetWidth, byte targetHeight, byte targetDepth, int targetCornerCount, int targetEdgeCount, int targetFaceCount) {
+#else
+    private static long ShapesFromExtendingShapes(IEnumerable<FileScanner.Results> fileList, FileWriter writer, MyHashSet newShapes, byte targetWidth, byte targetHeight, byte targetDepth, int targetCornerCount, int targetEdgeCount, int targetFaceCount) {
+#endif
+        long shapeCount = 0;
+        foreach (var fileInfo in fileList)
+            ShapesFromExtendingShapes(fileInfo, newShapes, targetWidth, targetHeight, targetDepth, targetCornerCount, targetEdgeCount, targetFaceCount);
+#if USE_HASHSETARRAY
+        if (writer != null) foreach (var hs in newShapes) foreach (var shape in hs) writer.Write(shape);
+        foreach (var hs in newShapes) { shapeCount += hs.LongCount(); hs.Clear(); }
+#elif USE_CONCURRENTDICTIONARY
+        if (writer != null) foreach (var shape in newShapes.Keys) writer.Write(shape);
+        shapeCount += newShapes.Keys.LongCount();
+        newShapes.Clear();
+#else
+        if (writer != null) foreach (var shape in newShapes) writer.Write(shape);
+        shapeCount += newShapes.LongCount();
+        newShapes.Clear();
+#endif
+        return shapeCount;
+    }
+
 #if USE_HASHSETARRAY
     private static void ShapesFromExtendingShapes(FileScanner.Results fileInfo, MyHashSet[] newShapes, byte targetWidth, byte targetHeight, byte targetDepth, int targetCornerCount, int targetEdgeCount, int targetFaceCount) {
 #else
