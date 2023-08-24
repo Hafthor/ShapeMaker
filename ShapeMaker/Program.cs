@@ -1,12 +1,43 @@
-﻿using System.Collections.Concurrent;
+﻿// Uncomment one of the following hashset implementations to use
+//#define USE_HASHSET
+//#define USE_HASHSETARRAY
+//#define USE_BITSHAPEHASHSET
+#define USE_BITSHAPEHASHSET64K
+//#define USE_CONCURRENTDICTIONARY
+
+using System.Collections.Concurrent;
 using System.Diagnostics;
 
 namespace ShapeMaker;
 
-//using MyHashSet = HashSet<byte[]>;
-//using MyHashSet = BitShapeHashSet;
-using MyHashSet = BitShapeHashSet64k;
-//using MyHashSet = ConcurrentDictionary<byte[], byte>;
+#if USE_HASHSET
+    #if USE_HASHSETARRAY || USE_BITSHAPEHASHSET || USE_BITSHAPEHASHSET64K || USE_CONCURRENTDICTIONARY
+        #error You must only use one hashset implementation
+    #endif
+    using MyHashSet = HashSet<byte[]>;
+#elif USE_HASHSETARRAY
+    #if USE_HASHSET || USE_BITSHAPEHASHSET || USE_BITSHAPEHASHSET64K || USE_CONCURRENTDICTIONARY
+        #error You must only use one hashset implementation
+    #endif
+    using MyHashSet = HashSet<byte[]>;
+#elif USE_BITSHAPEHASHSET
+    #if USE_HASHSET || USE_HASHSETARRAY || USE_BITSHAPEHASHSET64K || USE_CONCURRENTDICTIONARY
+        #error You must only use one hashset implementation
+    #endif
+    using MyHashSet = BitShapeHashSet;
+#elif USE_BITSHAPEHASHSET64K
+    #if USE_HASHSET || USE_HASHSETARRAY || USE_BITSHAPEHASHSET || USE_CONCURRENTDICTIONARY
+        #error You must only use one hashset implementation
+    #endif
+    using MyHashSet = BitShapeHashSet64k;
+#elif USE_CONCURRENTDICTIONARY
+    #if USE_HASHSET || USE_HASHSETARRAY || USE_BITSHAPEHASHSET || USE_BITSHAPEHASHSET64K
+        #error You must only use one hashset implementation
+    #endif
+    using MyHashSet = ConcurrentDictionary<byte[], byte>;
+#else
+    #error You must define which hashset implementation to use
+#endif
 
 public class Program {
     public static string FILE_PATH = "~/dev/ShapeMaker";
@@ -122,7 +153,11 @@ public class Program {
                 int shardCount = 0; // don't shard
                 // if the combined input size is 1GB, for example, the output is likely to be ~8GB, and ~24GB in memory
                 if (n >= 14 && size.w > 1 && size.h > 1 && size.d > 1) {
-                    long inMemSize = size.sz * 8; // should be *8*3 normally, but just *8 for BitShapeHashSet
+#if USE_BITSHAPEHASHSET || USE_BITSHAPEHASHSET64K
+                    long inMemSize = size.sz * 8; // should be *8 for BitShapeHashSet
+#else
+                    long inMemSize = size.sz * 8 * 3; // should be *8*3 normally
+#endif
                     if (inMemSize > totalAvailableMemory) {
                         shardCount = -8; // just shard on corner count
                         if (inMemSize / 4 > totalAvailableMemory) { // unless that's not enough
@@ -250,18 +285,28 @@ public static class ShapeMakerHelper {
 
 public static class ShapeMaker {
     public static long ShapesFromExtendingShapes(IEnumerable<FileScanner.Results> fileList, FileWriter writer, byte w, byte h, byte d, int shardCount) {
+#if USE_BITSHAPEHASHSET || USE_BITSHAPEHASHSET64K
         var newShapes = new MyHashSet((w * h * d + 7) / 8);
-        //var newShapes = new MyHashSet(ByteArrayEqualityComparer.Instance);
-        //var newShapes = new MyHashSet[256];
-        //for (int i = 0; i < 256; i++) newShapes[i] = new HashSet<byte[]>(ByteArrayEqualityComparer.Instance);
+#elif USE_HASHSET || USE_CONCURRENTDICTIONARY
+        var newShapes = new MyHashSet(ByteArrayEqualityComparer.Instance);
+#elif USE_HASHSETARRAY
+        var newShapes = new MyHashSet[256];
+        for (int i = 0; i < 256; i++) newShapes[i] = new HashSet<byte[]>(ByteArrayEqualityComparer.Instance);
+#endif
 
         if (shardCount == 0) {
             foreach (var fileInfo in fileList)
                 ShapesFromExtendingShapes(fileInfo, newShapes, w, h, d, -1, -1, -1);
-            //if (writer != null) foreach (var hs in newShapes) foreach (var shape in hs) writer.Write(shape);
-            //return newShapes.Sum(_ => _.LongCount());
+#if USE_HASHSETARRAY
+            if (writer != null) foreach (var hs in newShapes) foreach (var shape in hs) writer.Write(shape);
+            return newShapes.Sum(_ => _.LongCount());
+#elif USE_CONCURRENTDICTIONARY
+            if (writer != null) foreach (var shape in newShapes.Keys) writer.Write(shape);
+            return newShapes.Keys.LongCount();
+#else
             if (writer != null) foreach (var shape in newShapes) writer.Write(shape);
             return newShapes.LongCount();
+#endif
         }
 
         long shapeCount = 0;
@@ -269,11 +314,18 @@ public static class ShapeMaker {
             for (int cornerIndex = 0; cornerIndex <= 8; cornerIndex++) {
                 foreach (var fileInfo in fileList)
                     ShapesFromExtendingShapes(fileInfo, newShapes, w, h, d, cornerIndex, -1, -1);
-                //if (writer != null) foreach (var hs in newShapes) foreach (var shape in hs) writer.Write(shape);
-                //foreach (var hs in newShapes) { shapeCount += hs.LongCount(); hs.Clear(); }
+#if USE_HASHSETARRAY
+                if (writer != null) foreach (var hs in newShapes) foreach (var shape in hs) writer.Write(shape);
+                foreach (var hs in newShapes) { shapeCount += hs.LongCount(); hs.Clear(); }
+#elif USE_CONCURRENTDICTIONARY
+                if (writer != null) foreach (var shape in newShapes.Keys) writer.Write(shape);
+                shapeCount += newShapes.Keys.LongCount();
+                newShapes.Clear();
+#else
                 if (writer != null) foreach (var shape in newShapes) writer.Write(shape);
                 shapeCount += newShapes.LongCount();
                 newShapes.Clear();
+#endif
             }
 
         } else {
@@ -284,11 +336,18 @@ public static class ShapeMaker {
                         if (cornerIndex + edgeIndex + faceIndex >= shardCount - maxInteriorCount) {
                             foreach (var fileInfo in fileList)
                                 ShapesFromExtendingShapes(fileInfo, newShapes, w, h, d, cornerIndex, edgeIndex, faceIndex);
-                            //if (writer != null) foreach (var hs in newShapes) foreach (var shape in hs) writer.Write(shape);
-                            //foreach (var hs in newShapes) { shapeCount += hs.LongCount(); hs.Clear(); }
+#if USE_HASHSETARRAY
+                            if (writer != null) foreach (var hs in newShapes) foreach (var shape in hs) writer.Write(shape);
+                            foreach (var hs in newShapes) { shapeCount += hs.LongCount(); hs.Clear(); }
+#elif USE_CONCURRENTDICTIONARY
+                            if (writer != null) foreach (var shape in newShapes.Keys) writer.Write(shape);
+                            shapeCount += newShapes.Keys.LongCount();
+                            newShapes.Clear();
+#else
                             if (writer != null) foreach (var shape in newShapes) writer.Write(shape);
                             shapeCount += newShapes.LongCount();
                             newShapes.Clear();
+#endif
                         }
 
         }
@@ -298,7 +357,11 @@ public static class ShapeMaker {
     // for each shape in parallel, try to add cube to it
     // first does by adding cube to the shape in its current size
     // then tries padding each of the 6 faces of the shape and adding a cube there
+#if USE_HASHSETARRAY
+    private static void ShapesFromExtendingShapes(FileScanner.Results fileInfo, MyHashSet[] newShapes, byte targetWidth, byte targetHeight, byte targetDepth, int targetCornerCount, int targetEdgeCount, int targetFaceCount) {
+#else
     private static void ShapesFromExtendingShapes(FileScanner.Results fileInfo, MyHashSet newShapes, byte targetWidth, byte targetHeight, byte targetDepth, int targetCornerCount, int targetEdgeCount, int targetFaceCount) {
+#endif
         byte w = fileInfo.w, h = fileInfo.h, d = fileInfo.d;
         int shapeSizeInBytes = new BitShape(w, h, d).bytes.Length;
         long sourceShapes = FileReader.FileSize(fileInfo.n, w, h, d) / shapeSizeInBytes;
@@ -384,7 +447,11 @@ public static class ShapeMaker {
     // for each blank cube from x0 to w, y0 to h, z0 to d, if it has an adjacent neighbor
     // add that cube, find the minimum rotation, and add to the newShapes hash set (under
     // lock since we could be doing this in parallel.)
+#if USE_HASHSETARRAY
+    private static void AddShapes(MyHashSet[] newShapes, BitShape shape, int xStart, int w, int yStart, int h, int zStart, int d, int targetCornerCount, int targetEdgeCount, int targetFaceCount) {
+#else
     private static void AddShapes(MyHashSet newShapes, BitShape shape, int xStart, int w, int yStart, int h, int zStart, int d, int targetCornerCount, int targetEdgeCount, int targetFaceCount) {
+#endif
         int cornerCount = 0, edgeCount = 0, faceCount = 0;
         if (targetCornerCount >= 0) {
             var counts = shape.CornerEdgeFaceCount();
@@ -423,11 +490,16 @@ public static class ShapeMaker {
                             Array.Copy(shapeBytes, newShapeBytes, shapeBytesLength);
                             newShape[x, y, z] = true;
                             var bytes = newShape.MinRotation().bytes;
-                            //lock (newShapes) newShapes.Add(bytes);
+#if USE_HASHSET
+                            lock (newShapes) newShapes.Add(bytes);
+#elif USE_BITSHAPEHASHSET || USE_BITSHAPEHASHSET64K
                             newShapes.Add(bytes);
-                            //newShapes.TryAdd(bytes, 0);
-                            //int len = bytes.Length; byte hashIndex = len < 3 ? bytes[0] : bytes[len - 2]; // use last full byte
-                            //lock (newShapes[hashIndex]) newShapes[hashIndex].Add(bytes);
+#elif USE_CONCURRENTDICTIONARY
+                            newShapes.TryAdd(bytes, 0);
+#elif USE_HASHSETARRAY
+                            int len = bytes.Length; byte hashIndex = len < 3 ? bytes[0] : bytes[len - 2]; // use last full byte
+                            lock (newShapes[hashIndex]) newShapes[hashIndex].Add(bytes);
+#endif
                         }
                 }
             }
