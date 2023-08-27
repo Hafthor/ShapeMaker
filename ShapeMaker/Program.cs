@@ -146,9 +146,9 @@ public class Program {
             Stopwatch sw = Stopwatch.StartNew();
             TimeSpan additionalTime = TimeSpan.Zero;
             var inputFileList = new FileScanner((byte)(n - 1)).List
-                .OrderByDescending(f => f.w * 65536 + f.h * 256 + f.d)
+                .OrderByDescending(f => f.size)
                 .ToList();
-            var targetSizes = ShapeMakerEstimator.ShapeSizesFromExtendingShapes(inputFileList).ToList();
+            var targetSizes = ShapeMakerEstimator.ShapeSizesFromExtendingShapes(inputFileList).OrderByDescending(f => f.sz).ToList();
             long shapeCount = 0;
             int currentSizeIndex = 0, targetSizesCount = targetSizes.Count;
             foreach (var size in targetSizes) {
