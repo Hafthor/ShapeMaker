@@ -103,7 +103,7 @@ public class Program {
     /// that case.
     /// </summary>
     static void Main(string[] args) {
-        for (int i = 1; i < args.Length; i++) {
+        for (int i = 0; i < args.Length; i++) {
             var arg = args[i];
             if (arg.StartsWith("--"))
                 if (arg == "--no-chiral-count")
@@ -525,7 +525,7 @@ public class FileScanner {
         var files = di.GetFiles("*" + ext).OrderBy(f => f.Length);
         foreach (var file in files) {
             if (file.Name.EndsWith(ext)) {
-                var dim = file.Name.Substring(0, file.Name.Length - ext.Length).Split(',');
+                var dim = file.Name.Substring(0, file.Name.Length - ext.Length).Split('x');
                 if (dim.Length != 3) continue;
                 if (!byte.TryParse(dim[0], out var w) || w < 1 || w > n) continue;
                 if (!byte.TryParse(dim[1], out var h) || h < 1 || h > n) continue;
@@ -601,7 +601,7 @@ public class FileReader : IDisposable {
     private readonly FileStream fs;
     private readonly int length;
 
-    public static string FilePath(int n, int w, int h, int d, string ext = Program.FILE_EXT) => Path.Combine(Program.FILE_PATH, n.ToString(), w + "," + h + "," + d + ext);
+    public static string FilePath(int n, int w, int h, int d, string ext = Program.FILE_EXT) => Path.Combine(Program.FILE_PATH, n.ToString(), w + "x" + h + "x" + d + ext);
 
     public static bool FileExists(int n, int w, int h, int d) => File.Exists(FilePath(n, w, h, d));
 
