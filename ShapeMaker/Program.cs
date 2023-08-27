@@ -129,7 +129,7 @@ public class Program {
         if (recompute || completeString == null) {
             if (recompute) FileWriter.Clear(1); else FileWriter.ClearTmp(1);
             using (var writer = new FileWriter(1, 1, 1, 1))
-                writer.Write(new BitShape("1,1,1,*").bytes);
+                writer.Write(new BitShape("1x1x1,*").bytes);
             FileWriter.MarkNComplete(1, DO_CHIRAL_COUNT ? "n=1, shapes: 1 time: 0, chiral count: 1 time: 0" : "n=1, shapes: 1 time: 0");
         }
 

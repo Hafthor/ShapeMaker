@@ -25,13 +25,13 @@ public class BitShapeTests {
 
     [TestMethod]
     public void TestSerializeDeserialize() {
-        var shape = new BitShape("1,1,1,*");
+        var shape = new BitShape("1x1x1,*");
         Assert.AreEqual(1, shape.w);
         Assert.AreEqual(1, shape.h);
         Assert.AreEqual(1, shape.d);
         Assert.IsTrue(shape[0, 0, 0]);
 
-        shape = new BitShape("3,3,3,*** *** ***\n*** *.* ***\n*** *** ***");
+        shape = new BitShape("3x3x3,*** *** ***\n*** *.* ***\n*** *** ***");
         Assert.AreEqual(3, shape.w);
         Assert.AreEqual(3, shape.h);
         Assert.AreEqual(3, shape.d);
@@ -42,7 +42,7 @@ public class BitShapeTests {
                     Assert.AreEqual(x != 1 || y != 1 || z != 1, shape[x, y, z]);
 
         var s = shape.Serialize();
-        Assert.AreEqual("3,3,3,*** *** ***\n*** *.* ***\n*** *** ***".Replace(" ", "").Replace("\n", ""), s);
+        Assert.AreEqual("3x3x3,*** *** ***\n*** *.* ***\n*** *** ***".Replace(" ", "").Replace("\n", ""), s);
     }
 
     [TestMethod]
@@ -56,7 +56,7 @@ public class BitShapeTests {
         Assert.IsFalse(shape[0, 0, 0]);
         Assert.IsTrue(shape[1, 0, 0]);
 
-        Assert.AreEqual("2,1,1,.*", shape.Serialize());
+        Assert.AreEqual("2x1x1,.*", shape.Serialize());
     }
 
     [TestMethod]
@@ -70,7 +70,7 @@ public class BitShapeTests {
         Assert.IsFalse(shape[1, 0, 0]);
         Assert.IsTrue(shape[0, 0, 0]);
 
-        Assert.AreEqual("2,1,1,*.", shape.Serialize());
+        Assert.AreEqual("2x1x1,*.", shape.Serialize());
     }
 
     [TestMethod]
@@ -84,7 +84,7 @@ public class BitShapeTests {
         Assert.IsFalse(shape[0, 0, 0]);
         Assert.IsTrue(shape[0, 1, 0]);
 
-        Assert.AreEqual("1,2,1,.*", shape.Serialize());
+        Assert.AreEqual("1x2x1,.*", shape.Serialize());
     }
 
     [TestMethod]
@@ -98,7 +98,7 @@ public class BitShapeTests {
         Assert.IsTrue(shape[0, 0, 0]);
         Assert.IsFalse(shape[0, 1, 0]);
 
-        Assert.AreEqual("1,2,1,*.", shape.Serialize());
+        Assert.AreEqual("1x2x1,*.", shape.Serialize());
     }
 
     [TestMethod]
@@ -112,7 +112,7 @@ public class BitShapeTests {
         Assert.IsFalse(shape[0, 0, 0]);
         Assert.IsTrue(shape[0, 0, 1]);
 
-        Assert.AreEqual("1,1,2,.*", shape.Serialize());
+        Assert.AreEqual("1x1x2,.*", shape.Serialize());
     }
 
     [TestMethod]
@@ -126,19 +126,19 @@ public class BitShapeTests {
         Assert.IsTrue(shape[0, 0, 0]);
         Assert.IsFalse(shape[0, 0, 1]);
 
-        Assert.AreEqual("1,1,2,*.", shape.Serialize());
+        Assert.AreEqual("1x1x2,*.", shape.Serialize());
     }
 
     [TestMethod]
     public void TestInPlaceRotateXMini() {
-        var shape = new BitShape("1,3,3,.** .** ...");
+        var shape = new BitShape("1x3x3,.** .** ...");
         var newShape = shape.RotateX(); // should rotate in-place
         Assert.IsTrue(object.ReferenceEquals(shape, newShape));
 
-        Assert.AreEqual("1,3,3,... .** .**".Replace(" ", ""), shape.Serialize());
+        Assert.AreEqual("1x3x3,... .** .**".Replace(" ", ""), shape.Serialize());
 
         shape.RotateX().RotateX().RotateX();
-        Assert.AreEqual("1,3,3,.** .** ...".Replace(" ", ""), shape.Serialize());
+        Assert.AreEqual("1x3x3,.** .** ...".Replace(" ", ""), shape.Serialize());
     }
 
     [TestMethod]
@@ -170,8 +170,8 @@ public class BitShapeTests {
 
     [TestMethod]
     public void TestRotateX_() {
-        var starting = "2,3,4,abcdefghijklABCDEFGHIJKL";
-        var ending = "2,4,3,ieajfbkgclhdIEAJFBKGCLHD";
+        var starting = "2x3x4,abcdefghijklABCDEFGHIJKL";
+        var ending = "2x4x3,ieajfbkgclhdIEAJFBKGCLHD";
         TestOperation(starting, (s) => s.RotateX(), ending, (s) => s.RotateX().RotateX().RotateX());
     }
 
@@ -200,8 +200,8 @@ public class BitShapeTests {
 
     [TestMethod]
     public void TestInPlaceRotateX2_() {
-        var starting = "2,5,5,abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
-        var ending = "2,5,5,yxwvutsrqponmlkjihgfedcbaYXWVUTSRQPONMLKJIHGFEDCBA";
+        var starting = "2x5x5,abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
+        var ending = "2x5x5,yxwvutsrqponmlkjihgfedcbaYXWVUTSRQPONMLKJIHGFEDCBA";
         TestOperation(starting, (s) => s.RotateX2(), ending, (s) => s.RotateX2());
     }
 
@@ -230,8 +230,8 @@ public class BitShapeTests {
 
     [TestMethod]
     public void TestInPlaceRotateX2Opt_() {
-        var starting = "2,5,5,abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
-        var ending = "2,5,5,yxwvutsrqponmlkjihgfedcbaYXWVUTSRQPONMLKJIHGFEDCBA";
+        var starting = "2x5x5,abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
+        var ending = "2x5x5,yxwvutsrqponmlkjihgfedcbaYXWVUTSRQPONMLKJIHGFEDCBA";
         TestOperation(starting, (s) => s.RotateX2Opt(), ending, (s) => s.RotateX2Opt());
     }
 
@@ -260,8 +260,8 @@ public class BitShapeTests {
 
     [TestMethod]
     public void TestInPlaceRotateX2Opt2_() {
-        var starting = "2,5,5,abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
-        var ending = "2,5,5,yxwvutsrqponmlkjihgfedcbaYXWVUTSRQPONMLKJIHGFEDCBA";
+        var starting = "2x5x5,abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
+        var ending = "2x5x5,yxwvutsrqponmlkjihgfedcbaYXWVUTSRQPONMLKJIHGFEDCBA";
         TestOperation(starting, (s) => s.RotateX2Opt2(), ending, (s) => s.RotateX2Opt2());
     }
 
@@ -285,8 +285,8 @@ public class BitShapeTests {
 
     [TestMethod]
     public void TestInPlaceMirrorXOrg_() {
-        var starting = "2,5,5,abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
-        var ending = "2,5,5,ABCDEFGHIJKLMNOPQRSTUVWXYabcdefghijklmnopqrstuvwxy";
+        var starting = "2x5x5,abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
+        var ending = "2x5x5,ABCDEFGHIJKLMNOPQRSTUVWXYabcdefghijklmnopqrstuvwxy";
         TestOperation(starting, (s) => s.MirrorXOrg(), ending, (s) => s.MirrorXOrg());
     }
 
@@ -310,8 +310,8 @@ public class BitShapeTests {
 
     [TestMethod]
     public void TestInPlaceMirrorXOpt_() {
-        var starting = "2,5,5,abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
-        var ending = "2,5,5,ABCDEFGHIJKLMNOPQRSTUVWXYabcdefghijklmnopqrstuvwxy";
+        var starting = "2x5x5,abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
+        var ending = "2x5x5,ABCDEFGHIJKLMNOPQRSTUVWXYabcdefghijklmnopqrstuvwxy";
         TestOperation(starting, (s) => s.MirrorXOpt(), ending, (s) => s.MirrorXOpt());
     }
 
@@ -335,8 +335,8 @@ public class BitShapeTests {
 
     [TestMethod]
     public void TestInPlaceMirrorXOpt2_() {
-        var starting = "2,5,5,abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
-        var ending = "2,5,5,ABCDEFGHIJKLMNOPQRSTUVWXYabcdefghijklmnopqrstuvwxy";
+        var starting = "2x5x5,abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
+        var ending = "2x5x5,ABCDEFGHIJKLMNOPQRSTUVWXYabcdefghijklmnopqrstuvwxy";
         TestOperation(starting, (s) => s.MirrorX(), ending, (s) => s.MirrorX());
     }
 
@@ -344,21 +344,21 @@ public class BitShapeTests {
     public void TestInPlaceRotateY() {
         // alpha = "abcdeABCDEfghijFGHIJklmnoKLMNOpqrstPQRSTuvwxyUVWXY";
         var bits = "*...*.***....*.***.*....*****......******...*.***."; // vowels,CONSONANTS
-        var shape = new BitShape("5,2,5," + bits);
+        var shape = new BitShape("5x2x5," + bits);
         var newShape = shape.RotateY(); // should rotate in-place
         Assert.IsTrue(object.ReferenceEquals(shape, newShape));
         var s = shape.Serialize();
         //    Assert.AreEqual("upkfaUPKFAvqlgbVQLGBwrmhcWRMHCxsnidXSNIDytojeYTOJE", s);
-        Assert.AreEqual("5,2,5,*...*.***......*****.....*****...*.***.**.*.*.*.*.", s);
+        Assert.AreEqual("5x2x5,*...*.***......*****.....*****...*.***.**.*.*.*.*.", s);
 
         shape.RotateY().RotateY().RotateY();
-        Assert.AreEqual("5,2,5," + bits, shape.Serialize().Replace(" ", "").Replace("\n", ""));
+        Assert.AreEqual("5x2x5," + bits, shape.Serialize().Replace(" ", "").Replace("\n", ""));
     }
 
     [TestMethod]
     public void TestInPlaceRotateY_() {
-        var starting = "5,2,5,abcdeABCDEfghijFGHIJklmnoKLMNOpqrstPQRSTuvwxyUVWXY";
-        var ending = "5,2,5,upkfaUPKFAvqlgbVQLGBwrmhcWRMHCxsnidXSNIDytojeYTOJE";
+        var starting = "5x2x5,abcdeABCDEfghijFGHIJklmnoKLMNOpqrstPQRSTuvwxyUVWXY";
+        var ending = "5x2x5,upkfaUPKFAvqlgbVQLGBwrmhcWRMHCxsnidXSNIDytojeYTOJE";
         TestOperation(starting, (s) => s.RotateY(), ending, (s) => s.RotateY().RotateY().RotateY());
     }
 
@@ -366,7 +366,7 @@ public class BitShapeTests {
     public void TestRotateY() {
         // alpha = "abcdABCDefghEFGHijklIJKL";
         var bits = "*....****....****....***"; // vowels,CONSONANTS
-        var shape = new BitShape("3,2,4," + bits); // y is case, x=row, z=letter
+        var shape = new BitShape("3x2x4," + bits); // y is case, x=row, z=letter
         var newShape = shape.RotateY();
         Assert.IsFalse(object.ReferenceEquals(shape, newShape));
         Assert.AreEqual(4, newShape.w);
@@ -374,16 +374,16 @@ public class BitShapeTests {
         Assert.AreEqual(3, newShape.d);
         var s = newShape.Serialize();
         //    Assert.AreEqual("ieaIEAjfbJFBkgcKGClhdLHD", s);
-        Assert.AreEqual("4,2,3,***......***...***...***", s);
+        Assert.AreEqual("4x2x3,***......***...***...***", s);
 
         newShape = newShape.RotateY().RotateY().RotateY();
-        Assert.AreEqual("3,2,4," + bits, newShape.Serialize());
+        Assert.AreEqual("3x2x4," + bits, newShape.Serialize());
     }
 
     [TestMethod]
     public void TestRotateY_() {
-        var starting = "3,2,4,abcdABCDefghEFGHijklIJKL";
-        var ending = "4,2,3,ieaIEAjfbJFBkgcKGClhdLHD";
+        var starting = "3x2x4,abcdABCDefghEFGHijklIJKL";
+        var ending = "4x2x3,ieaIEAjfbJFBkgcKGClhdLHD";
         TestOperation(starting, (s) => s.RotateY(), ending, (s) => s.RotateY().RotateY().RotateY());
     }
 
@@ -391,20 +391,20 @@ public class BitShapeTests {
     public void TestInPlaceRotateY2() {
         // alpha = "abcdeABCDEfghijFGHIJklmnoKLMNOpqrstPQRSTuvwxyUVWXY";
         var bits = "*...*.***....*.***.*....*****......******...*.***.";
-        var shape = new BitShape("5,2,5," + bits);
+        var shape = new BitShape("5x2x5," + bits);
         var newShape = shape.RotateY2(); // should rotate in-place
         Assert.IsTrue(object.ReferenceEquals(shape, newShape));
         var s = shape.Serialize();
         //    Assert.AreEqual("yxwvuYXWVUtsrqpTSRQPonmlkONMLKjihgfJIHGFedcbaEDCBA", s);
-        Assert.AreEqual("5,2,5,*...*.***......******.....****.*...*.****...*.***.", s);
+        Assert.AreEqual("5x2x5,*...*.***......******.....****.*...*.****...*.***.", s);
 
-        Assert.AreEqual("5,2,5," + bits, shape.RotateY2().Serialize());
+        Assert.AreEqual("5x2x5," + bits, shape.RotateY2().Serialize());
     }
 
     [TestMethod]
     public void TestInPlaceRotateY2_() {
-        var starting = "5,2,5,abcdeABCDEfghijFGHIJklmnoKLMNOpqrstPQRSTuvwxyUVWXY";
-        var ending = "5,2,5,yxwvuYXWVUtsrqpTSRQPonmlkONMLKjihgfJIHGFedcbaEDCBA";
+        var starting = "5x2x5,abcdeABCDEfghijFGHIJklmnoKLMNOpqrstPQRSTuvwxyUVWXY";
+        var ending = "5x2x5,yxwvuYXWVUtsrqpTSRQPonmlkONMLKjihgfJIHGFedcbaEDCBA";
         TestOperation(starting, (s) => s.RotateY2(), ending, (s) => s.RotateY2());
     }
 
@@ -417,20 +417,20 @@ public class BitShapeTests {
         // uvwxy    abcde
         // alpha = "abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
         var bits = "*...*...*.....*.....*...*.***.***.*****.*****.***.";
-        var shape = new BitShape("2,5,5," + bits);
+        var shape = new BitShape("2x5x5," + bits);
         var newShape = shape.MirrorY(); // should mirror in-place
         Assert.IsTrue(object.ReferenceEquals(shape, newShape));
         var s = shape.Serialize();
         //    Assert.AreEqual("uvwxypqrstklmnofghijabcdeUVWXYPQRSTKLMNOFGHIJABCDE", s);
-        Assert.AreEqual("2,5,5,*...*.........*...*.*...*.***.*********.***.*.***.", s);
+        Assert.AreEqual("2x5x5,*...*.........*...*.*...*.***.*********.***.*.***.", s);
 
-        Assert.AreEqual("2,5,5," + bits, shape.MirrorY().Serialize());
+        Assert.AreEqual("2x5x5," + bits, shape.MirrorY().Serialize());
     }
 
     [TestMethod]
     public void TestInPlaceMirrorY_() {
-        var starting = "2,5,5,abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
-        var ending = "2,5,5,uvwxypqrstklmnofghijabcdeUVWXYPQRSTKLMNOFGHIJABCDE";
+        var starting = "2x5x5,abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
+        var ending = "2x5x5,uvwxypqrstklmnofghijabcdeUVWXYPQRSTKLMNOFGHIJABCDE";
         TestOperation(starting, (s) => s.MirrorY(), ending, (s) => s.MirrorY());
     }
 
@@ -444,20 +444,20 @@ public class BitShapeTests {
         // uvwxy    abcde
         // alpha = "abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
         var bits = "*...*...*.....*.....*...*.***.***.*****.*****.***.";
-        var shape = new BitShape("2,5,5," + bits);
+        var shape = new BitShape("2x5x5," + bits);
         var newShape = shape.MirrorYOpt(); // should mirror in-place
         Assert.IsTrue(object.ReferenceEquals(shape, newShape));
         var s = shape.Serialize();
         //    Assert.AreEqual("uvwxypqrstklmnofghijabcdeUVWXYPQRSTKLMNOFGHIJABCDE", s);
-        Assert.AreEqual("2,5,5,*...*.........*...*.*...*.***.*********.***.*.***.", s);
+        Assert.AreEqual("2x5x5,*...*.........*...*.*...*.***.*********.***.*.***.", s);
 
-        Assert.AreEqual("2,5,5," + bits, shape.MirrorYOpt().Serialize());
+        Assert.AreEqual("2x5x5," + bits, shape.MirrorYOpt().Serialize());
     }
 
     [TestMethod]
     public void TestInPlaceMirrorYOpt_() {
-        var starting = "2,5,5,abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
-        var ending = "2,5,5,uvwxypqrstklmnofghijabcdeUVWXYPQRSTKLMNOFGHIJABCDE";
+        var starting = "2x5x5,abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
+        var ending = "2x5x5,uvwxypqrstklmnofghijabcdeUVWXYPQRSTKLMNOFGHIJABCDE";
         TestOperation(starting, (s) => s.MirrorYOpt(), ending, (s) => s.MirrorYOpt());
     }
 
@@ -470,20 +470,20 @@ public class BitShapeTests {
         // uvwxy    abcde
         // alpha = "abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
         var bits = "*...*...*.....*.....*...*.***.***.*****.*****.***.";
-        var shape = new BitShape("2,5,5," + bits);
+        var shape = new BitShape("2x5x5," + bits);
         var newShape = shape.MirrorYOpt2(); // should mirror in-place
         Assert.IsTrue(object.ReferenceEquals(shape, newShape));
         var s = shape.Serialize();
         //    Assert.AreEqual("uvwxypqrstklmnofghijabcdeUVWXYPQRSTKLMNOFGHIJABCDE", s);
-        Assert.AreEqual("2,5,5,*...*.........*...*.*...*.***.*********.***.*.***.", s);
+        Assert.AreEqual("2x5x5,*...*.........*...*.*...*.***.*********.***.*.***.", s);
 
-        Assert.AreEqual("2,5,5," + bits, shape.MirrorYOpt2().Serialize());
+        Assert.AreEqual("2x5x5," + bits, shape.MirrorYOpt2().Serialize());
     }
 
     [TestMethod]
     public void TestInPlaceMirrorYOpt2_() {
-        var starting = "2,5,5,abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
-        var ending = "2,5,5,uvwxypqrstklmnofghijabcdeUVWXYPQRSTKLMNOFGHIJABCDE";
+        var starting = "2x5x5,abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
+        var ending = "2x5x5,uvwxypqrstklmnofghijabcdeUVWXYPQRSTKLMNOFGHIJABCDE";
         TestOperation(starting, (s) => s.MirrorYOpt2(), ending, (s) => s.MirrorYOpt2());
     }
 
@@ -491,21 +491,21 @@ public class BitShapeTests {
     public void TestInPlaceRotateZ() {
         // alpha = "aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyY";
         var bits = "*..*.*.**..*.*.**..*.*.*.*.**..*.*.*.*.**..*.*.**.";
-        var shape = new BitShape("5,5,2," + bits);
+        var shape = new BitShape("5x5x2," + bits);
         var newShape = shape.RotateZ(); // should rotate in-place
         Assert.IsTrue(object.ReferenceEquals(shape, newShape));
         var s = shape.Serialize();
         //    Assert.AreEqual("uUpPkKfFaAvVqQlLgGbBwWrRmMhHcCxXsSnNiIdDyYtToOjJeE", s);
-        Assert.AreEqual("5,5,2,*..*.*.**..*.*.*.*.*.*.*.*.*.*.*.*.**..**..**..**.", s);
+        Assert.AreEqual("5x5x2,*..*.*.**..*.*.*.*.*.*.*.*.*.*.*.*.**..**..**..**.", s);
 
         shape.RotateZ().RotateZ().RotateZ();
-        Assert.AreEqual("5,5,2," + bits, shape.Serialize());
+        Assert.AreEqual("5x5x2," + bits, shape.Serialize());
     }
 
     [TestMethod]
     public void TestInPlaceRotateZ_() {
-        var starting = "5,5,2,aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyY";
-        var ending = "5,5,2,uUpPkKfFaAvVqQlLgGbBwWrRmMhHcCxXsSnNiIdDyYtToOjJeE";
+        var starting = "5x5x2,aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyY";
+        var ending = "5x5x2,uUpPkKfFaAvVqQlLgGbBwWrRmMhHcCxXsSnNiIdDyYtToOjJeE";
         TestOperation(starting, (s) => s.RotateZ(), ending, (s) => s.RotateZ().RotateZ().RotateZ());
     }
 
@@ -513,7 +513,7 @@ public class BitShapeTests {
     public void TestRotateZ() {
         // alpha = "aAbBcCdDeEfFgGhHiIjJkKlL";
         var bits = "*..*.*.**..*.*.**..*.*.*";
-        var shape = new BitShape("3,4,2," + bits);
+        var shape = new BitShape("3x4x2," + bits);
         var newShape = shape.RotateZ();
         Assert.IsFalse(object.ReferenceEquals(shape, newShape));
         Assert.AreEqual(4, newShape.w);
@@ -521,16 +521,16 @@ public class BitShapeTests {
         Assert.AreEqual(2, newShape.d);
         var s = newShape.Serialize();
         //    Assert.AreEqual("iIeEaAjJfFbBkKgGcClLhHdD", s);
-        Assert.AreEqual("4,3,2,*.*.*..*.*.*.*.*.*.*.*.*", s);
+        Assert.AreEqual("4x3x2,*.*.*..*.*.*.*.*.*.*.*.*", s);
 
         newShape = newShape.RotateZ().RotateZ().RotateZ();
-        Assert.AreEqual("3,4,2," + bits, newShape.Serialize());
+        Assert.AreEqual("3x4x2," + bits, newShape.Serialize());
     }
 
     [TestMethod]
     public void TestRotateZ_() {
-        var starting = "3,4,2,aAbBcCdDeEfFgGhHiIjJkKlL";
-        var ending = "4,3,2,iIeEaAjJfFbBkKgGcClLhHdD";
+        var starting = "3x4x2,aAbBcCdDeEfFgGhHiIjJkKlL";
+        var ending = "4x3x2,iIeEaAjJfFbBkKgGcClLhHdD";
         TestOperation(starting, (s) => s.RotateZ(), ending, (s) => s.RotateZ().RotateZ().RotateZ());
     }
 
@@ -538,20 +538,20 @@ public class BitShapeTests {
     public void TestInPlaceRotateZ2() {
         // alpha = "aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyY";
         var bits = "*..*.*.**..*.*.**..*.*.*.*.**..*.*.*.*.**..*.*.**.";
-        var shape = new BitShape("5,5,2," + bits);
+        var shape = new BitShape("5x5x2," + bits);
         var newShape = shape.RotateZ2(); // should rotate in-place
         Assert.IsTrue(object.ReferenceEquals(shape, newShape));
         var s = shape.Serialize();
         //    Assert.AreEqual("yYxXwWvVuUtTsSrRqQpPoOnNmMlLkKjJiIhHgGfFeEdDcCbBaA", s);
-        Assert.AreEqual("5,5,2,*..*.*.**..*.*.*.*.**..*.*.*.*.**..*.*.**..*.*.**.", s);
+        Assert.AreEqual("5x5x2,*..*.*.**..*.*.*.*.**..*.*.*.*.**..*.*.**..*.*.**.", s);
 
-        Assert.AreEqual("5,5,2," + bits, shape.RotateZ2().Serialize());
+        Assert.AreEqual("5x5x2," + bits, shape.RotateZ2().Serialize());
     }
 
     [TestMethod]
     public void TestInPlaceRotateZ2_() {
-        var starting = "5,5,2,aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyY";
-        var ending = "5,5,2,yYxXwWvVuUtTsSrRqQpPoOnNmMlLkKjJiIhHgGfFeEdDcCbBaA";
+        var starting = "5x5x2,aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyY";
+        var ending = "5x5x2,yYxXwWvVuUtTsSrRqQpPoOnNmMlLkKjJiIhHgGfFeEdDcCbBaA";
         TestOperation(starting, (s) => s.RotateZ2(), ending, (s) => s.RotateZ2());
     }
 
@@ -564,20 +564,20 @@ public class BitShapeTests {
         // uvwxy    yxwvu
         // alpha = "abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
         var bits = "*...*...*.....*.....*...*.***.***.*****.*****.***.";
-        var shape = new BitShape("2,5,5," + bits);
+        var shape = new BitShape("2x5x5," + bits);
         var newShape = shape.MirrorZOrg(); // should mirror in-place
         Assert.IsTrue(object.ReferenceEquals(shape, newShape));
         var s = shape.Serialize();
         //       Assert.AreEqual("edcbajihgfonmlktsrqpyxwvuEDCBAJIHGFONMLKTSRQPYXWVU", s);
-        Assert.AreEqual(s, "2,5,5,*...*.*...*.........*...*.***.*.***.*********.***.");
+        Assert.AreEqual(s, "2x5x5,*...*.*...*.........*...*.***.*.***.*********.***.");
 
-        Assert.AreEqual("2,5,5," + bits, shape.MirrorZOrg().Serialize());
+        Assert.AreEqual("2x5x5," + bits, shape.MirrorZOrg().Serialize());
     }
 
     [TestMethod]
     public void TestInPlaceMirrorZ_() {
-        var starting = "2,5,5,abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
-        var ending = "2,5,5,edcbajihgfonmlktsrqpyxwvuEDCBAJIHGFONMLKTSRQPYXWVU";
+        var starting = "2x5x5,abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
+        var ending = "2x5x5,edcbajihgfonmlktsrqpyxwvuEDCBAJIHGFONMLKTSRQPYXWVU";
         TestOperation(starting, (s) => s.MirrorZOrg(), ending, (s) => s.MirrorZOrg());
     }
 
@@ -590,20 +590,20 @@ public class BitShapeTests {
         // uvwxy    yxwvu
         // alpha = "abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
         var bits = "*...*...*.....*.....*...*.***.***.*****.*****.***.";
-        var shape = new BitShape("2,5,5," + bits);
+        var shape = new BitShape("2x5x5," + bits);
         var newShape = shape.MirrorZ(); // should mirror in-place
         Assert.IsTrue(object.ReferenceEquals(shape, newShape));
         var s = shape.Serialize();
         //       Assert.AreEqual("edcbajihgfonmlktsrqpyxwvuEDCBAJIHGFONMLKTSRQPYXWVU", s);
-        Assert.AreEqual(s, "2,5,5,*...*.*...*.........*...*.***.*.***.*********.***.");
+        Assert.AreEqual(s, "2x5x5,*...*.*...*.........*...*.***.*.***.*********.***.");
 
-        Assert.AreEqual("2,5,5," + bits, shape.MirrorZ().Serialize());
+        Assert.AreEqual("2x5x5," + bits, shape.MirrorZ().Serialize());
     }
 
     [TestMethod]
     public void TestInPlaceMirrorZOpt_() {
-        var starting = "2,5,5,abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
-        var ending = "2,5,5,edcbajihgfonmlktsrqpyxwvuEDCBAJIHGFONMLKTSRQPYXWVU";
+        var starting = "2x5x5,abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
+        var ending = "2x5x5,edcbajihgfonmlktsrqpyxwvuEDCBAJIHGFONMLKTSRQPYXWVU";
         TestOperation(starting, (s) => s.MirrorZ(), ending, (s) => s.MirrorZ());
     }
 
@@ -616,81 +616,85 @@ public class BitShapeTests {
         // uvwxy    yxwvu
         // alpha = "abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
         var bits = "*...*...*.....*.....*...*.***.***.*****.*****.***.";
-        var shape = new BitShape("2,5,5," + bits);
+        var shape = new BitShape("2x5x5," + bits);
         var newShape = shape.MirrorZOpt2(); // should mirror in-place
         Assert.IsTrue(object.ReferenceEquals(shape, newShape));
         var s = shape.Serialize();
         //       Assert.AreEqual("edcbajihgfonmlktsrqpyxwvuEDCBAJIHGFONMLKTSRQPYXWVU", s);
-        Assert.AreEqual(s, "2,5,5,*...*.*...*.........*...*.***.*.***.*********.***.");
+        Assert.AreEqual(s, "2x5x5,*...*.*...*.........*...*.***.*.***.*********.***.");
 
-        Assert.AreEqual("2,5,5," + bits, shape.MirrorZOpt2().Serialize());
+        Assert.AreEqual("2x5x5," + bits, shape.MirrorZOpt2().Serialize());
     }
 
     [TestMethod]
     public void TestInPlaceMirrorZOpt2_() {
-        var starting = "2,5,5,abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
-        var ending = "2,5,5,edcbajihgfonmlktsrqpyxwvuEDCBAJIHGFONMLKTSRQPYXWVU";
+        var starting = "2x5x5,abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
+        var ending = "2x5x5,edcbajihgfonmlktsrqpyxwvuEDCBAJIHGFONMLKTSRQPYXWVU";
         TestOperation(starting, (s) => s.MirrorZOpt2(), ending, (s) => s.MirrorZOpt2());
     }
 
     [TestMethod]
     public void TestShapeCounts() {
-        var shape = new BitShape("1,1,1,*");
+        var shape = new BitShape("1x1x1,*");
         Assert.AreEqual((1, 0, 0), shape.CornerEdgeFaceCount());
-        shape = new BitShape("1,1,1,.");
+        shape = new BitShape("1x1x1,.");
         Assert.AreEqual((0, 0, 0), shape.CornerEdgeFaceCount());
 
-        shape = new BitShape("2,2,2,********");
+        shape = new BitShape("2x2x2,********");
         Assert.AreEqual((8, 0, 0), shape.CornerEdgeFaceCount());
-        shape = new BitShape("2,2,2,........");
+        shape = new BitShape("2x2x2,........");
         Assert.AreEqual((0, 0, 0), shape.CornerEdgeFaceCount());
 
-        shape = new BitShape("3,3,3,***************************");
+        shape = new BitShape("3x3x3,***************************");
         Assert.AreEqual((8, 12, 6), shape.CornerEdgeFaceCount());
-        shape = new BitShape("3,3,3,...........................");
+        shape = new BitShape("3x3x3,...........................");
         Assert.AreEqual((0, 0, 0), shape.CornerEdgeFaceCount());
     }
 
     private void TestOperation(string starting, Func<BitShape, BitShape> op, string ending, Func<BitShape, BitShape> restore) {
         var startingSplit = starting.Split(',');
-        Assert.AreEqual(4, startingSplit.Length);
+        Assert.AreEqual(2, startingSplit.Length);
         var endingSplit = ending.Split(',');
-        Assert.AreEqual(4, endingSplit.Length);
-        int sw = int.Parse(startingSplit[0]), sh = int.Parse(startingSplit[1]), sd = int.Parse(startingSplit[2]);
-        int ew = int.Parse(endingSplit[0]), eh = int.Parse(endingSplit[1]), ed = int.Parse(endingSplit[2]);
+        Assert.AreEqual(2, endingSplit.Length);
+        var startingWhd = startingSplit[0].Split('x');
+        Assert.AreEqual(3, startingWhd.Length);
+        var endingWhd = endingSplit[0].Split('x');
+        Assert.AreEqual(3, endingWhd.Length);
+        int sw = int.Parse(startingWhd[0]), sh = int.Parse(startingWhd[1]), sd = int.Parse(startingWhd[2]);
+        int ew = int.Parse(endingWhd[0]), eh = int.Parse(endingWhd[1]), ed = int.Parse(endingWhd[2]);
 
         Assert.AreEqual(sw * sh * sd, ew * eh * ed);
-        Assert.AreEqual(startingSplit[3].Length, sw * sh * sd);
-        Assert.AreEqual(endingSplit[3].Length, ew * eh * ed);
+        Assert.AreEqual(startingSplit[1].Length, sw * sh * sd);
+        Assert.AreEqual(endingSplit[1].Length, ew * eh * ed);
 
         for (byte mask = 64; mask > 0; mask >>= 1) {
-            var ca = new char[startingSplit[3].Length];
+            var ca = new char[startingSplit[1].Length];
             for (int i = 0; i < ca.Length; i++) {
-                char c = startingSplit[3][i];
+                char c = startingSplit[1][i];
                 bool isSet = (byte)((byte)c & mask) != 0;
                 ca[i] = isSet ? '*' : '.';
             }
 
-            var shape = new BitShape(sw + "," + sh + "," + sd + "," + new string(ca));
+            var shape = new BitShape(sw + "x" + sh + "x" + sd + "," + new string(ca));
 
             shape = op(shape);
             var s = shape.Serialize();
 
             for (int i = 0; i < ca.Length; i++) {
-                char c = endingSplit[3][i];
+                char c = endingSplit[1][i];
                 bool isSet = (byte)((byte)c & mask) != 0;
                 ca[i] = isSet ? '*' : '.';
             }
-            Assert.AreEqual(ew + "," + eh + "," + ed + "," + new string(ca), s);
+            Assert.AreEqual(ew + "x" + eh + "x" + ed + "," + new string(ca), s);
 
             shape = restore(shape);
             s = shape.Serialize();
             for (int i = 0; i < ca.Length; i++) {
-                char c = startingSplit[3][i];
+                char c = startingSplit[1][i];
                 bool isSet = (byte)((byte)c & mask) != 0;
                 ca[i] = isSet ? '*' : '.';
             }
-            Assert.AreEqual(sw + "," + sh + "," + sd + "," + new string(ca), s);
+            Assert.AreEqual(sw + "x" + sh + "x" + sd + "," + new string(ca), s);
         }
     }
 }

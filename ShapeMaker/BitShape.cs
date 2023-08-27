@@ -38,11 +38,13 @@ public class BitShape {
 
     public BitShape(string s) {
         var split = s.Split(',');
-        if (split.Length != 4) throw new ArgumentException("expected a four part string");
-        this.w = byte.Parse(split[0]);
-        this.h = byte.Parse(split[1]);
-        this.d = byte.Parse(split[2]);
-        var chars = split[3].Replace(" ", "").Replace("\n", "");
+        if (split.Length != 2) throw new ArgumentException("expected a two part string (dimensions,contents)");
+        var whd = split[0].Split('x');
+        if (whd.Length != 3) throw new ArgumentException("expected a three part dimension string (WxHxD)");
+        this.w = byte.Parse(whd[0]);
+        this.h = byte.Parse(whd[1]);
+        this.d = byte.Parse(whd[2]);
+        var chars = split[1].Replace(" ", "").Replace("\n", "");
         if (chars.Length != w * h * d) throw new ArgumentException("expected string of len w*h*d");
         int size = w * h * d;
         this.bytes = new byte[(size + BITS_PER_MINUS_1) >> BITS_SHR];
@@ -66,7 +68,7 @@ public class BitShape {
                     mask >>= 1; if (mask == 0) { mask = MASK_FIRST; byteIndex++; }
                 }
         if (charIndex != chars.Length) throw new InvalidProgramException("miscalculated string length");
-        return w + "," + h + "," + d + "," + new string(chars);
+        return w + "x" + h + "x" + d + "," + new string(chars);
     }
 
     public bool this[int x, int y, int z] {

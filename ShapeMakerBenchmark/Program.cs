@@ -29,7 +29,6 @@ public class Program {
             shape555.bytes[i] = (byte)r.Next(256);
         shape555.bytes[shape555.bytes.Length - 1] &= 0xF8;
     }
-    /*
     // Benchmarks   M2Max    Intel
     [Benchmark] // 159.4ns  180.76ns
     public void RotateX2Org() => shape555.RotateX2Org();
@@ -78,7 +77,7 @@ public class Program {
 
     [Benchmark] // 154.8ns   149.30ns
     public void MirrorZOpt2() => shape555.MirrorZOpt2();
-    */
+
 
     [Benchmark] // 221.0ns <= best M2Max
     public void CornerEdgeFaceCount() => shape555.CornerEdgeFaceCount();
