@@ -519,16 +519,34 @@ public class FileScanner {
 
     public FileScanner(byte n, string ext = Program.FILE_EXT) {
         var di = new DirectoryInfo(Path.Combine(Program.FILE_PATH, n.ToString()));
-        var files = di.GetFiles("*" + ext).OrderBy(f => f.Length);
-        foreach (var file in files) {
-            if (file.Name.EndsWith(ext)) {
-                var dim = file.Name.Substring(0, file.Name.Length - ext.Length).Split('x');
-                if (dim.Length != 3) continue;
-                if (!byte.TryParse(dim[0], out var w) || w < 1 || w > n) continue;
-                if (!byte.TryParse(dim[1], out var h) || h < 1 || h > n) continue;
-                if (!byte.TryParse(dim[2], out var d) || d < 1 || d > n) continue;
-                List.Add(new Results() { n = n, w = w, h = h, d = d, ext = ext, size = file.Length });
-            }
+
+        // scan for an migrate old files
+        var renameList = new List<(string, string)>();
+        foreach (var file in di.GetFiles("*" + ext)) {
+            if (!file.Name.EndsWith(ext)) continue;
+            var dim = file.Name.Substring(0, file.Name.Length - ext.Length).Split(',');
+            if (dim.Length != 3) continue;
+            if (!byte.TryParse(dim[0], out var w) || w < 1 || w > n) continue;
+            if (!byte.TryParse(dim[1], out var h) || h < 1 || h > n) continue;
+            if (!byte.TryParse(dim[2], out var d) || d < 1 || d > n) continue;
+            var newDim = string.Join('x', dim);
+            renameList.Add((file.Name, newDim + ext));
+        }
+        foreach (var (oldname, newname) in renameList) {
+            var oldpath = Path.Combine(Program.FILE_PATH, n.ToString(), oldname);
+            var newpath = Path.Combine(Program.FILE_PATH, n.ToString(), newname);
+            File.Move(oldpath, newpath);
+        }
+
+        // scan for new files
+        foreach (var file in di.GetFiles("*" + ext)) {
+            if (!file.Name.EndsWith(ext)) continue;
+            var dim = file.Name.Substring(0, file.Name.Length - ext.Length).Split('x');
+            if (dim.Length != 3) continue;
+            if (!byte.TryParse(dim[0], out var w) || w < 1 || w > n) continue;
+            if (!byte.TryParse(dim[1], out var h) || h < 1 || h > n) continue;
+            if (!byte.TryParse(dim[2], out var d) || d < 1 || d > n) continue;
+            List.Add(new Results() { n = n, w = w, h = h, d = d, ext = ext, size = file.Length });
         }
     }
 }
