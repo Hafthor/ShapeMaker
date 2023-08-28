@@ -31,75 +31,75 @@ public class Program {
     }
 
     // Benchmarks   M2Max    Intel
-    [Benchmark] // 159.4ns  180.76ns
+    [Benchmark] //  98.87ns  180.76ns
     public void RotateX2Org() => shape555.RotateX2Org();
 
-    [Benchmark] // 155.0ns  107.91ns <= best Intel
+    [Benchmark] //  92.26ns  107.91ns <= best Intel
     public void RotateX2Opt() => shape555.RotateX2Opt();
 
-    [Benchmark] // 144.9ns  108.13ns
+    [Benchmark] //  92.07ns  108.13ns
     public void RotateX2Opt1() => shape555.RotateX2Opt1();
 
-    [Benchmark] // 122.0ns  140.56ns
+    [Benchmark] //  77.11ns  140.56ns
     public void RotateX2Opt2() => shape555.RotateX2Opt2();
 
-    [Benchmark] // 122.5ns  140.60ns
+    [Benchmark] //  77.11ns  140.60ns
     public void RotateX2Opt3() => shape555.RotateX2Opt3();
 
-    [Benchmark] // 119.2ns  142.00ns <= best M2Max
+    [Benchmark] //  76.68ns  142.00ns
     public void RotateX2Opt4() => shape555.RotateX2();
 
-    [Benchmark] //          134.09ns
+    [Benchmark] //  76.49ns  134.09ns <= best M2Max
     public void RotateX2Opt5() => shape555.RotateX2Opt5();
 
-    [Benchmark] //          180.48ns
+    [Benchmark] // 110.18ns  180.48ns
     public void RotateX2Opt6() => shape555.RotateX2Opt6();
 
-    [Benchmark] //          180.01ns
+    [Benchmark] // 115.64ns  180.01ns
     public void RotateX2Opt7() => shape555.RotateX2Opt7();
 
-    [Benchmark] // 110.78ns  127.15ns
+    [Benchmark] //  73.53ns  127.15ns
     public void MirrorXOrg() => shape555.MirrorXOrg();
 
-    [Benchmark] // 128.04ns   93.42ns <= best Intel
+    [Benchmark] //  78.06ns   93.42ns <= best Intel
     public void MirrorXOpt() => shape555.MirrorXOpt();
 
-    [Benchmark] //  82.78ns  115.81ns <= best M2Max
+    [Benchmark] //  64.45ns  115.81ns <= best M2Max
     public void MirrorXOpt2() => shape555.MirrorX();
 
 
-    [Benchmark] // 107.82ns  155.28ns <= best M2Max
+    [Benchmark] //  85.09ns  155.28ns
     public void MirrorYOrg() => shape555.MirrorY();
 
-    [Benchmark] // 127.97ns  109.72ns <= best Intel
+    [Benchmark] //  90.86ns  109.72ns <= best Intel
     public void MirrorYOpt() => shape555.MirrorYOpt();
 
-    [Benchmark] // 114.8ns   124.18ns
+    [Benchmark] //  71.57ns  124.18ns <= best M2Max
     public void MirrorYOpt2() => shape555.MirrorYOpt2();
 
 
-    [Benchmark] // 156.74ns  158.32ns
+    [Benchmark] // 106.82ns  158.32ns
     public void MirrorZOrg() => shape555.MirrorZOrg();
 
-    [Benchmark] // 149.78ns  146.59ns <= best M2Max/Intel
+    [Benchmark] // 102.80ns  146.59ns <= best M2Max/Intel
     public void MirrorZOpt() => shape555.MirrorZ();
 
-    [Benchmark] // 154.8ns   149.30ns
+    [Benchmark] // 107.96ns  149.30ns
     public void MirrorZOpt2() => shape555.MirrorZOpt2();
 
 
-    [Benchmark] // 221.0ns   236.48ns
+    [Benchmark] // 210.46ns  236.48ns
     public void CornerEdgeFaceCount() => shape555.CornerEdgeFaceCount();
 
-    [Benchmark] // 290.0ns   298.65ns
+    [Benchmark] // 275.07ns  298.65ns
     public void CornerEdgeFaceCountOrg() => shape555.CornerEdgeFaceCountOrg();
 
-    [Benchmark] //           117.55ns <= best M2Max/Intel
+    [Benchmark] //  98.06ns  117.55ns <= best M2Max/Intel
     public void CornerEdgeFaceCountOpt() => shape555.CornerEdgeFaceCountOpt();
 
-    [Benchmark] //            56.67ns
+    [Benchmark] //  49.12ns   56.67ns
     public void CornerEdgeCount() => shape555.CornerEdgeCount();
 
-    [Benchmark] //            14.25ns
+    [Benchmark] //   9.95ns   14.25ns
     public void CornerCount() => shape555.CornerCount();
 }

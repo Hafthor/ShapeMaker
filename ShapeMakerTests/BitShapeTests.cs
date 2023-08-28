@@ -24,6 +24,36 @@ public class BitShapeTests {
     }
 
     [TestMethod]
+    public void TestNewBitShape() {
+        var shape = new BitShape(3, 4, 5, new byte[100]);
+        Assert.AreEqual((byte)3, shape.w);
+        Assert.AreEqual((byte)4, shape.h);
+        Assert.AreEqual((byte)5, shape.d);
+        Assert.AreEqual(100, shape.bytes.Length);
+    }
+
+    [TestMethod]
+    public void TestCopyBitShape() {
+        var shape = new BitShape("3x3x3,*** *** ***\n*** *.* ***\n*** *** ***");
+        var copy = new BitShape(shape);
+        Assert.AreEqual(shape.w, copy.w);
+        Assert.AreEqual(shape.h, copy.h);
+        Assert.AreEqual(shape.d, copy.d);
+        Assert.IsFalse(object.ReferenceEquals(shape.bytes, copy.bytes));
+        Assert.IsTrue(shape.bytes.SequenceEqual(copy.bytes));
+    }
+
+    [TestMethod]
+    public void TestParseNonTwoPartString() {
+        Assert.ThrowsException<ArgumentException>(() => new BitShape("3x3x3"));
+        Assert.ThrowsException<ArgumentException>(() => new BitShape("3x3x3,***************************,extra"));
+        Assert.ThrowsException<ArgumentException>(() => new BitShape("3x3,***************************"));
+        Assert.ThrowsException<ArgumentException>(() => new BitShape("3x3x3x3,***************************"));
+        Assert.ThrowsException<ArgumentException>(() => new BitShape("3x3x3,**************************"));
+        Assert.ThrowsException<ArgumentException>(() => new BitShape("3x3x3,****************************"));
+    }
+
+    [TestMethod]
     public void TestSerializeDeserialize() {
         var shape = new BitShape("1x1x1,*");
         Assert.AreEqual(1, shape.w);
@@ -176,7 +206,7 @@ public class BitShapeTests {
     }
 
     [TestMethod]
-    public void TestInPlaceRotateX2() {
+    public void TestInPlaceRotateX2Org() {
         // abcde    yxwvu
         // fghij    tsrqp
         // klmno => onmlk
@@ -185,13 +215,13 @@ public class BitShapeTests {
         var shape = new BitShape(2, 5, 5);
         shape[0, 0, 0] = true;
         shape[1, 1, 1] = true;
-        var newShape = shape.RotateX2(); // should rotate in-place
+        var newShape = shape.RotateX2Org(); // should rotate in-place
         Assert.IsTrue(object.ReferenceEquals(shape, newShape));
 
         Assert.IsTrue(shape[0, 4, 4]);
         Assert.IsTrue(shape[1, 3, 3]);
 
-        shape.RotateX2();
+        shape.RotateX2Org();
         for (int x = 0; x < 2; x++)
             for (int y = 0; y < 5; y++)
                 for (int z = 0; z < 5; z++)
@@ -199,10 +229,10 @@ public class BitShapeTests {
     }
 
     [TestMethod]
-    public void TestInPlaceRotateX2_() {
+    public void TestInPlaceRotateX2Org_() {
         var starting = "2x5x5,abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
         var ending = "2x5x5,yxwvutsrqponmlkjihgfedcbaYXWVUTSRQPONMLKJIHGFEDCBA";
-        TestOperation(starting, (s) => s.RotateX2(), ending, (s) => s.RotateX2());
+        TestOperation(starting, (s) => s.RotateX2Org(), ending, (s) => s.RotateX2Org());
     }
 
     [TestMethod]
@@ -233,6 +263,36 @@ public class BitShapeTests {
         var starting = "2x5x5,abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
         var ending = "2x5x5,yxwvutsrqponmlkjihgfedcbaYXWVUTSRQPONMLKJIHGFEDCBA";
         TestOperation(starting, (s) => s.RotateX2Opt(), ending, (s) => s.RotateX2Opt());
+    }
+
+    [TestMethod]
+    public void TestInPlaceRotateX2Opt1() {
+        // abcde    yxwvu
+        // fghij    tsrqp
+        // klmno => onmlk
+        // pqrst    jihgf
+        // uvwxy    edcba
+        var shape = new BitShape(2, 5, 5);
+        shape[0, 0, 0] = true;
+        shape[1, 1, 1] = true;
+        var newShape = shape.RotateX2Opt1(); // should rotate in-place
+        Assert.IsTrue(object.ReferenceEquals(shape, newShape));
+
+        Assert.IsTrue(shape[0, 4, 4]);
+        Assert.IsTrue(shape[1, 3, 3]);
+
+        shape.RotateX2Opt1();
+        for (int x = 0; x < 2; x++)
+            for (int y = 0; y < 5; y++)
+                for (int z = 0; z < 5; z++)
+                    Assert.AreEqual(x == y && y == z, newShape[x, y, z]);
+    }
+
+    [TestMethod]
+    public void TestInPlaceRotateX2Opt1_() {
+        var starting = "2x5x5,abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
+        var ending = "2x5x5,yxwvutsrqponmlkjihgfedcbaYXWVUTSRQPONMLKJIHGFEDCBA";
+        TestOperation(starting, (s) => s.RotateX2Opt1(), ending, (s) => s.RotateX2Opt1());
     }
 
     [TestMethod]
@@ -781,6 +841,33 @@ public class BitShapeTests {
         var starting = "2x5x5,abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
         var ending = "2x5x5,edcbajihgfonmlktsrqpyxwvuEDCBAJIHGFONMLKTSRQPYXWVU";
         TestOperation(starting, (s) => s.MirrorZOpt2(), ending, (s) => s.MirrorZOpt2());
+    }
+
+    [TestMethod]
+    public void TestHasSetNeighbor() {
+        var shape = new BitShape(3, 3, 3);
+        Assert.IsFalse(shape.HasSetNeighbor(1, 1, 1));
+        shape[0, 1, 1] = true; Assert.IsTrue(shape.HasSetNeighbor(1, 1, 1)); shape[0, 1, 1] = false;
+        shape[2, 1, 1] = true; Assert.IsTrue(shape.HasSetNeighbor(1, 1, 1)); shape[2, 1, 1] = false;
+        shape[1, 0, 1] = true; Assert.IsTrue(shape.HasSetNeighbor(1, 1, 1)); shape[1, 0, 1] = false;
+        shape[1, 2, 1] = true; Assert.IsTrue(shape.HasSetNeighbor(1, 1, 1)); shape[1, 2, 1] = false;
+        shape[1, 1, 0] = true; Assert.IsTrue(shape.HasSetNeighbor(1, 1, 1)); shape[1, 1, 0] = false;
+        shape[1, 1, 2] = true; Assert.IsTrue(shape.HasSetNeighbor(1, 1, 1)); shape[1, 1, 2] = false;
+
+        Assert.IsFalse(shape.HasSetNeighbor(0, 1, 1));
+        Assert.IsFalse(shape.HasSetNeighbor(2, 1, 1));
+        Assert.IsFalse(shape.HasSetNeighbor(1, 0, 1));
+        Assert.IsFalse(shape.HasSetNeighbor(1, 2, 1));
+        Assert.IsFalse(shape.HasSetNeighbor(1, 1, 0));
+        Assert.IsFalse(shape.HasSetNeighbor(1, 1, 2));
+
+        shape[1, 1, 1] = true;
+        Assert.IsTrue(shape.HasSetNeighbor(0, 1, 1));
+        Assert.IsTrue(shape.HasSetNeighbor(2, 1, 1));
+        Assert.IsTrue(shape.HasSetNeighbor(1, 0, 1));
+        Assert.IsTrue(shape.HasSetNeighbor(1, 2, 1));
+        Assert.IsTrue(shape.HasSetNeighbor(1, 1, 0));
+        Assert.IsTrue(shape.HasSetNeighbor(1, 1, 2));
     }
 
     [TestMethod]

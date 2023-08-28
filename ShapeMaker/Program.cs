@@ -1,8 +1,8 @@
 ﻿// Uncomment one of the following hashset implementations to use
 //#define USE_HASHSET
-//#define USE_HASHSETARRAY
+#define USE_HASHSETARRAY
 //#define USE_BITSHAPEHASHSET
-#define USE_BITSHAPEHASHSET64K
+//#define USE_BITSHAPEHASHSET64K
 //#define USE_CONCURRENTDICTIONARY
 
 using System.Collections.Concurrent;
