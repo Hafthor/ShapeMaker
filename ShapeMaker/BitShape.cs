@@ -1016,6 +1016,26 @@ public class BitShape {
         return (corners, edges, faces);
     }
 
+    public (int corners, int edges) CornerEdgeCount() {
+        int corners = 0, edges = 0;
+        int xLimit = w - 1, yLimit = h - 1, zLimit = d - 1;
+        int xIncr = Math.Max(1, xLimit), yIncr = Math.Max(1, yLimit), zIncr = Math.Max(1, zLimit);
+
+        for (int x = 0; x <= xLimit; x += xIncr) {
+            for (int y = 0; y <= yLimit; y += yIncr) {
+                for (int z = 0; z <= zLimit; z += zIncr) if (this[x, y, z]) corners++;
+                for (int z = 1; z < zLimit; z++) if (this[x, y, z]) edges++;
+            }
+            for (int y = 1; y < yLimit; y++)
+                for (int z = 0; z <= zLimit; z += zIncr) if (this[x, y, z]) edges++;
+        }
+        for (int x = 1; x < xLimit; x++)
+            for (int y = 0; y <= yLimit; y += yIncr)
+                for (int z = 0; z <= zLimit; z += zIncr) if (this[x, y, z]) edges++;
+
+        return (corners, edges);
+    }
+
     public int CornerCount() {
         int corners = 0;
         int xLimit = w - 1, yLimit = h - 1, zLimit = d - 1;

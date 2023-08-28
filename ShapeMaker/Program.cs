@@ -520,7 +520,7 @@ public class FileScanner {
     public FileScanner(byte n, string ext = Program.FILE_EXT) {
         var di = new DirectoryInfo(Path.Combine(Program.FILE_PATH, n.ToString()));
 
-        // scan for an migrate old files
+        // scan for and migrate old files
         var renameList = new List<(string, string)>();
         foreach (var file in di.GetFiles("*" + ext)) {
             if (!file.Name.EndsWith(ext)) continue;

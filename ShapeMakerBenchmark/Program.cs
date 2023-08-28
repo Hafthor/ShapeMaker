@@ -49,13 +49,13 @@ public class Program {
     [Benchmark] // 119.2ns  142.00ns <= best M2Max
     public void RotateX2Opt4() => shape555.RotateX2();
 
-    [Benchmark] //
+    [Benchmark] //          134.09ns
     public void RotateX2Opt5() => shape555.RotateX2Opt5();
 
-    [Benchmark] //
+    [Benchmark] //          180.48ns
     public void RotateX2Opt6() => shape555.RotateX2Opt6();
 
-    [Benchmark] //
+    [Benchmark] //          180.01ns
     public void RotateX2Opt7() => shape555.RotateX2Opt7();
 
     [Benchmark] // 110.78ns  127.15ns
@@ -96,6 +96,9 @@ public class Program {
 
     [Benchmark] //           117.55ns <= best M2Max/Intel
     public void CornerEdgeFaceCountOpt() => shape555.CornerEdgeFaceCountOpt();
+
+    [Benchmark] //            56.67ns
+    public void CornerEdgeCount() => shape555.CornerEdgeCount();
 
     [Benchmark] //            14.25ns
     public void CornerCount() => shape555.CornerCount();
