@@ -31,12 +31,12 @@ namespace ShapeMaker;
     #endif
     using MyHashSet = BitShapeHashSet64k;
 #elif USE_CONCURRENTDICTIONARY
-    #if USE_HASHSET || USE_HASHSETARRAY || USE_BITSHAPEHASHSET || USE_BITSHAPEHASHSET64K
-        #error You must only use one hashset implementation
-    #endif
+#if USE_HASHSET || USE_HASHSETARRAY || USE_BITSHAPEHASHSET || USE_BITSHAPEHASHSET64K
+#error You must only use one hashset implementation
+#endif
     using MyHashSet = ConcurrentDictionary<byte[], byte>;
 #else
-    #error You must define which hashset implementation to use
+#error You must define which hashset implementation to use
 #endif
 
 public class Program {
@@ -206,14 +206,12 @@ public class Program {
         }
     }
 
-    private static string DoChiralCount(byte n, List<(byte w, byte h, byte d, long sz)> targetSizes)
-    {
+    private static string DoChiralCount(byte n, List<(byte w, byte h, byte d, long sz)> targetSizes) {
         var sw = Stopwatch.StartNew();
         long chiralCount = 0;
         int currentSizeIndex = 0;
         int targetSizesCount = targetSizes.Count;
-        foreach (var size in targetSizes)
-        {
+        foreach (var size in targetSizes) {
             string progress = "     " + ++currentSizeIndex + "/" + targetSizesCount + "=" + size.w + "x" + size.h + "x" + size.d + ", " + chiralCount.ToString("N0") + ", " + sw.Elapsed.TotalSeconds.ToString("N0") + "s   ";
             Console.Write(progress + new string('\b', progress.Length));
             FileScanner.Results fileInfo = new FileScanner.Results() { n = n, w = size.w, h = size.h, d = size.d, ext = Program.FILE_EXT };
@@ -222,11 +220,9 @@ public class Program {
             long sourceShapes100 = sourceShapes / 100;
             long sourceShapeCount = 0, nextShapeCount = sourceShapes100;
             int percent = 0;
-            Parallel.ForEach(FileReader.LoadShapes(fileInfo), (shape) =>
-            {
+            Parallel.ForEach(FileReader.LoadShapes(fileInfo), (shape) => {
                 long newShapeCount = Interlocked.Increment(ref sourceShapeCount);
-                if (newShapeCount == nextShapeCount)
-                {
+                if (newShapeCount == nextShapeCount) {
                     percent++;
                     nextShapeCount += sourceShapes100;
                     var progress2 = " " + percent + "%";
@@ -436,15 +432,16 @@ public static class ShapeMaker {
     private static void AddShapes(MyHashSet newShapes, BitShape shape, int xStart, int w, int yStart, int h, int zStart, int d, int targetCornerCount, int targetEdgeCount, int targetFaceCount) {
 #endif
         int cornerCount = 0, edgeCount = 0, faceCount = 0;
-        if (targetCornerCount >= 0) {
-            var counts = shape.CornerEdgeFaceCount();
-            if (counts.corners > targetCornerCount || (counts.corners + 1) < targetCornerCount) return;
-            if (targetEdgeCount >= 0) {
-                if (counts.edges > targetEdgeCount || (counts.edges + 1) < targetEdgeCount) return;
-                if (counts.faces > targetFaceCount || (counts.faces + 1) < targetFaceCount) return;
+        if (targetCornerCount >= 0)
+            if (targetEdgeCount < 0) {
+                cornerCount = shape.CornerCount();
+                if (cornerCount > targetCornerCount || (cornerCount + 1) < targetCornerCount) return;
+            } else {
+                (cornerCount, edgeCount, faceCount) = shape.CornerEdgeFaceCountOpt();
+                if (cornerCount > targetCornerCount || (cornerCount + 1) < targetCornerCount) return;
+                if (edgeCount > targetEdgeCount || (edgeCount + 1) < targetEdgeCount) return;
+                if (faceCount > targetFaceCount || (faceCount + 1) < targetFaceCount) return;
             }
-            (cornerCount, edgeCount, faceCount) = counts;
-        }
         var newShape = new BitShape(shape);
         var newShapeBytes = newShape.bytes;
         var shapeBytes = shape.bytes;

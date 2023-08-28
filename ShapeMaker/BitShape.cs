@@ -296,6 +296,71 @@ public class BitShape {
         return this;
     }
 
+    public BitShape RotateX2Opt5() {
+        int hd = h * d, hd2 = hd / 2, hd2Not = hd - hd2, hd3 = hd + hd2;
+        int index0 = 0, index1 = hd - 1;
+        for (int xNot = w; xNot > 0; xNot--, index0 += hd2Not, index1 += hd3) {
+            for (int yzNot = hd2; yzNot > 0; yzNot--, index0++, index1--) {
+                int byteIndex0 = index0 >> BITS_SHR;
+                int byteIndex1 = index1 >> BITS_SHR;
+                int shr0 = index0 & BITS_PER_MINUS_1;
+                int shr1 = index1 & BITS_PER_MINUS_1;
+                byte mask0 = (byte)(MASK_FIRST >> shr0);
+                byte mask1 = (byte)(MASK_FIRST >> shr1);
+                bool isSet0 = (bytes[byteIndex0] & mask0) != 0;
+                bool isSet1 = (bytes[byteIndex1] & mask1) != 0;
+                if (isSet0 != isSet1) { bytes[byteIndex0] ^= mask0; bytes[byteIndex1] ^= mask1; }
+            }
+        }
+        return this;
+    }
+
+    public BitShape RotateX2Opt6() {
+        int hd = h * d, hd2 = hd / 2, hd2Not = hd - hd2, hd3 = hd + hd2;
+        int index0 = 0, index1 = hd - 1;
+        for (int xNot = w; xNot > 0; xNot--, index0 += hd2Not, index1 += hd3) {
+            for (int yzNot = hd2; yzNot > 0; yzNot--, index0++, index1--) {
+                int byteIndex0 = index0 >> BITS_SHR;
+                int byteIndex1 = index1 >> BITS_SHR;
+                int shr0 = index0 & BITS_PER_MINUS_1;
+                int shr1 = index1 & BITS_PER_MINUS_1;
+                byte mask0 = (byte)(MASK_FIRST >> shr0);
+                byte mask1 = (byte)(MASK_FIRST >> shr1);
+                bool isSet0 = (bytes[byteIndex0] & mask0) != 0;
+                bool isSet1 = (bytes[byteIndex1] & mask1) != 0;
+                byte shouldSet = Convert.ToByte(isSet0 != isSet1);
+                bytes[byteIndex0] ^= (byte)(mask0 * shouldSet);
+                bytes[byteIndex1] ^= (byte)(mask1 * shouldSet);
+            }
+        }
+        return this;
+    }
+
+    public BitShape RotateX2Opt7() {
+        int hd = h * d, hd2 = hd / 2, hd2Not = hd - hd2, hd3 = hd + hd2;
+        int index0 = 0, index1 = hd - 1;
+        for (int xNot = w; xNot > 0; xNot--, index0 += hd2Not, index1 += hd3) {
+            for (int yzNot = hd2; yzNot > 0; yzNot--, index0++, index1--) {
+                int shr0 = index0 & BITS_PER_MINUS_1;
+                int shr1 = index1 & BITS_PER_MINUS_1;
+                int byteIndex0 = index0 >> BITS_SHR;
+                int byteIndex1 = index1 >> BITS_SHR;
+                byte mask0 = (byte)(MASK_FIRST >> shr0);
+                byte mask1 = (byte)(MASK_FIRST >> shr1);
+                byte b0 = bytes[byteIndex0];
+                byte b1 = bytes[byteIndex1];
+                byte b0a = (byte)(b0 & mask0);
+                byte b1a = (byte)(b1 & mask1);
+                bool isSet0 = b0a != 0;
+                bool isSet1 = b1a != 0;
+                byte shouldSet = Convert.ToByte(isSet0 != isSet1);
+                bytes[byteIndex0] ^= (byte)(mask0 * shouldSet);
+                bytes[byteIndex1] ^= (byte)(mask1 * shouldSet);
+            }
+        }
+        return this;
+    }
+
     // mirrors in-place
     public BitShape MirrorXOrg() {
         for (int x = 0, w2 = w / 2, xNot = w - 1; x < w2; x++, xNot--)
@@ -922,5 +987,44 @@ public class BitShape {
             }
         }
         return (corners, edges, faces);
+    }
+
+    public (int corners, int edges, int faces) CornerEdgeFaceCountOpt() {
+        int corners = 0, edges = 0, faces = 0;
+        int xLimit = w - 1, yLimit = h - 1, zLimit = d - 1;
+        int xIncr = Math.Max(1, xLimit), yIncr = Math.Max(1, yLimit), zIncr = Math.Max(1, zLimit);
+
+        for (int x = 0; x<=xLimit; x+=xIncr) {
+            for (int y=0;y<=yLimit; y+=yIncr) {
+                for (int z = 0; z <= zLimit; z += zIncr) if (this[x, y, z]) corners++;
+                for (int z = 1; z < zLimit; z++) if (this[x, y, z]) edges++;
+            }
+            for(int y=1;y<yLimit;y++) {
+                for (int z = 0; z <= zLimit; z += zIncr) if (this[x, y, z]) edges++;
+                for (int z = 1; z < zLimit; z++) if (this[x, y, z]) faces++;
+            }
+        }
+        for(int x = 1; x<xLimit;x++) {
+            for (int y = 0; y<=yLimit;y+=yIncr) {
+                for (int z = 0; z <= zLimit; z += zIncr) if (this[x, y, z]) edges++;
+                for (int z = 1; z < zLimit; z++) if (this[x, y, z]) faces++;
+            }
+            for (int y = 1; y < yLimit; y++)
+                for (int z = 0; z <= zLimit; z += zIncr) if (this[x, y, z]) faces++;
+        }
+
+        return (corners, edges, faces);
+    }
+
+    public int CornerCount() {
+        int corners = 0;
+        int xLimit = w - 1, yLimit = h - 1, zLimit = d - 1;
+        int xIncr = Math.Max(1, xLimit), yIncr = Math.Max(1, yLimit), zIncr = Math.Max(1, zLimit);
+
+        for (int x = 0; x <= xLimit; x += xIncr)
+            for (int y = 0; y <= yLimit; y += yIncr)
+                for (int z = 0; z <= zLimit; z += zIncr) if (this[x, y, z]) corners++;
+
+        return corners;
     }
 }

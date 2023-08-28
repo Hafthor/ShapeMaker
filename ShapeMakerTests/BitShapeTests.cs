@@ -266,6 +266,156 @@ public class BitShapeTests {
     }
 
     [TestMethod]
+    public void TestInPlaceRotateX2Opt3() {
+        // abcde    yxwvu
+        // fghij    tsrqp
+        // klmno => onmlk
+        // pqrst    jihgf
+        // uvwxy    edcba
+        var shape = new BitShape(2, 5, 5);
+        shape[0, 0, 0] = true;
+        shape[1, 1, 1] = true;
+        var newShape = shape.RotateX2Opt3(); // should rotate in-place
+        Assert.IsTrue(object.ReferenceEquals(shape, newShape));
+
+        Assert.IsTrue(shape[0, 4, 4]);
+        Assert.IsTrue(shape[1, 3, 3]);
+
+        shape.RotateX2Opt3();
+        for (int x = 0; x < 2; x++)
+            for (int y = 0; y < 5; y++)
+                for (int z = 0; z < 5; z++)
+                    Assert.AreEqual(x == y && y == z, newShape[x, y, z]);
+    }
+
+    [TestMethod]
+    public void TestInPlaceRotateX2Opt3_() {
+        var starting = "2x5x5,abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
+        var ending = "2x5x5,yxwvutsrqponmlkjihgfedcbaYXWVUTSRQPONMLKJIHGFEDCBA";
+        TestOperation(starting, (s) => s.RotateX2Opt3(), ending, (s) => s.RotateX2Opt3());
+    }
+
+    [TestMethod]
+    public void TestInPlaceRotateX2Opt4() {
+        // abcde    yxwvu
+        // fghij    tsrqp
+        // klmno => onmlk
+        // pqrst    jihgf
+        // uvwxy    edcba
+        var shape = new BitShape(2, 5, 5);
+        shape[0, 0, 0] = true;
+        shape[1, 1, 1] = true;
+        var newShape = shape.RotateX2(); // should rotate in-place
+        Assert.IsTrue(object.ReferenceEquals(shape, newShape));
+
+        Assert.IsTrue(shape[0, 4, 4]);
+        Assert.IsTrue(shape[1, 3, 3]);
+
+        shape.RotateX2();
+        for (int x = 0; x < 2; x++)
+            for (int y = 0; y < 5; y++)
+                for (int z = 0; z < 5; z++)
+                    Assert.AreEqual(x == y && y == z, newShape[x, y, z]);
+    }
+
+    [TestMethod]
+    public void TestInPlaceRotateX2Opt4_() {
+        var starting = "2x5x5,abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
+        var ending = "2x5x5,yxwvutsrqponmlkjihgfedcbaYXWVUTSRQPONMLKJIHGFEDCBA";
+        TestOperation(starting, (s) => s.RotateX2(), ending, (s) => s.RotateX2());
+    }
+
+    [TestMethod]
+    public void TestInPlaceRotateX2Opt5() {
+        // abcde    yxwvu
+        // fghij    tsrqp
+        // klmno => onmlk
+        // pqrst    jihgf
+        // uvwxy    edcba
+        var shape = new BitShape(2, 5, 5);
+        shape[0, 0, 0] = true;
+        shape[1, 1, 1] = true;
+        var newShape = shape.RotateX2Opt5(); // should rotate in-place
+        Assert.IsTrue(object.ReferenceEquals(shape, newShape));
+
+        Assert.IsTrue(shape[0, 4, 4]);
+        Assert.IsTrue(shape[1, 3, 3]);
+
+        shape.RotateX2Opt5();
+        for (int x = 0; x < 2; x++)
+            for (int y = 0; y < 5; y++)
+                for (int z = 0; z < 5; z++)
+                    Assert.AreEqual(x == y && y == z, newShape[x, y, z]);
+    }
+
+    [TestMethod]
+    public void TestInPlaceRotateX2Opt5_() {
+        var starting = "2x5x5,abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
+        var ending = "2x5x5,yxwvutsrqponmlkjihgfedcbaYXWVUTSRQPONMLKJIHGFEDCBA";
+        TestOperation(starting, (s) => s.RotateX2Opt5(), ending, (s) => s.RotateX2Opt5());
+    }
+
+    [TestMethod]
+    public void TestInPlaceRotateX2Opt6() {
+        // abcde    yxwvu
+        // fghij    tsrqp
+        // klmno => onmlk
+        // pqrst    jihgf
+        // uvwxy    edcba
+        var shape = new BitShape(2, 5, 5);
+        shape[0, 0, 0] = true;
+        shape[1, 1, 1] = true;
+        var newShape = shape.RotateX2Opt6(); // should rotate in-place
+        Assert.IsTrue(object.ReferenceEquals(shape, newShape));
+
+        Assert.IsTrue(shape[0, 4, 4]);
+        Assert.IsTrue(shape[1, 3, 3]);
+
+        shape.RotateX2Opt6();
+        for (int x = 0; x < 2; x++)
+            for (int y = 0; y < 5; y++)
+                for (int z = 0; z < 5; z++)
+                    Assert.AreEqual(x == y && y == z, newShape[x, y, z]);
+    }
+
+    [TestMethod]
+    public void TestInPlaceRotateX2Opt6_() {
+        var starting = "2x5x5,abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
+        var ending = "2x5x5,yxwvutsrqponmlkjihgfedcbaYXWVUTSRQPONMLKJIHGFEDCBA";
+        TestOperation(starting, (s) => s.RotateX2Opt6(), ending, (s) => s.RotateX2Opt6());
+    }
+
+    [TestMethod]
+    public void TestInPlaceRotateX2Opt7() {
+        // abcde    yxwvu
+        // fghij    tsrqp
+        // klmno => onmlk
+        // pqrst    jihgf
+        // uvwxy    edcba
+        var shape = new BitShape(2, 5, 5);
+        shape[0, 0, 0] = true;
+        shape[1, 1, 1] = true;
+        var newShape = shape.RotateX2Opt7(); // should rotate in-place
+        Assert.IsTrue(object.ReferenceEquals(shape, newShape));
+
+        Assert.IsTrue(shape[0, 4, 4]);
+        Assert.IsTrue(shape[1, 3, 3]);
+
+        shape.RotateX2Opt7();
+        for (int x = 0; x < 2; x++)
+            for (int y = 0; y < 5; y++)
+                for (int z = 0; z < 5; z++)
+                    Assert.AreEqual(x == y && y == z, newShape[x, y, z]);
+    }
+
+    [TestMethod]
+    public void TestInPlaceRotateX2Opt7_() {
+        var starting = "2x5x5,abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXY";
+        var ending = "2x5x5,yxwvutsrqponmlkjihgfedcbaYXWVUTSRQPONMLKJIHGFEDCBA";
+        TestOperation(starting, (s) => s.RotateX2Opt7(), ending, (s) => s.RotateX2Opt7());
+    }
+
+    [TestMethod]
     public void TestInPlaceMirrorXOrg() {
         var shape = new BitShape(2, 5, 5);
         shape[0, 0, 0] = true;
@@ -649,6 +799,60 @@ public class BitShapeTests {
         Assert.AreEqual((8, 12, 6), shape.CornerEdgeFaceCount());
         shape = new BitShape("3x3x3,...........................");
         Assert.AreEqual((0, 0, 0), shape.CornerEdgeFaceCount());
+    }
+
+    [TestMethod]
+    public void TestShapeCountsOrg() {
+        var shape = new BitShape("1x1x1,*");
+        Assert.AreEqual((1, 0, 0), shape.CornerEdgeFaceCountOrg());
+        shape = new BitShape("1x1x1,.");
+        Assert.AreEqual((0, 0, 0), shape.CornerEdgeFaceCountOrg());
+
+        shape = new BitShape("2x2x2,********");
+        Assert.AreEqual((8, 0, 0), shape.CornerEdgeFaceCountOrg());
+        shape = new BitShape("2x2x2,........");
+        Assert.AreEqual((0, 0, 0), shape.CornerEdgeFaceCountOrg());
+
+        shape = new BitShape("3x3x3,***************************");
+        Assert.AreEqual((8, 12, 6), shape.CornerEdgeFaceCountOrg());
+        shape = new BitShape("3x3x3,...........................");
+        Assert.AreEqual((0, 0, 0), shape.CornerEdgeFaceCountOrg());
+    }
+
+    [TestMethod]
+    public void TestShapeCountsOpt() {
+        var shape = new BitShape("1x1x1,*");
+        Assert.AreEqual((1, 0, 0), shape.CornerEdgeFaceCountOpt());
+        shape = new BitShape("1x1x1,.");
+        Assert.AreEqual((0, 0, 0), shape.CornerEdgeFaceCountOpt());
+
+        shape = new BitShape("2x2x2,********");
+        Assert.AreEqual((8, 0, 0), shape.CornerEdgeFaceCountOpt());
+        shape = new BitShape("2x2x2,........");
+        Assert.AreEqual((0, 0, 0), shape.CornerEdgeFaceCountOpt());
+
+        shape = new BitShape("3x3x3,***************************");
+        Assert.AreEqual((8, 12, 6), shape.CornerEdgeFaceCountOpt());
+        shape = new BitShape("3x3x3,...........................");
+        Assert.AreEqual((0, 0, 0), shape.CornerEdgeFaceCountOpt());
+    }
+
+    [TestMethod]
+    public void TestShapeCornerCount() {
+        var shape = new BitShape("1x1x1,*");
+        Assert.AreEqual(1, shape.CornerCount());
+        shape = new BitShape("1x1x1,.");
+        Assert.AreEqual(0, shape.CornerCount());
+
+        shape = new BitShape("2x2x2,********");
+        Assert.AreEqual(8, shape.CornerCount());
+        shape = new BitShape("2x2x2,........");
+        Assert.AreEqual(0, shape.CornerCount());
+
+        shape = new BitShape("3x3x3,***************************");
+        Assert.AreEqual(8, shape.CornerCount());
+        shape = new BitShape("3x3x3,...........................");
+        Assert.AreEqual(0, shape.CornerCount());
     }
 
     private void TestOperation(string starting, Func<BitShape, BitShape> op, string ending, Func<BitShape, BitShape> restore) {

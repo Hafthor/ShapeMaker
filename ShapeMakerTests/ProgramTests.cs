@@ -10,30 +10,77 @@ public class ProgramTests {
     [TestMethod]
     public void TestPolycubes() {
         // ref: https://en.wikipedia.org/wiki/Polycube
-        /*
-        var shapes1 = new HashSet<byte[]>() { Encoding.UTF8.GetBytes("1,1,1,1") };
-        Stopwatch sw = Stopwatch.StartNew();
-        var shapes2 = Program.ShapesFromExtendingShapes(shapes1, sw);
-        Assert.AreEqual(1, shapes2.Count);
-        Assert.AreEqual(1, Program.ChiralShapes(shapes2, sw).Count);
-        var shapes3 = Program.ShapesFromExtendingShapes(shapes2, sw);
-        Assert.AreEqual(2, shapes3.Count);
-        Assert.AreEqual(2, Program.ChiralShapes(shapes3, sw).Count);
-        var shapes4 = Program.ShapesFromExtendingShapes(shapes3, sw);
-        Assert.AreEqual(8, shapes4.Count);
-        Assert.AreEqual(7, Program.ChiralShapes(shapes4, sw).Count);
-        var shapes5 = Program.ShapesFromExtendingShapes(shapes4, sw);
-        Assert.AreEqual(29, shapes5.Count);
-        Assert.AreEqual(23, Program.ChiralShapes(shapes5, sw).Count);
-        var shapes6 = Program.ShapesFromExtendingShapes(shapes5, sw);
-        Assert.AreEqual(166, shapes6.Count);
-        Assert.AreEqual(112, Program.ChiralShapes(shapes6, sw).Count);
-        var shapes7 = Program.ShapesFromExtendingShapes(shapes6, sw);
-        Assert.AreEqual(1023, shapes7.Count);
-        Assert.AreEqual(607, Program.ChiralShapes(shapes7, sw).Count);
-        var shapes8 = Program.ShapesFromExtendingShapes(shapes7, sw);
-        Assert.AreEqual(6922, shapes8.Count);
-        Assert.AreEqual(3811, Program.ChiralShapes(shapes8, sw).Count);
-        */
+    }
+}
+
+[TestClass]
+public class ShapeMakerEstimatorTests {
+    [TestMethod]
+    public void TestShapeSizesFromExtendingShapes1File345() {
+        var fileList = new List<FileScanner.Results> {
+            new FileScanner.Results {
+                w = 3,
+                h = 4,
+                d = 5,
+                ext = ".bin",
+                size = (3*4*5+7)/8 * 100, // 60 bits each, 7.5 bytes rounds up to 8 bytes, 100 shapes is 800 bytes
+            }
+        };
+        var targets = ShapeMakerEstimator.ShapeSizesFromExtendingShapes(fileList).ToList();
+        Assert.AreEqual(4, targets.Count);
+        Assert.IsTrue(targets.Contains((3, 4, 5, 800)));
+        Assert.IsTrue(targets.Contains((4, 4, 5, 800)));
+        Assert.IsTrue(targets.Contains((3, 5, 5, 800)));
+        Assert.IsTrue(targets.Contains((3, 4, 6, 800)));
+    }
+
+    [TestMethod]
+    public void TestShapeSizesFromExtendingShapes2Files() {
+        var fileList = new List<FileScanner.Results> {
+            new FileScanner.Results {
+                w = 3,
+                h = 4,
+                d = 5,
+                ext = ".bin",
+                size = (3*4*5+7)/8 * 100, // 60 bits each, 7.5 bytes rounds up to 8 bytes, 100 shapes is 800 bytes
+            },
+            new FileScanner.Results {
+                w = 4,
+                h = 4,
+                d = 4,
+                ext = ".bin",
+                size = (4*4*4+7)/8 * 100, // 64 bits each, 8 bytes, 100 shapes is 800 bytes
+            }
+        };
+        var targets = ShapeMakerEstimator.ShapeSizesFromExtendingShapes(fileList).ToList();
+        Assert.AreEqual(5, targets.Count);
+        Assert.IsTrue(targets.Contains((3, 4, 5, 800)));
+        Assert.IsTrue(targets.Contains((4, 4, 5, 800 * 4)));
+        Assert.IsTrue(targets.Contains((3, 5, 5, 800)));
+        Assert.IsTrue(targets.Contains((3, 4, 6, 800)));
+        Assert.IsTrue(targets.Contains((4, 4, 4, 800)));
+    }
+}
+
+[TestClass]
+public class ShapeMakerHelperTests {
+    [TestMethod]
+    public void TestMinRotation() {
+        Assert.AreEqual(((byte)3, (byte)4, (byte)5), ShapeMakerHelper.MinRotation(3, 4, 5));
+        Assert.AreEqual(((byte)3, (byte)4, (byte)5), ShapeMakerHelper.MinRotation(3, 5, 4));
+        Assert.AreEqual(((byte)3, (byte)4, (byte)5), ShapeMakerHelper.MinRotation(4, 3, 5));
+        Assert.AreEqual(((byte)3, (byte)4, (byte)5), ShapeMakerHelper.MinRotation(4, 5, 3));
+        Assert.AreEqual(((byte)3, (byte)4, (byte)5), ShapeMakerHelper.MinRotation(5, 3, 4));
+        Assert.AreEqual(((byte)3, (byte)4, (byte)5), ShapeMakerHelper.MinRotation(5, 4, 3));
+
+        Assert.AreEqual(((byte)4, (byte)4, (byte)5), ShapeMakerHelper.MinRotation(4, 4, 5));
+        Assert.AreEqual(((byte)4, (byte)4, (byte)5), ShapeMakerHelper.MinRotation(4, 5, 4));
+        Assert.AreEqual(((byte)4, (byte)4, (byte)5), ShapeMakerHelper.MinRotation(5, 4, 4));
+
+        Assert.AreEqual(((byte)4, (byte)5, (byte)5), ShapeMakerHelper.MinRotation(4, 5, 5));
+        Assert.AreEqual(((byte)4, (byte)5, (byte)5), ShapeMakerHelper.MinRotation(5, 4, 5));
+        Assert.AreEqual(((byte)4, (byte)5, (byte)5), ShapeMakerHelper.MinRotation(5, 5, 4));
+
+        Assert.AreEqual(((byte)5, (byte)5, (byte)5), ShapeMakerHelper.MinRotation(5, 5, 5));
     }
 }

@@ -29,6 +29,7 @@ public class Program {
             shape555.bytes[i] = (byte)r.Next(256);
         shape555.bytes[shape555.bytes.Length - 1] &= 0xF8;
     }
+
     // Benchmarks   M2Max    Intel
     [Benchmark] // 159.4ns  180.76ns
     public void RotateX2Org() => shape555.RotateX2Org();
@@ -48,6 +49,14 @@ public class Program {
     [Benchmark] // 119.2ns  142.00ns <= best M2Max
     public void RotateX2Opt4() => shape555.RotateX2();
 
+    [Benchmark] //
+    public void RotateX2Opt5() => shape555.RotateX2Opt5();
+
+    [Benchmark] //
+    public void RotateX2Opt6() => shape555.RotateX2Opt6();
+
+    [Benchmark] //
+    public void RotateX2Opt7() => shape555.RotateX2Opt7();
 
     [Benchmark] // 110.78ns  127.15ns
     public void MirrorXOrg() => shape555.MirrorXOrg();
@@ -79,10 +88,15 @@ public class Program {
     public void MirrorZOpt2() => shape555.MirrorZOpt2();
 
 
-    [Benchmark] // 221.0ns <= best M2Max
+    [Benchmark] // 221.0ns   236.48ns
     public void CornerEdgeFaceCount() => shape555.CornerEdgeFaceCount();
 
-    [Benchmark] // 290.0ns
+    [Benchmark] // 290.0ns   298.65ns
     public void CornerEdgeFaceCountOrg() => shape555.CornerEdgeFaceCountOrg();
-}
 
+    [Benchmark] //           117.55ns <= best M2Max/Intel
+    public void CornerEdgeFaceCountOpt() => shape555.CornerEdgeFaceCountOpt();
+
+    [Benchmark] //            14.25ns
+    public void CornerCount() => shape555.CornerCount();
+}
