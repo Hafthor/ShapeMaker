@@ -844,6 +844,25 @@ public class BitShapeTests {
     }
 
     [TestMethod]
+    public void TestMinRotation() {
+        var minRotation = "3x3x3,.........................**";
+        for(int cx=0;cx<=2;cx+=2)
+            for(int cy=0;cy<=2;cy+=2)
+                for(int cz=0;cz<=2;cz+=2)
+                    for(int x=0;x<3;x++)
+                        for(int y=0;y<3;y++)
+                            for(int z=0;z<3;z++) {
+                                var shape = new BitShape(3, 3, 3);
+                                shape[cx, cy, cz] = true;
+                                if (!shape[x,y,z] && shape.HasSetNeighbor(x,y,z)) {
+                                    shape[x, y, z] = true;
+                                    Assert.AreEqual(minRotation, shape.MinRotation().Serialize());
+                                }
+                            }
+
+    }
+
+    [TestMethod]
     public void TestHasSetNeighbor() {
         var shape = new BitShape(3, 3, 3);
         Assert.IsFalse(shape.HasSetNeighbor(1, 1, 1));
