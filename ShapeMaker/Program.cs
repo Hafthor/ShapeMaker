@@ -65,6 +65,21 @@ public class Program {
         n=15, shapes: 7,859,514,470 time: 83117.6538951, chiral count: 3,934,285,874 time: 25384.3347744
         n=16, shapes: 59,795,121,480 time: ?, chiral count: 29,915,913,663 time: ?
         Peak memory usage: ~40GB
+
+        Results and timing (in seconds) from 15" 2022 Microsoft Surface Laptop 4 w/ 32GB 8-core 11th Gen 3GHz Core i7, .NET 7 in Release mode
+        n=2, shapes: 1 time: 0.0333732, chiral count: 1 time: 0.0013402
+        n=3, shapes: 2 time: 0.0074581, chiral count: 2 time: 0.000919
+        n=4, shapes: 8 time: 0.0095852, chiral count: 7 time: 0.0012408
+        n=5, shapes: 29 time: 0.0122915, chiral count: 23 time: 0.0063124
+        n=6, shapes: 166 time: 0.0229438, chiral count: 112 time: 0.0051743
+        n=7, shapes: 1,023 time: 0.0489735, chiral count: 607 time: 0.0202495
+        n=8, shapes: 6,922 time: 0.134048, chiral count: 3,811 time: 0.0596569
+        n=9, shapes: 48,311 time: 0.6422478, chiral count: 25,413 time: 0.4140952
+        n=10, shapes: 346,543 time: 2.9891527, chiral count: 178,083 time: 1.7550483
+        n=11, shapes: 2,522,522 time: 16.7978658, chiral count: 1,279,537 time: 12.4580685
+        n=12, shapes: 18,598,427 time: 127.1727464, chiral count: 9,371,094 time: 102.1856359
+        n=13, shapes: 138,462,649 time: 1230.0157816, chiral count: 69,513,546 time: 899.4473192
+        n=14, shapes: 1,039,496,297 time: 26384.3786476, chiral count: 520,878,101 time: 21295.4038754
      */
 
     // Potential Optimizations / Enhancements:
