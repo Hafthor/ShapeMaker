@@ -66,7 +66,7 @@ public class Program {
         n=16, shapes: 59,795,121,480 time: ?, chiral count: 29,915,913,663 time: ?
         Peak memory usage: ~40GB
 
-        Results and timing (in seconds) from 15" 2022 Microsoft Surface Laptop 4 w/ 32GB 8-core 11th Gen 3GHz Core i7, .NET 7 in Release mode
+        Results and timing (in seconds) from 15" 2022 Microsoft Surface Laptop 4 w/ 32GB 4-core 11th Gen 3GHz Core i7, .NET 7 in Release mode
         n=2, shapes: 1 time: 0.0333732, chiral count: 1 time: 0.0013402
         n=3, shapes: 2 time: 0.0074581, chiral count: 2 time: 0.000919
         n=4, shapes: 8 time: 0.0095852, chiral count: 7 time: 0.0012408
@@ -177,8 +177,10 @@ public class Program {
 #endif
                     if (inMemSize > totalAvailableMemory) {
                         shardCount = -8; // just shard on corner count
-                        if (inMemSize / 4 > totalAvailableMemory) { // unless that's not enough
-                            shardCount = n; // shard on corner/edge/face counts
+                        if (inMemSize / 3 > totalAvailableMemory) { // unless that's not enough
+                            shardCount = -n; // shard on corner/edge counts
+                            if (inMemSize / 9 > totalAvailableMemory) // unless that's not enough
+                                shardCount = n; // shard on corner/edge/face counts
                         }
                     }
                 }
@@ -311,9 +313,14 @@ public static class ShapeMaker {
             return ShapesFromExtendingShapes(fileList, writer, newShapes, w, h, d, -1, -1, -1);
 
         long shapeCount = 0;
-        if (shardCount < 0) // just corner count sharding
-            for (int cornerIndex = 0; cornerIndex <= 8; cornerIndex++)
-                shapeCount += ShapesFromExtendingShapes(fileList, writer, newShapes, w, h, d, cornerIndex, -1, -1);
+        if (shardCount < 0)
+            if (shardCount == -8) // just corner count sharding
+                for (int cornerIndex = 0; cornerIndex <= 8; cornerIndex++)
+                    shapeCount += ShapesFromExtendingShapes(fileList, writer, newShapes, w, h, d, cornerIndex, -1, -1);
+            else // just corner/edge count sharding
+                for (int cornerIndex = 0; cornerIndex <= 8; cornerIndex++)
+                    for (int edgeIndex = cornerIndex == 0 ? 0 : 1; edgeIndex <= -shardCount - cornerIndex; edgeIndex++)
+                        shapeCount += ShapesFromExtendingShapes(fileList, writer, newShapes, w, h, d, cornerIndex, edgeIndex, -1);
         else {
             int maxInteriorCount = Math.Max(0, w - 2) * Math.Max(0, h - 2) * Math.Max(0, d - 2);
             for (int cornerIndex = 0; cornerIndex <= 8; cornerIndex++)
@@ -446,11 +453,15 @@ public static class ShapeMaker {
 #else
     private static void AddShapes(MyHashSet newShapes, BitShape shape, int xStart, int w, int yStart, int h, int zStart, int d, int targetCornerCount, int targetEdgeCount, int targetFaceCount) {
 #endif
-        int cornerCount = 0, edgeCount = 0, faceCount = 0;
+        int cornerCount = targetCornerCount, edgeCount = targetEdgeCount, faceCount = targetFaceCount;
         if (targetCornerCount >= 0)
             if (targetEdgeCount < 0) {
                 cornerCount = shape.CornerCount();
                 if (cornerCount > targetCornerCount || (cornerCount + 1) < targetCornerCount) return;
+            } else if (targetFaceCount < 0) {
+                (cornerCount, edgeCount) = shape.CornerEdgeCount();
+                if (cornerCount > targetCornerCount || (cornerCount + 1) < targetCornerCount) return;
+                if (edgeCount > targetEdgeCount || (edgeCount + 1) < targetEdgeCount) return;
             } else {
                 (cornerCount, edgeCount, faceCount) = shape.CornerEdgeFaceCountOpt();
                 if (cornerCount > targetCornerCount || (cornerCount + 1) < targetCornerCount) return;
@@ -476,8 +487,10 @@ public static class ShapeMaker {
                         if (targetEdgeCount >= 0) {
                             bool isEdge = xFace && yFace || yFace && zFace || xFace && zFace;
                             if (isEdge && targetEdgeCount != edgeCount + 1) continue;
-                            bool isFace = !isCorner && !isEdge && !isInterior;
-                            if (isFace && targetFaceCount != faceCount + 1) continue;
+                            if (targetFaceCount >= 0) {
+                                bool isFace = !isCorner && !isEdge && !isInterior;
+                                if (isFace && targetFaceCount != faceCount + 1) continue;
+                            }
                         }
                     }
                     if (!shape[x, y, z])
