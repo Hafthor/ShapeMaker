@@ -1,4 +1,7 @@
-﻿using System.Collections;
+﻿// default optimizes for ARM64, uncomment line below to optimize for Intel x64
+//#define OPT_INTEL
+
+using System.Collections;
 
 namespace ShapeMaker;
 
@@ -166,41 +169,8 @@ public class BitShape {
     }
 
     // rotates in-place on X axis by 180º
-    public BitShape RotateX2Org() {
-        for (int x = 0, h2 = h / 2, yLimit = h - 1, zLimit = d - 1; x < w; x++) {
-            for (int y = 0, yNot = yLimit; y < h2; y++, yNot--)
-                for (int z = 0, zNot = zLimit; z < d; z++, zNot--) {
-                    // (this[x, y, z], this[x, yn, zn]) = (this[x, yn, zn], this[x, y, z]);
-                    int hx = h * x;
-                    int index0 = d * (hx + y) + z;
-                    int index1 = d * (hx + yNot) + zNot;
-                    int byteIndex0 = index0 >> BITS_SHR, shr0 = index0 & BITS_PER_MINUS_1;
-                    int byteIndex1 = index1 >> BITS_SHR, shr1 = index1 & BITS_PER_MINUS_1;
-                    byte mask0 = (byte)(MASK_FIRST >> shr0);
-                    byte mask1 = (byte)(MASK_FIRST >> shr1);
-                    bool isSet0 = (bytes[byteIndex0] & mask0) != 0;
-                    bool isSet1 = (bytes[byteIndex1] & mask1) != 0;
-                    if (isSet0 != isSet1) { bytes[byteIndex0] ^= mask0; bytes[byteIndex1] ^= mask1; }
-                }
-            if (h % 2 == 1)
-                for (int z = 0, zNot = d - 1; z < d / 2; z++, zNot--) {
-                    // (this[x, h2, z], this[x, h2, zn]) = (this[x, h2, zn], this[x, h2, z]);
-                    int index = d * (h * x + h2);
-                    int index0 = index + z;
-                    int index1 = index + zNot;
-                    int byteIndex0 = index0 >> BITS_SHR, shr0 = index0 & BITS_PER_MINUS_1;
-                    int byteIndex1 = index1 >> BITS_SHR, shr1 = index1 & BITS_PER_MINUS_1;
-                    byte mask0 = (byte)(MASK_FIRST >> shr0);
-                    byte mask1 = (byte)(MASK_FIRST >> shr1);
-                    bool isSet0 = (bytes[byteIndex0] & mask0) != 0;
-                    bool isSet1 = (bytes[byteIndex1] & mask1) != 0;
-                    if (isSet0 != isSet1) { bytes[byteIndex0] ^= mask0; bytes[byteIndex1] ^= mask1; }
-                }
-        }
-        return this;
-    }
-
-    public BitShape RotateX2Opt() {
+    public BitShape RotateX2() {
+#if OPT_INTEL
         int hd = h * d, hd2 = hd / 2;
         int index0 = 0, index1 = hd - 1;
         for (int x = 0; x < w; x++, index0 += hd, index1 += hd) {
@@ -216,87 +186,7 @@ public class BitShape {
                 mask1 <<= 1; if (mask1 == 0) { mask1 = 1; byteIndex1--; }
             }
         }
-        return this;
-    }
-
-    public BitShape RotateX2Opt1() {
-        int hd = h * d, hd2 = hd / 2;
-        int index0 = 0, index1 = hd - 1;
-        for (int x = 0; x < w; x++, index0 += hd, index1 += hd) {
-            int byteIndex0 = index0 >> BITS_SHR, shr0 = index0 & BITS_PER_MINUS_1;
-            int byteIndex1 = index1 >> BITS_SHR, shr1 = index1 & BITS_PER_MINUS_1;
-            byte mask0 = (byte)(MASK_FIRST >> shr0);
-            byte mask1 = (byte)(MASK_FIRST >> shr1);
-            for (int yz = 0; yz < hd2; yz++) {
-                bool isSet0 = (bytes[byteIndex0] & mask0) != 0;
-                bool isSet1 = (bytes[byteIndex1] & mask1) != 0;
-                if (isSet0 != isSet1) { bytes[byteIndex0] ^= mask0; bytes[byteIndex1] ^= mask1; }
-                mask0 >>= 1;
-                mask1 <<= 1;
-                if (mask0 == 0) { mask0 = MASK_FIRST; byteIndex0++; }
-                if (mask1 == 0) { mask1 = 1; byteIndex1--; }
-            }
-        }
-        return this;
-    }
-
-    public BitShape RotateX2Opt2() {
-        int hd = h * d, hd2 = hd / 2;
-        int index0 = 0, index1 = hd - 1;
-        for (int x = 0; x < w; x++, index0 += hd, index1 += hd) {
-            int index0a = index0, index1a = index1;
-            for (int yz = 0; yz < hd2; yz++, index0a++, index1a--) {
-                int byteIndex0 = index0a >> BITS_SHR, shr0 = index0a & BITS_PER_MINUS_1;
-                int byteIndex1 = index1a >> BITS_SHR, shr1 = index1a & BITS_PER_MINUS_1;
-                byte mask0 = (byte)(MASK_FIRST >> shr0);
-                byte mask1 = (byte)(MASK_FIRST >> shr1);
-                bool isSet0 = (bytes[byteIndex0] & mask0) != 0;
-                bool isSet1 = (bytes[byteIndex1] & mask1) != 0;
-                if (isSet0 != isSet1) { bytes[byteIndex0] ^= mask0; bytes[byteIndex1] ^= mask1; }
-            }
-        }
-        return this;
-    }
-
-    public BitShape RotateX2Opt3() {
-        int hd = h * d, hd2 = hd / 2;
-        int index0 = 0, index1 = hd - 1;
-        for (int x = 0; x < w; x++, index0 += hd, index1 += hd) {
-            int index0a = index0, index1a = index1;
-            for (int yz = 0; yz < hd2; yz++, index0a++, index1a--) {
-                int byteIndex0 = index0a >> BITS_SHR, shr0 = index0a & BITS_PER_MINUS_1;
-                byte mask0 = (byte)(MASK_FIRST >> shr0);
-                bool isSet0 = (bytes[byteIndex0] & mask0) != 0;
-                int byteIndex1 = index1a >> BITS_SHR, shr1 = index1a & BITS_PER_MINUS_1;
-                byte mask1 = (byte)(MASK_FIRST >> shr1);
-                bool isSet1 = (bytes[byteIndex1] & mask1) != 0;
-                if (isSet0 != isSet1) { bytes[byteIndex0] ^= mask0; bytes[byteIndex1] ^= mask1; }
-            }
-        }
-        return this;
-    }
-
-    public BitShape RotateX2() { // was RotateX2Opt4
-        int hd = h * d, hd2 = hd / 2;
-        int index0 = 0, index1 = hd - 1;
-        for (int x = 0; x < w; x++, index0 += hd, index1 += hd) {
-            int index0a = index0, index1a = index1;
-            for (int yz = 0; yz < hd2; yz++, index0a++, index1a--) {
-                int byteIndex0 = index0a >> BITS_SHR;
-                int byteIndex1 = index1a >> BITS_SHR;
-                int shr0 = index0a & BITS_PER_MINUS_1;
-                int shr1 = index1a & BITS_PER_MINUS_1;
-                byte mask0 = (byte)(MASK_FIRST >> shr0);
-                byte mask1 = (byte)(MASK_FIRST >> shr1);
-                bool isSet0 = (bytes[byteIndex0] & mask0) != 0;
-                bool isSet1 = (bytes[byteIndex1] & mask1) != 0;
-                if (isSet0 != isSet1) { bytes[byteIndex0] ^= mask0; bytes[byteIndex1] ^= mask1; }
-            }
-        }
-        return this;
-    }
-
-    public BitShape RotateX2Opt5() {
+#else
         int hd = h * d, hd2 = hd / 2, hd2Not = hd - hd2, hd3 = hd + hd2;
         int index0 = 0, index1 = hd - 1;
         for (int xNot = w; xNot > 0; xNot--, index0 += hd2Not, index1 += hd3) {
@@ -312,75 +202,12 @@ public class BitShape {
                 if (isSet0 != isSet1) { bytes[byteIndex0] ^= mask0; bytes[byteIndex1] ^= mask1; }
             }
         }
+#endif
         return this;
     }
-
-    public BitShape RotateX2Opt6() {
-        int hd = h * d, hd2 = hd / 2, hd2Not = hd - hd2, hd3 = hd + hd2;
-        int index0 = 0, index1 = hd - 1;
-        for (int xNot = w; xNot > 0; xNot--, index0 += hd2Not, index1 += hd3) {
-            for (int yzNot = hd2; yzNot > 0; yzNot--, index0++, index1--) {
-                int byteIndex0 = index0 >> BITS_SHR;
-                int byteIndex1 = index1 >> BITS_SHR;
-                int shr0 = index0 & BITS_PER_MINUS_1;
-                int shr1 = index1 & BITS_PER_MINUS_1;
-                byte mask0 = (byte)(MASK_FIRST >> shr0);
-                byte mask1 = (byte)(MASK_FIRST >> shr1);
-                bool isSet0 = (bytes[byteIndex0] & mask0) != 0;
-                bool isSet1 = (bytes[byteIndex1] & mask1) != 0;
-                byte shouldSet = Convert.ToByte(isSet0 != isSet1);
-                bytes[byteIndex0] ^= (byte)(mask0 * shouldSet);
-                bytes[byteIndex1] ^= (byte)(mask1 * shouldSet);
-            }
-        }
-        return this;
-    }
-
-    public BitShape RotateX2Opt7() {
-        int hd = h * d, hd2 = hd / 2, hd2Not = hd - hd2, hd3 = hd + hd2;
-        int index0 = 0, index1 = hd - 1;
-        for (int xNot = w; xNot > 0; xNot--, index0 += hd2Not, index1 += hd3) {
-            for (int yzNot = hd2; yzNot > 0; yzNot--, index0++, index1--) {
-                int shr0 = index0 & BITS_PER_MINUS_1;
-                int shr1 = index1 & BITS_PER_MINUS_1;
-                int byteIndex0 = index0 >> BITS_SHR;
-                int byteIndex1 = index1 >> BITS_SHR;
-                byte mask0 = (byte)(MASK_FIRST >> shr0);
-                byte mask1 = (byte)(MASK_FIRST >> shr1);
-                byte b0 = bytes[byteIndex0];
-                byte b1 = bytes[byteIndex1];
-                byte b0a = (byte)(b0 & mask0);
-                byte b1a = (byte)(b1 & mask1);
-                bool isSet0 = b0a != 0;
-                bool isSet1 = b1a != 0;
-                byte shouldSet = Convert.ToByte(isSet0 != isSet1);
-                bytes[byteIndex0] ^= (byte)(mask0 * shouldSet);
-                bytes[byteIndex1] ^= (byte)(mask1 * shouldSet);
-            }
-        }
-        return this;
-    }
-
     // mirrors in-place
-    public BitShape MirrorXOrg() {
-        for (int x = 0, w2 = w / 2, xNot = w - 1; x < w2; x++, xNot--)
-            for (int y = 0; y < h; y++)
-                for (int z = 0; z < d; z++) {
-                    // (this[x, y, z], this[xn, y, z]) = (this[xn, y, z], this[x, y, z]);
-                    int index0 = d * (h * x + y) + z;
-                    int index1 = d * (h * xNot + y) + z;
-                    int byteIndex0 = index0 >> BITS_SHR, shr0 = index0 & BITS_PER_MINUS_1;
-                    int byteIndex1 = index1 >> BITS_SHR, shr1 = index1 & BITS_PER_MINUS_1;
-                    byte mask0 = (byte)(MASK_FIRST >> shr0);
-                    byte mask1 = (byte)(MASK_FIRST >> shr1);
-                    bool isSet0 = (bytes[byteIndex0] & mask0) != 0;
-                    bool isSet1 = (bytes[byteIndex1] & mask1) != 0;
-                    if (isSet0 != isSet1) { bytes[byteIndex0] ^= mask0; bytes[byteIndex1] ^= mask1; }
-                }
-        return this;
-    }
-
-    public BitShape MirrorXOpt() {
+    public BitShape MirrorX() {
+#if OPT_INTEL
         int byteIndex0 = 0;
         byte mask0 = MASK_FIRST;
         int hd = h * d;
@@ -397,10 +224,7 @@ public class BitShape {
                 mask1 >>= 1; if (mask1 == 0) { mask1 = MASK_FIRST; byteIndex1++; }
             }
         }
-        return this;
-    }
-
-    public BitShape MirrorX() { // was MirrorXOpt2
+#else
         int index0 = 0;
         int hd = h * d;
         int index1 = hd * w;
@@ -419,9 +243,9 @@ public class BitShape {
             }
             index1 -= hd;
         }
+#endif
         return this;
     }
-
 
     // returns shape rotated clockwise on Y axis by 90º (swaps w,d)
     public BitShape RotateY() {
@@ -504,25 +328,7 @@ public class BitShape {
 
     // mirrors in-place
     public BitShape MirrorY() {
-        for (int x = 0, h2 = h / 2, yLimit = h - 1; x < w; x++)
-            for (int y = 0, yNot = yLimit; y < h2; y++, yNot--)
-                for (int z = 0; z < d; z++) {
-                    // (this[x, y, z], this[x, yn, z]) = (this[x, yn, z], this[x, y, z]);
-                    int hx = h * x;
-                    int index0 = d * (hx + y) + z;
-                    int index1 = d * (hx + yNot) + z;
-                    int byteIndex0 = index0 >> BITS_SHR, shr0 = index0 & BITS_PER_MINUS_1;
-                    int byteIndex1 = index1 >> BITS_SHR, shr1 = index1 & BITS_PER_MINUS_1;
-                    byte mask0 = (byte)(MASK_FIRST >> shr0);
-                    byte mask1 = (byte)(MASK_FIRST >> shr1);
-                    bool isSet0 = (bytes[byteIndex0] & mask0) != 0;
-                    bool isSet1 = (bytes[byteIndex1] & mask1) != 0;
-                    if (isSet0 != isSet1) { bytes[byteIndex0] ^= mask0; bytes[byteIndex1] ^= mask1; }
-                }
-        return this;
-    }
-
-    public BitShape MirrorYOpt() {
+#if OPT_INTEL
         int yLimit = h - 1, h2 = h / 2;
         int hd = h * d;
         int index0 = 0, index1 = yLimit * d;
@@ -542,10 +348,7 @@ public class BitShape {
                 }
             }
         }
-        return this;
-    }
-
-    public BitShape MirrorYOpt2() {
+#else
         int yLimit = h - 1, h2 = h / 2;
         int hd = h * d;
         int index0 = 0, index1 = yLimit * d;
@@ -567,9 +370,9 @@ public class BitShape {
                 index1a -= d;
             }
         }
+#endif
         return this;
     }
-
 
     // returns shape rotated clockwise on Z axis by 90º (swaps w,h)
     public BitShape RotateZ() {
@@ -651,26 +454,7 @@ public class BitShape {
     }
 
     // mirrors in-place
-    public BitShape MirrorZOrg() {
-        for (int x = 0, d2 = d / 2, zLimit = d - 1; x < w; x++)
-            for (int y = 0; y < h; y++)
-                for (int z = 0, zNot = zLimit; z < d2; z++, zNot--) {
-                    // (this[x, y, z], this[x, y, zn]) = (this[x, y, zn], this[x, y, z]);
-                    int index = d * (h * x + y);
-                    int index0 = index + z;
-                    int index1 = index + zNot;
-                    int byteIndex0 = index0 >> BITS_SHR, shr0 = index0 & BITS_PER_MINUS_1;
-                    int byteIndex1 = index1 >> BITS_SHR, shr1 = index1 & BITS_PER_MINUS_1;
-                    byte mask0 = (byte)(MASK_FIRST >> shr0);
-                    byte mask1 = (byte)(MASK_FIRST >> shr1);
-                    bool isSet0 = (bytes[byteIndex0] & mask0) != 0;
-                    bool isSet1 = (bytes[byteIndex1] & mask1) != 0;
-                    if (isSet0 != isSet1) { bytes[byteIndex0] ^= mask0; bytes[byteIndex1] ^= mask1; }
-                }
-        return this;
-    }
-
-    public BitShape MirrorZ() { // was MirrorZOpt
+    public BitShape MirrorZ() {
         for (int x = 0, d2 = d / 2, zLimit = d - 1; x < w; x++)
             for (int y = 0; y < h; y++) {
                 int index0 = d * (h * x + y);
@@ -687,28 +471,6 @@ public class BitShape {
                     mask1 <<= 1; if (mask1 == 0) { mask1 = 1; byteIndex1--; }
                 }
             }
-        return this;
-    }
-
-    public BitShape MirrorZOpt2() {
-        for (int x = 0, d2 = d / 2, zLimit = d - 1; x < w; x++) {
-            int hx = h * x;
-            for (int y = 0; y < h; y++) {
-                int index0 = d * (hx + y);
-                int index1 = index0 + zLimit;
-                for (int z = 0; z < d2; z++, index0++, index1--) {
-                    int byteIndex0 = index0 >> BITS_SHR;
-                    int byteIndex1 = index1 >> BITS_SHR;
-                    int shr0 = index0 & BITS_PER_MINUS_1;
-                    int shr1 = index1 & BITS_PER_MINUS_1;
-                    byte mask0 = (byte)(MASK_FIRST >> shr0);
-                    byte mask1 = (byte)(MASK_FIRST >> shr1);
-                    bool isSet0 = (bytes[byteIndex0] & mask0) != 0;
-                    bool isSet1 = (bytes[byteIndex1] & mask1) != 0;
-                    if (isSet0 != isSet1) { bytes[byteIndex0] ^= mask0; bytes[byteIndex1] ^= mask1; }
-                }
-            }
-        }
         return this;
     }
 
@@ -931,64 +693,6 @@ public class BitShape {
     // returns the number of corners, edges and faces set - this is rotationally independent so can be used to shard
     // shape work without having to find minimal rotation first - values returned will be, for an example 5x5x5 shape:
     // 0 and 8 for corner count, 0 and 3*12(36) for edge count, 0 and 3*3*6(54) for face count.
-    public (int corners, int edges, int faces) CornerEdgeFaceCountOpt1() {
-        int corners = 0, edges = 0, faces = 0;
-        int bitIndex = 0;
-        int xLimit = w - 1, yLimit = h - 1, zLimit = d - 1;
-        for (int x = 0; x <= xLimit; x++) {
-            bool xFace = x == 0 || x == xLimit;
-            for (int y = 0; y <= yLimit; y++) {
-                bool yFace = y == 0 || y == yLimit;
-                for (int z = 0; z <= zLimit; z++, bitIndex++) {
-                    bool zFace = z == 0 || z == zLimit;
-                    if (xFace || yFace || zFace) {
-                        int byteIndex = bitIndex >> BITS_SHR;
-                        int shr = bitIndex & BITS_PER_MINUS_1;
-                        byte mask = (byte)(MASK_FIRST >> shr);
-                        if ((bytes[byteIndex] & mask) != 0)
-                            if (xFace && yFace || yFace && zFace || xFace && zFace)
-                                if (xFace && yFace && zFace)
-                                    corners++;
-                                else
-                                    edges++;
-                            else
-                                faces++;
-                    }
-                }
-            }
-        }
-        return (corners, edges, faces);
-    }
-
-    public (int corners, int edges, int faces) CornerEdgeFaceCountOrg() {
-        int corners = 0, edges = 0, faces = 0;
-        int byteIndex = 0;
-        byte mask = MASK_FIRST;
-        int bitIndex = 0;
-        int xLimit = w - 1, yLimit = h - 1, zLimit = d - 1;
-        for (int x = 0; x <= xLimit; x++) {
-            bool xFace = x == 0 || x == xLimit;
-            for (int y = 0; y <= yLimit; y++) {
-                bool yFace = y == 0 || y == yLimit;
-                for (int z = 0; z <= zLimit; z++, bitIndex++) {
-                    bool zFace = z == 0 || z == zLimit;
-                    if (xFace || yFace || zFace) {
-                        if ((bytes[byteIndex] & mask) != 0)
-                            if (xFace && yFace || yFace && zFace || xFace && zFace)
-                                if (xFace && yFace && zFace)
-                                    corners++;
-                                else
-                                    edges++;
-                            else
-                                faces++;
-                    }
-                    mask >>= 1; if (mask == 0) { mask = MASK_FIRST; byteIndex++; }
-                }
-            }
-        }
-        return (corners, edges, faces);
-    }
-
     public (int corners, int edges, int faces) CornerEdgeFaceCount() { // was CornerEdgeFaceCountOpt
         int corners = 0, edges = 0, faces = 0;
         int xLimit = w - 1, yLimit = h - 1, zLimit = d - 1;
