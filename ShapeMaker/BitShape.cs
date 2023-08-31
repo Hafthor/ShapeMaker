@@ -931,7 +931,7 @@ public class BitShape {
     // returns the number of corners, edges and faces set - this is rotationally independent so can be used to shard
     // shape work without having to find minimal rotation first - values returned will be, for an example 5x5x5 shape:
     // 0 and 8 for corner count, 0 and 3*12(36) for edge count, 0 and 3*3*6(54) for face count.
-    public (int corners, int edges, int faces) CornerEdgeFaceCount() {
+    public (int corners, int edges, int faces) CornerEdgeFaceCountOpt1() {
         int corners = 0, edges = 0, faces = 0;
         int bitIndex = 0;
         int xLimit = w - 1, yLimit = h - 1, zLimit = d - 1;
@@ -989,7 +989,7 @@ public class BitShape {
         return (corners, edges, faces);
     }
 
-    public (int corners, int edges, int faces) CornerEdgeFaceCountOpt() {
+    public (int corners, int edges, int faces) CornerEdgeFaceCount() { // was CornerEdgeFaceCountOpt
         int corners = 0, edges = 0, faces = 0;
         int xLimit = w - 1, yLimit = h - 1, zLimit = d - 1;
         int xIncr = Math.Max(1, xLimit), yIncr = Math.Max(1, yLimit), zIncr = Math.Max(1, zLimit);

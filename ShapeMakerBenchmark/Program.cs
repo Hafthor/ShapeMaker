@@ -89,13 +89,13 @@ public class Program {
 
 
     [Benchmark] // 210.46ns  236.48ns
-    public void CornerEdgeFaceCount() => shape555.CornerEdgeFaceCount();
+    public void CornerEdgeFaceCountOpt1() => shape555.CornerEdgeFaceCountOpt1();
 
     [Benchmark] // 275.07ns  298.65ns
     public void CornerEdgeFaceCountOrg() => shape555.CornerEdgeFaceCountOrg();
 
     [Benchmark] //  98.06ns  117.55ns <= best M2Max/Intel
-    public void CornerEdgeFaceCountOpt() => shape555.CornerEdgeFaceCountOpt();
+    public void CornerEdgeFaceCountOpt() => shape555.CornerEdgeFaceCount();
 
     [Benchmark] //  49.12ns   56.67ns
     public void CornerEdgeCount() => shape555.CornerEdgeCount();

@@ -937,21 +937,21 @@ public class BitShapeTests {
     }
 
     [TestMethod]
-    public void TestShapeCounts() {
+    public void TestShapeCountsOpt1() {
         var shape = new BitShape("1x1x1,*");
-        Assert.AreEqual((1, 0, 0), shape.CornerEdgeFaceCount());
+        Assert.AreEqual((1, 0, 0), shape.CornerEdgeFaceCountOpt1());
         shape = new BitShape("1x1x1,.");
-        Assert.AreEqual((0, 0, 0), shape.CornerEdgeFaceCount());
+        Assert.AreEqual((0, 0, 0), shape.CornerEdgeFaceCountOpt1());
 
         shape = new BitShape("2x2x2,********");
-        Assert.AreEqual((8, 0, 0), shape.CornerEdgeFaceCount());
+        Assert.AreEqual((8, 0, 0), shape.CornerEdgeFaceCountOpt1());
         shape = new BitShape("2x2x2,........");
-        Assert.AreEqual((0, 0, 0), shape.CornerEdgeFaceCount());
+        Assert.AreEqual((0, 0, 0), shape.CornerEdgeFaceCountOpt1());
 
         shape = new BitShape("3x3x3,***************************");
-        Assert.AreEqual((8, 12, 6), shape.CornerEdgeFaceCount());
+        Assert.AreEqual((8, 12, 6), shape.CornerEdgeFaceCountOpt1());
         shape = new BitShape("3x3x3,...........................");
-        Assert.AreEqual((0, 0, 0), shape.CornerEdgeFaceCount());
+        Assert.AreEqual((0, 0, 0), shape.CornerEdgeFaceCountOpt1());
     }
 
     [TestMethod]
@@ -975,19 +975,19 @@ public class BitShapeTests {
     [TestMethod]
     public void TestShapeCountsOpt() {
         var shape = new BitShape("1x1x1,*");
-        Assert.AreEqual((1, 0, 0), shape.CornerEdgeFaceCountOpt());
+        Assert.AreEqual((1, 0, 0), shape.CornerEdgeFaceCount());
         shape = new BitShape("1x1x1,.");
-        Assert.AreEqual((0, 0, 0), shape.CornerEdgeFaceCountOpt());
+        Assert.AreEqual((0, 0, 0), shape.CornerEdgeFaceCount());
 
         shape = new BitShape("2x2x2,********");
-        Assert.AreEqual((8, 0, 0), shape.CornerEdgeFaceCountOpt());
+        Assert.AreEqual((8, 0, 0), shape.CornerEdgeFaceCount());
         shape = new BitShape("2x2x2,........");
-        Assert.AreEqual((0, 0, 0), shape.CornerEdgeFaceCountOpt());
+        Assert.AreEqual((0, 0, 0), shape.CornerEdgeFaceCount());
 
         shape = new BitShape("3x3x3,***************************");
-        Assert.AreEqual((8, 12, 6), shape.CornerEdgeFaceCountOpt());
+        Assert.AreEqual((8, 12, 6), shape.CornerEdgeFaceCount());
         shape = new BitShape("3x3x3,...........................");
-        Assert.AreEqual((0, 0, 0), shape.CornerEdgeFaceCountOpt());
+        Assert.AreEqual((0, 0, 0), shape.CornerEdgeFaceCount());
     }
 
     [TestMethod]

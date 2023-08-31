@@ -85,6 +85,7 @@ public class Program {
     // Potential Optimizations / Enhancements:
     // * We could do a counting pass to see how to best partition the data to avoid makeing a bunch
     //   of sharding passes that create few or no new polycubes.
+    // * Save/resume partial sharded results.
 
     // Potential Features:
     // * Make a 4-D version?
@@ -214,9 +215,8 @@ public class Program {
                 Console.Write(progress);
             }
 
-            if (DO_CHIRAL_COUNT) {
+            if (DO_CHIRAL_COUNT)
                 completeString += DoChiralCount(n, targetSizes);
-            }
 
             Console.WriteLine();
             FileWriter.MarkNComplete(n, completeString);
@@ -463,7 +463,7 @@ public static class ShapeMaker {
                 if (cornerCount > targetCornerCount || (cornerCount + 1) < targetCornerCount) return;
                 if (edgeCount > targetEdgeCount || (edgeCount + 1) < targetEdgeCount) return;
             } else {
-                (cornerCount, edgeCount, faceCount) = shape.CornerEdgeFaceCountOpt();
+                (cornerCount, edgeCount, faceCount) = shape.CornerEdgeFaceCount();
                 if (cornerCount > targetCornerCount || (cornerCount + 1) < targetCornerCount) return;
                 if (edgeCount > targetEdgeCount || (edgeCount + 1) < targetEdgeCount) return;
                 if (faceCount > targetFaceCount || (faceCount + 1) < targetFaceCount) return;
