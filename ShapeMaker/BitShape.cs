@@ -6,16 +6,46 @@ using System.Collections;
 namespace ShapeMaker;
 
 /// <summary>
-/// Stores a shape of given dimensions with w*h*d bits inside to represent a shape. Supports various 3-D operations on shape.
+/// Stores a shape of given dimensions with w*h*d bits inside to represent a shape.
+/// Supports various 3-D operations on shape.
 /// </summary>
 public class BitShape {
-    public readonly byte w, h, d;
-    public readonly byte[] bytes;
-    const int BITS_PER = sizeof(byte) * 8;
+    const int BITS_PER = sizeof(byte) * 8; // 8
     const int BITS_SHR = 3;
-    const int BITS_PER_MINUS_1 = BITS_PER - 1;
-    const byte MASK_FIRST = 1 << BITS_PER_MINUS_1;
+    const int BITS_PER_MINUS_1 = BITS_PER - 1; // 7
+    const byte MASK_FIRST = 1 << BITS_PER_MINUS_1; // 128
 
+    // shape dimensions - stored as bytes to reduce memory footprint
+    
+    /// <summary>
+    /// Width of shape. Defines limit of x coordinate.
+    /// </summary>
+    public readonly byte w;
+    
+    /// <summary>
+    /// Height of shape. Defines limit of y coordinate.
+    /// </summary>
+    public readonly byte h;
+    
+    /// <summary>
+    /// Depth of shape. Defines limit of z coordinate.
+    /// </summary>
+    public readonly byte d;
+    
+    // bytes to store the shape, each bit represents a voxel inside the shape
+    // arranged in x,y,z order, so second bit is x=0, y=0, z=1.
+    /// <summary>
+    /// Bytes to store the voxel data of the shape. Each bit represents a voxel inside the shape arranged in x, y, z
+    /// order such that the second bit is x=0, y=0, z=1.
+    /// </summary>
+    public readonly byte[] bytes;
+
+    /// <summary>
+    /// Creates a new BitShape with given dimensions.
+    /// </summary>
+    /// <param name="w">width</param>
+    /// <param name="h">height</param>
+    /// <param name="d">depth</param>
     public BitShape(byte w, byte h, byte d) {
         this.w = w;
         this.h = h;
@@ -24,6 +54,13 @@ public class BitShape {
         bytes = new byte[(size + BITS_PER_MINUS_1) >> BITS_SHR];
     }
 
+    /// <summary>
+    /// Creates a new BitShape with given dimensions and bytes.
+    /// </summary>
+    /// <param name="w">width</param>
+    /// <param name="h">height</param>
+    /// <param name="d">depth</param>
+    /// <param name="bytes">bytes representing the shape - bytes are referenced, NOT copied.</param>
     public BitShape(byte w, byte h, byte d, byte[] bytes) {
         this.w = w;
         this.h = h;
@@ -31,6 +68,10 @@ public class BitShape {
         this.bytes = bytes;
     }
 
+    /// <summary>
+    /// Creates a copy of a BitShape.
+    /// </summary>
+    /// <param name="shape">BitShape to copy</param>
     public BitShape(BitShape shape) {
         this.w = shape.w;
         this.h = shape.h;
@@ -39,6 +80,11 @@ public class BitShape {
         Array.Copy(shape.bytes, bytes, bytes.Length);
     }
 
+    /// <summary>
+    /// Deserialize a BitShape from a string.
+    /// </summary>
+    /// <param name="s">string containing BitShape serialization, {width}x{height}x{depth},{contents}</param>
+    /// <exception cref="ArgumentException">on incorrect serialization</exception>
     public BitShape(string s) {
         var split = s.Split(',');
         if (split.Length != 2) throw new ArgumentException("expected a two part string (dimensions,contents)");
@@ -59,6 +105,10 @@ public class BitShape {
         }
     }
 
+    /// <summary>
+    /// Serializes a BitShape to a string.
+    /// </summary>
+    /// <returns>string serialization of BitShape in the form {width}x{height}x{depth},{contents}</returns>
     public string Serialize() {
         int size = w * h * d;
         var chars = new char[size];
@@ -74,6 +124,12 @@ public class BitShape {
         return w + "x" + h + "x" + d + "," + new string(chars);
     }
 
+    /// <summary>
+    /// Indexer to get/set a voxel in the shape.
+    /// </summary>
+    /// <param name="x">x coordinate</param>
+    /// <param name="y">y coordinate</param>
+    /// <param name="z">z coordinate</param>
     public bool this[int x, int y, int z] {
         get {
             var bitIndex = d * (h * x + y) + z;
@@ -90,31 +146,66 @@ public class BitShape {
         }
     }
 
+    /// <summary>
+    /// Pads BitShape left size (x-1) with empty voxels.
+    /// </summary>
+    /// <returns>a new BitShape with an additional voxel layer on the left</returns>
     public BitShape PadLeft() {
         return SetCopy(new BitShape((byte)(w + 1), h, d), 1, w, 0, h, 0, d);
     }
 
+    /// <summary>
+    /// Pads BitShape right size (x+1) with empty voxels.
+    /// </summary>
+    /// <returns>a new BitShape with an additional voxel layer on the right</returns>
     public BitShape PadRight() {
         return SetCopy(new BitShape((byte)(w + 1), h, d), 0, w, 0, h, 0, d);
     }
 
+    /// <summary>
+    /// Pads BitShape top size (y-1) with empty voxels.
+    /// </summary>
+    /// <returns>a new BitShape with an additional voxel layer on the top</returns>
     public BitShape PadTop() {
         return SetCopy(new BitShape(w, (byte)(h + 1), d), 0, w, 1, h, 0, d);
     }
 
+    /// <summary>
+    /// Pads BitShape bottom size (y+1) with empty voxels.
+    /// </summary>
+    /// <returns>a new BitShape with an additional voxel layer on the bottom</returns>
     public BitShape PadBottom() {
         return SetCopy(new BitShape(w, (byte)(h + 1), d), 0, w, 0, h, 0, d);
     }
 
+    /// <summary>
+    /// Pads BitShape front size (z-1) with empty voxels.
+    /// </summary>
+    /// <returns>a new BitShape with an additional voxel layer on the front</returns>
     public BitShape PadFront() {
         return SetCopy(new BitShape(w, h, (byte)(d + 1)), 0, w, 0, h, 1, d);
     }
 
+    /// <summary>
+    /// Pads BitShape back size (z+1) with empty voxels.
+    /// </summary>
+    /// <returns>a new BitShape with an additional voxel layer on the back</returns>
     public BitShape PadBack() {
         return SetCopy(new BitShape(w, h, (byte)(d + 1)), 0, w, 0, h, 0, d);
     }
 
-    public BitShape SetCopy(BitShape dest, int xOffset, int w, int yOffset, int h, int zOffset, int d) {
+    /// <summary>
+    /// Helper method for padding.
+    /// </summary>
+    /// <param name="dest">destination new BitShape</param>
+    /// <param name="xOffset">x copy offset</param>
+    /// <param name="w">width to copy</param>
+    /// <param name="yOffset">y copy offset</param>
+    /// <param name="h">height to copy</param>
+    /// <param name="zOffset">z copy offset</param>
+    /// <param name="d">depth to copy</param>
+    /// <returns>destination BitShape</returns>
+    private BitShape SetCopy(BitShape dest, int xOffset, int w, int yOffset, int h, int zOffset, int d) {
         for (int sx = 0, dx = xOffset; sx < w; sx++, dx++)
             for (int sy = 0, dy = yOffset; sy < h; sy++, dy++)
                 for (int sz = 0, dz = zOffset; sz < d; sz++, dz++)
@@ -122,7 +213,11 @@ public class BitShape {
         return dest;
     }
 
-    // returns shape rotated clockwise on X axis by 90º (swaps h,d)
+    /// <summary>
+    /// Rotates a shape clockwise on X axis by 90º (swaps h,d).
+    /// When h==d, it rotates in-place, otherwise it returns a new BitShape.
+    /// </summary>
+    /// <returns>rotated shape</returns>
     public BitShape RotateX() {
         if (d == h) { // rotate in-place
             for (int x = 0, h2 = h / 2, yLimit = h - 1, zLimit = d - 1; x < w; x++)
@@ -168,7 +263,10 @@ public class BitShape {
         return newShape;
     }
 
-    // rotates in-place on X axis by 180º
+    /// <summary>
+    /// Rotates a shape in-place on X axis by 180º.
+    /// </summary>
+    /// <returns>rotated shape</returns>
     public BitShape RotateX2() {
 #if OPT_INTEL
         int hd = h * d, hd2 = hd / 2;
@@ -205,7 +303,10 @@ public class BitShape {
 #endif
         return this;
     }
-    // mirrors in-place
+    /// <summary>
+    /// Mirrors a shape in-place on X axis.
+    /// </summary>
+    /// <returns>mirrored shape</returns>
     public BitShape MirrorX() {
 #if OPT_INTEL
         int byteIndex0 = 0;
@@ -247,7 +348,11 @@ public class BitShape {
         return this;
     }
 
-    // returns shape rotated clockwise on Y axis by 90º (swaps w,d)
+    /// <summary>
+    /// Rotates a shape clockwise on Y axis by 90º (swaps w,d).
+    /// When w==d, it rotates in-place, otherwise it returns a new BitShape.
+    /// </summary>
+    /// <returns>rotated shape</returns>
     public BitShape RotateY() {
         if (w == d) { // rotate in-place
             for (int y = 0, d2 = d / 2, zLimit = d - 1, xLimit = w - 1; y < h; y++)
@@ -292,7 +397,10 @@ public class BitShape {
         return newShape;
     }
 
-    // rotates in-place on Y axis by 180º
+    /// <summary>
+    /// Rotates a shape in-place on Y axis by 180º.
+    /// </summary>
+    /// <returns>rotated shape</returns>
     public BitShape RotateY2() {
         for (int y = 0, w2 = w / 2, zLimit = d - 1, xLimit = w - 1; y < h; y++) {
             for (int x = 0, xNot = xLimit; x < w2; x++, xNot--)
@@ -326,7 +434,10 @@ public class BitShape {
         return this;
     }
 
-    // mirrors in-place
+    /// <summary>
+    /// Mirrors a shape in-place on Y axis.
+    /// </summary>
+    /// <returns>mirrored shape</returns>
     public BitShape MirrorY() {
 #if OPT_INTEL
         int yLimit = h - 1, h2 = h / 2;
@@ -374,7 +485,11 @@ public class BitShape {
         return this;
     }
 
-    // returns shape rotated clockwise on Z axis by 90º (swaps w,h)
+    /// <summary>
+    /// Rotates a shape clockwise on Z axis by 90º (swaps w,h).
+    /// When w==h, it rotates in-place, otherwise it returns a new BitShape.
+    /// </summary>
+    /// <returns>rotated shape</returns>
     public BitShape RotateZ() {
         if (w == h) { // rotate in-place
             for (int z = 0, h2 = h / 2, xLimit = w - 1, yLimit = h - 1; z < d; z++)
@@ -419,7 +534,10 @@ public class BitShape {
         return newShape;
     }
 
-    // rotates in-place on Z axis by 180º
+    /// <summary>
+    /// Rotates a shape in-place on Z axis by 180º.
+    /// </summary>
+    /// <returns>rotated shape</returns>
     public BitShape RotateZ2() {
         for (int z = 0, w2 = w / 2, xLimit = w - 1, yLimit = h - 1; z < d; z++) {
             for (int x = 0, xNot = xLimit; x < w2; x++, xNot--)
@@ -453,7 +571,10 @@ public class BitShape {
         return this;
     }
 
-    // mirrors in-place
+    /// <summary>
+    /// Mirrors a shape in-place on Z axis.
+    /// </summary>
+    /// <returns>mirrored shape</returns>
     public BitShape MirrorZ() {
         for (int x = 0, d2 = d / 2, zLimit = d - 1; x < w; x++)
             for (int y = 0; y < h; y++) {
@@ -473,8 +594,13 @@ public class BitShape {
             }
         return this;
     }
-
-
+    
+    /// <summary>
+    /// Helper method to generate all possible minimum rotations of a shape. When a shape has all equal dimensions,
+    /// there are 24 possible rotations. When two dimensions are equal, there are 16 possible rotations. When all
+    /// dimensions are different, there are 8 possible rotations. 
+    /// </summary>
+    /// <returns>A sequence of possible rotations.</returns>
     private IEnumerable<BitShape> AllMinRotations() {
         if (w == h && h == d)
             return All24Rotations();
@@ -512,7 +638,10 @@ public class BitShape {
         throw new ApplicationException("Unexpected situation");
     }
 
-    // generates all 8 possible rotations for when w, h, and d are unique
+    /// <summary>
+    /// Internal helper method to generate all 8 possible rotations for when w, h, and d are unique.
+    /// </summary>
+    /// <returns>A sequence of all possible 180º rotations of shape</returns>
     private IEnumerable<BitShape> All8Rotations() {
         yield return this;
         yield return RotateX2();
@@ -525,7 +654,10 @@ public class BitShape {
         RotateZ2(); // restore
     }
 
-    // generates all 16 possible rotations for when h=d but w is different
+    /// <summary>
+    /// Internal helper method to generate all 16 possible rotations for when h=d but w is different
+    /// </summary>
+    /// <returns>A sequence of all possible minimum rotations of shape</returns>
     private IEnumerable<BitShape> All16RotationsY2Z2() {
         var inputShape = new BitShape(this);
         foreach (var shape in inputShape.AllRotationsOfX()) yield return shape;
@@ -540,7 +672,10 @@ public class BitShape {
         foreach (var shape in inputShape.AllRotationsOfX()) yield return shape;
     }
 
-    // generates all 16 possible rotations for when w=h but d is different
+    /// <summary>
+    /// Internal helper method to generate all 16 possible rotations for when w=h but d is different
+    /// </summary>
+    /// <returns>A sequence of all possible minimum rotations of shape</returns>
     private IEnumerable<BitShape> All16RotationsX2Y2() {
         var inputShape = new BitShape(this);
         foreach (var shape in inputShape.AllRotationsOfZ()) yield return shape;
@@ -555,7 +690,13 @@ public class BitShape {
         foreach (var shape in inputShape.AllRotationsOfZ()) yield return shape;
     }
 
-    // generates all 24 possible rotations of this shape for when w, h and d are the same
+    /// <summary>
+    /// Internal helper method to generate all 24 possible rotations for when w, h and d are the same
+    /// </summary>
+    /// <returns>A sequence of all possible rotations of shape</returns>
+    /// <remarks>A Rubik's cube, for example, is a 3x3x3 shape that has 24 possible rotations - it
+    /// can have any of its six faces on top with any of adjacent four faces facing towards you.
+    /// six*four=24.</remarks>
     private IEnumerable<BitShape> All24Rotations() {
         var inputShape = new BitShape(this);
         foreach (var shape in inputShape.AllRotationsOfX()) yield return shape;
@@ -576,7 +717,10 @@ public class BitShape {
         foreach (var shape in inputShape.AllRotationsOfX()) yield return shape;
     }
 
-    // generates all 4 possible rotations on X axis of this shape
+    /// <summary>
+    /// Internal helper method to generate all 4 possible rotations on X axis of this shape
+    /// </summary>
+    /// <returns>A sequence of all possible X rotations of shape</returns>
     private IEnumerable<BitShape> AllRotationsOfX() {
         if (h == d) { // rotates in-place but restores it
             yield return this;
@@ -594,7 +738,10 @@ public class BitShape {
         }
     }
 
-    // generates all 4 possible rotations on Z axis of this shape
+    /// <summary>
+    /// Internal helper method to generate all 4 possible rotations on Z axis of this shape
+    /// </summary>
+    /// <returns>A sequence of all possible Z rotations of shape</returns>
     private IEnumerable<BitShape> AllRotationsOfZ() {
         if (w == h) { // rotates in-place but restores it
             yield return this;
@@ -612,15 +759,12 @@ public class BitShape {
         }
     }
 
-    // returns the shape rotated such that it is the mimimum serialization of the shape
+    /// <summary>
+    /// Finds the minimum rotation of a shape. This is the rotation that has the lowest serialization of the shape,
+    /// where w is the lowest, then h, then d, then the binary serialization of its contents.
+    /// </summary>
+    /// <returns>BitShape rotated such that it is the minimum serialization</returns>
     public BitShape MinRotation() {
-        // a rubiks cube, for example, is a 3x3x3 shape
-        // it can be resting on any of its six colors
-        // and could have any of four sides facing you. 6*4=24
-
-        // we will need to apply rotations to get all 24 combinations
-        // and see which one compares to be the lowest
-
         BitShape minShape = null;
         foreach (var shape in AllMinRotations())
             if (minShape == null || minShape.CompareTo(shape) > 0)
@@ -628,8 +772,11 @@ public class BitShape {
         return minShape;
     }
 
-    // generate all 8 possible mirrorings of shape
-    // note these are generated in-place on this shape
+    /// <summary>
+    /// Internal helper method to generate all 8 possible mirrorings of a shape. Mirrorings are generated in-place.
+    /// Does restore the shape to its original state at the end.
+    /// </summary>
+    /// <returns>A sequence of 8 mirrorings.</returns>
     public IEnumerable<BitShape> AllMirrors() {
         yield return this;
         yield return MirrorX();
@@ -642,12 +789,15 @@ public class BitShape {
         MirrorZ(); // restore
     }
 
-    // check all rotations for each mirrored possibility (8)
-    // note that we do this by rotations first, since mirrors
-    // mutate object in-place and should be more cache friendly
-    // to do on the inside loop.
+    /// <summary>
+    /// Finds the minimal chiral rotation of a shape. This is the rotation that has the lowest serialization of the
+    /// shape, where w is the lowest, then h, then d, then the binary serialization of its contents. This is done
+    /// for all possible rotations and the 8 possible mirrorings of the shape.
+    /// </summary>
+    /// <returns>Minimal chiral rotation of shape</returns>
     public BitShape MinChiralRotation() {
         BitShape minShape = null;
+        // note we do mirroring on the inside loop since it is in-place and should be more cache friendly
         foreach (var rotatedShape in AllMinRotations())
             foreach (var mirroredShape in rotatedShape.AllMirrors())
                 if (minShape == null || minShape.CompareTo(mirroredShape) > 0)
@@ -655,8 +805,10 @@ public class BitShape {
         return minShape;
     }
 
-    // check all rotations for each mirrored possibility (8)
-    // to see if current shape is the minimal rotation.
+    /// <summary>
+    /// Checks if this shape is the minimal rotation of all possible rotations and mirrorings of the shape.
+    /// </summary>
+    /// <returns>true if shape is minimal chiral rotation</returns>
     public bool IsMinChiralRotation() {
         var inputShape = new BitShape(this);
         foreach (var rotatedShape in AllMinRotations())
@@ -666,7 +818,11 @@ public class BitShape {
         return true;
     }
 
-    // returns <0 if this is lower than other, 0 if equal, >0 if other is lower
+    /// <summary>
+    /// Compares two shapes. Compares their dimensions first, then their binary serialization.
+    /// </summary>
+    /// <param name="other">other shape to be compared</param>
+    /// <returns>negative if this is lower, 0 if equal, positive if other is lower</returns>
     public int CompareTo(BitShape other) {
         if (this == other) return 0;
         int dw = w - other.w; if (dw != 0) return dw;
@@ -675,10 +831,22 @@ public class BitShape {
         return ((IStructuralComparable)bytes).CompareTo(other.bytes, Comparer<byte>.Default);
     }
 
+    /// <summary>
+    /// Compares two shapes for equality. Compares their dimensions first, then their binary serialization.
+    /// </summary>
+    /// <param name="obj">other shape to be compared</param>
+    /// <returns>true if equal</returns>
     public override bool Equals(object? obj) {
         return obj != null && obj is BitShape b && w == b.w && h == b.h && d == b.d && bytes.SequenceEqual(b.bytes);
     }
 
+    /// <summary>
+    /// Checks to see if shape has a set neighbor at the given coordinates.
+    /// </summary>
+    /// <param name="x">x coordinate</param>
+    /// <param name="y">y coordinate</param>
+    /// <param name="z">z coordinate</param>
+    /// <returns>true if shape has voxel adjacent to given coordinates set</returns>
     public bool HasSetNeighbor(int x, int y, int z) {
         // minor opt: we do easier comparisons first
         if (x > 0 && this[x - 1, y, z]) return true;
@@ -690,10 +858,15 @@ public class BitShape {
         return false;
     }
 
-    // returns the number of corners, edges and faces set - this is rotationally independent so can be used to shard
-    // shape work without having to find minimal rotation first - values returned will be, for an example 5x5x5 shape:
-    // 0 and 8 for corner count, 0 and 3*12(36) for edge count, 0 and 3*3*6(54) for face count.
-    public (int corners, int edges, int faces) CornerEdgeFaceCount() { // was CornerEdgeFaceCountOpt
+    /// <summary>
+    /// Counts the number of corners, edges and faces set in a shape.
+    /// </summary>
+    /// <returns>Corners set, edges set, faces set</returns>
+    /// <remarks>This is rotationally independent so can be used to shard shape work without having to find minimal
+    /// rotation first - values will be, for an example 5x5x5 shape: 0 to 8 for corner count, 0 to 36(3*12) for edge
+    /// count, 0 to 54(3*3*6) for face count. Of course, actual counts will be limited by total number of voxels set
+    /// in the shape.</remarks>
+    public (int corners, int edges, int faces) CornerEdgeFaceCount() {
         int corners = 0, edges = 0, faces = 0;
         int xLimit = w - 1, yLimit = h - 1, zLimit = d - 1;
         int xIncr = Math.Max(1, xLimit), yIncr = Math.Max(1, yLimit), zIncr = Math.Max(1, zLimit);
@@ -720,6 +893,10 @@ public class BitShape {
         return (corners, edges, faces);
     }
 
+    /// <summary>
+    /// Counts the number of corners and edges in a shape.
+    /// </summary>
+    /// <returns>Corners set, edges set</returns>
     public (int corners, int edges) CornerEdgeCount() {
         int corners = 0, edges = 0;
         int xLimit = w - 1, yLimit = h - 1, zLimit = d - 1;
@@ -740,6 +917,10 @@ public class BitShape {
         return (corners, edges);
     }
 
+    /// <summary>
+    /// Counts the number of corners set in a shape.
+    /// </summary>
+    /// <returns>Corners set</returns>
     public int CornerCount() {
         int corners = 0;
         int xLimit = w - 1, yLimit = h - 1, zLimit = d - 1;

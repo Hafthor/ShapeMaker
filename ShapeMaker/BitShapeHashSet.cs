@@ -33,9 +33,12 @@ public class BitShapeHashSet : IEnumerable<byte[]> {
     private const int PAGE_SIZE = 1024;
 
     // this cannot be easily changed - lots of the code depends on this specific value
-    // might be able to change it to 65536 without too much effort.
     private const int NUMBER_OF_BUCKETS = 16777216;
 
+    /// <summary>
+    /// Creates a new BitShapeHashSet with the specified number of bytes per entry.
+    /// </summary>
+    /// <param name="bytesLength">number of bytes per entry, from 1 to PAGE_SIZE+3</param>
     public BitShapeHashSet(int bytesLength) {
         this.bytesLength = bytesLength; // number of bytes in each entry
 
@@ -69,6 +72,9 @@ public class BitShapeHashSet : IEnumerable<byte[]> {
         }
     }
 
+    /// <summary>
+    /// Clears the hash set. Note that this is not perfectly thread safe.
+    /// </summary>
     public void Clear() {
         switch (bytesLength) {
             case 1:
@@ -104,6 +110,12 @@ public class BitShapeHashSet : IEnumerable<byte[]> {
         }
     }
 
+    /// <summary>
+    /// Adds the specified value to the hash set. Returns true if the value was added, false if it was already present.
+    /// </summary>
+    /// <param name="value">value to be added to hash set</param>
+    /// <returns>true if value was added, false if it was already present</returns>
+    /// <remarks>This method IS thread safe</remarks>
     public bool Add(byte[] value) {
         // determine bucket
         // scan bucket, if found return false
@@ -131,7 +143,7 @@ public class BitShapeHashSet : IEnumerable<byte[]> {
                         page[byteIndex] = (byte)(pageByte | mask);
                         return true;
                     }
-                }
+            }
             case 4: {
                     int bucketIndex = value[0] * 65536 + value[1] * 256 + value[2];
                     var bucket = buckets[bucketIndex];
@@ -159,7 +171,7 @@ public class BitShapeHashSet : IEnumerable<byte[]> {
                         page[byteIndex] = (byte)(pageByte | mask);
                         return true;
                     }
-                }
+            }
             default: {
                     byte lastValueByte = value[bytesLength - 1];
                     int firstValueBytes = bytesStored - 1;
@@ -227,9 +239,10 @@ public class BitShapeHashSet : IEnumerable<byte[]> {
                         destPage[destByteIndex + firstValueBytes] = lastValueByte;
                         return true;
                     }
-                }
+            }
         }
 
+        // Internal helper method to compare two byte arrays for equality
         static bool ByteArrayCompare(byte[] byteArray1, int offset1, byte[] byteArray2, int offset2, int length) {
             int endOffset1 = offset1 + length;
             while (offset1 < endOffset1)
@@ -239,6 +252,11 @@ public class BitShapeHashSet : IEnumerable<byte[]> {
         }
     }
 
+    /// <summary>
+    /// Get the contents of the hash set as a sequence of byte arrays.
+    /// </summary>
+    /// <returns>A sequence of the hash set contents</returns>
+    /// <remarks>This method is NOT perfectly thread safe</remarks>
     public IEnumerator<byte[]> GetEnumerator() {
         switch (bytesLength) {
             case < 1:
