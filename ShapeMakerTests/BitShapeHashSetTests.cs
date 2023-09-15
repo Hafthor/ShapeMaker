@@ -12,7 +12,7 @@ public class BitShapeHashSetTests {
         var bshs = new BitShapeHashSet(1);
 
         foreach (var v in ra)
-            Assert.AreEqual(rs.Add(v), bshs.Add(new byte[] { v }));
+            Assert.AreEqual(rs.Add(v), bshs.Add(new[] { v }));
 
         foreach (var ba in bshs)
             Assert.IsTrue(rs.Remove(ba[0]));
@@ -30,7 +30,7 @@ public class BitShapeHashSetTests {
         Parallel.ForEach(ra, v => {
             lock (lo[v]) {
                 bool added; lock (rs) added = rs.Add(v);
-                Assert.AreEqual(added, bshs.Add(new byte[] { v }));
+                Assert.AreEqual(added, bshs.Add(new[] { v }));
             }
         });
         foreach (var ba in bshs)
@@ -46,7 +46,7 @@ public class BitShapeHashSetTests {
         var bshs = new BitShapeHashSet(2);
 
         foreach (var v in ra)
-            Assert.AreEqual(rs.Add(v), bshs.Add(new byte[] { (byte)(v >> 8), (byte)v }));
+            Assert.AreEqual(rs.Add(v), bshs.Add(new[] { (byte)(v >> 8), (byte)v }));
 
         foreach (var ba in bshs)
             Assert.IsTrue(rs.Remove((ushort)((ba[0] << 8) + ba[1])));
@@ -64,7 +64,7 @@ public class BitShapeHashSetTests {
         Parallel.ForEach(ra, v => {
             lock (lo[v]) {
                 bool added; lock (rs) added = rs.Add(v);
-                Assert.AreEqual(added, bshs.Add(new byte[] { (byte)(v >> 8), (byte)v }));
+                Assert.AreEqual(added, bshs.Add(new[] { (byte)(v >> 8), (byte)v }));
             }
         });
         foreach (var ba in bshs)
@@ -80,7 +80,7 @@ public class BitShapeHashSetTests {
         var bshs = new BitShapeHashSet(3);
 
         foreach (var v in ra)
-            Assert.AreEqual(rs.Add(v), bshs.Add(new byte[] { (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
+            Assert.AreEqual(rs.Add(v), bshs.Add(new[] { (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
 
         foreach (var ba in bshs)
             Assert.IsTrue(rs.Remove((ba[0] << 16) + (ba[1] << 8) + ba[2]));
@@ -98,7 +98,7 @@ public class BitShapeHashSetTests {
         Parallel.ForEach(ra, v => {
             lock (lo[v]) {
                 bool added; lock (rs) added = rs.Add(v);
-                Assert.AreEqual(added, bshs.Add(new byte[] { (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
+                Assert.AreEqual(added, bshs.Add(new[] { (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
             }
         });
         foreach (var ba in bshs)
@@ -114,7 +114,7 @@ public class BitShapeHashSetTests {
         var bshs = new BitShapeHashSet(4);
 
         foreach (var v in ra)
-            Assert.AreEqual(rs.Add(v), bshs.Add(new byte[] { (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
+            Assert.AreEqual(rs.Add(v), bshs.Add(new[] { (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
 
         foreach (var ba in bshs)
             Assert.IsTrue(rs.Remove((uint)(((uint)ba[0] << 24) + (ba[1] << 16) + (ba[2] << 8) + ba[3])));
@@ -132,7 +132,7 @@ public class BitShapeHashSetTests {
         Parallel.ForEach(ra, v => {
             lock (lo[v]) {
                 bool added; lock (rs) added = rs.Add(v);
-                Assert.AreEqual(added, bshs.Add(new byte[] { (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
+                Assert.AreEqual(added, bshs.Add(new[] { (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
             }
         });
 
@@ -149,7 +149,7 @@ public class BitShapeHashSetTests {
         var bshs = new BitShapeHashSet(5);
 
         foreach (var v in ra)
-            Assert.AreEqual(rs.Add(v), bshs.Add(new byte[] { (byte)(v >> 32), (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
+            Assert.AreEqual(rs.Add(v), bshs.Add(new[] { (byte)(v >> 32), (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
 
         foreach (var ba in bshs)
             Assert.IsTrue(rs.Remove(((long)ba[0] << 32) + ((long)ba[1] << 24) + (ba[2] << 16) + (ba[3] << 8) + ba[4]));
@@ -167,7 +167,7 @@ public class BitShapeHashSetTests {
         Parallel.ForEach(ra, v => {
             lock (lo[v]) {
                 bool added; lock (rs) added = rs.Add(v);
-                Assert.AreEqual(added, bshs.Add(new byte[] { (byte)(v >> 32), (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
+                Assert.AreEqual(added, bshs.Add(new[] { (byte)(v >> 32), (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
             }
         });
 
@@ -184,7 +184,7 @@ public class BitShapeHashSetTests {
         var bshs = new BitShapeHashSet(6);
 
         foreach (var v in ra)
-            Assert.AreEqual(rs.Add(v), bshs.Add(new byte[] { (byte)(v >> 40), (byte)(v >> 32), (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
+            Assert.AreEqual(rs.Add(v), bshs.Add(new[] { (byte)(v >> 40), (byte)(v >> 32), (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
 
         foreach (var ba in bshs)
             Assert.IsTrue(rs.Remove(((long)ba[0] << 40) + ((long)ba[1] << 32) + ((long)ba[2] << 24) + (ba[3] << 16) + (ba[4] << 8) + ba[5]));
@@ -196,7 +196,7 @@ public class BitShapeHashSetTests {
         bshs.Clear();
 
         foreach (var v in ra2)
-            Assert.AreEqual(rs.Add(v), bshs.Add(new byte[] { (byte)(v >> 40), (byte)(v >> 32), (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
+            Assert.AreEqual(rs.Add(v), bshs.Add(new[] { (byte)(v >> 40), (byte)(v >> 32), (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
 
         foreach (var ba in bshs)
             Assert.IsTrue(rs.Remove(((long)ba[0] << 40) + ((long)ba[1] << 32) + ((long)ba[2] << 24) + (ba[3] << 16) + (ba[4] << 8) + ba[5]));
@@ -214,7 +214,7 @@ public class BitShapeHashSetTests {
         Parallel.ForEach(ra, v => {
             lock (lo[v]) {
                 bool added; lock (rs) added = rs.Add(v);
-                Assert.AreEqual(added, bshs.Add(new byte[] { (byte)(v >> 40), (byte)(v >> 32), (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
+                Assert.AreEqual(added, bshs.Add(new[] { (byte)(v >> 40), (byte)(v >> 32), (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
             }
         });
 
@@ -231,7 +231,7 @@ public class BitShapeHashSetTests {
         Parallel.ForEach(ra2, v => {
             lock (lo2[v]) {
                 bool added; lock (rs) added = rs.Add(v);
-                Assert.AreEqual(added, bshs.Add(new byte[] { (byte)(v >> 40), (byte)(v >> 32), (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
+                Assert.AreEqual(added, bshs.Add(new[] { (byte)(v >> 40), (byte)(v >> 32), (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
             }
         });
 

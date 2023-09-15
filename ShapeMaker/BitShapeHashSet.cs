@@ -23,7 +23,7 @@ namespace ShapeMaker;
 /// this would be the remainder bits. might not be an bit 8 byte ------------------/
 ///
 /// May be a little slower and memory hungry early on since we are very likely to have to create a new bucket, a new
-/// list and a new byte array for each entry, but the benefits should come when dealing with hudreds of millions of
+/// list and a new byte array for each entry, but the benefits should come when dealing with hundreds of millions of
 /// shapes which wouldn't really be the case until we get to around n=15, but that's when this approach should really
 /// pay off and that where it is needed most.
 /// </summary>
@@ -55,7 +55,7 @@ public class BitShapeHashSet : IEnumerable<byte[]> {
             case 3:
                 // Special case for small byte lengths - we use a single page with a byte array that we use as a bit array
                 entriesPerPage = 1 << (8 * bytesLength);
-                buckets = new BitShapeHashBucket[1] { new BitShapeHashBucket() };
+                buckets = new[] { new BitShapeHashBucket() };
                 buckets[0].pages = new List<byte[]>(1) { new byte[entriesPerPage / 8] }; // 32B, 8KB or 2MB
                 break;
             case 4:
@@ -87,7 +87,7 @@ public class BitShapeHashSet : IEnumerable<byte[]> {
                     var bucket = buckets[bucketIndex];
                     if (bucket == null) continue;
                     lock (bucket) {
-                        if (bucket.pages != null && bucket.pages.Count > 0) Array.Fill<byte>(bucket.pages[0], 0);
+                        if (bucket.pages is { Count: > 0 }) Array.Fill<byte>(bucket.pages[0], 0);
                         bucket.lastPageEntryCount = 0;
                     }
                 }
@@ -157,7 +157,7 @@ public class BitShapeHashSet : IEnumerable<byte[]> {
                     }
                     if (bucket.pages == null) {
                         lock (bucket) {
-                            if (bucket.pages == null) bucket.pages = new List<byte[]>(1) { new byte[256 / 8] };
+                            bucket.pages ??= new List<byte[]>(1) { new byte[256 / 8] };
                         }
                     }
                     var page = bucket.pages[0];
@@ -187,7 +187,7 @@ public class BitShapeHashSet : IEnumerable<byte[]> {
                     }
                     if (bucket.pages == null) { // bucket hasn't been initialized yet
                         lock (bucket) {
-                            if (bucket.pages == null) bucket.pages = new List<byte[]> { new byte[PAGE_SIZE] };
+                            bucket.pages ??= new List<byte[]> { new byte[PAGE_SIZE] };
                         }
                     }
                     if (bucket.pages.Count == 0) {
@@ -267,14 +267,14 @@ public class BitShapeHashSet : IEnumerable<byte[]> {
                         byte bits = page[byteIndex];
                         if (bits == 0) continue;
                         byte byte0 = (byte)(byteIndex << 3);
-                        if ((bits & 128) != 0) yield return new byte[] { byte0 };
-                        if ((bits & 64) != 0) yield return new byte[] { (byte)(byte0 | 1) };
-                        if ((bits & 32) != 0) yield return new byte[] { (byte)(byte0 | 2) };
-                        if ((bits & 16) != 0) yield return new byte[] { (byte)(byte0 | 3) };
-                        if ((bits & 8) != 0) yield return new byte[] { (byte)(byte0 | 4) };
-                        if ((bits & 4) != 0) yield return new byte[] { (byte)(byte0 | 5) };
-                        if ((bits & 2) != 0) yield return new byte[] { (byte)(byte0 | 6) };
-                        if ((bits & 1) != 0) yield return new byte[] { (byte)(byte0 | 7) };
+                        if ((bits & 128) != 0) yield return new[] { byte0 };
+                        if ((bits & 64) != 0) yield return new[] { (byte)(byte0 | 1) };
+                        if ((bits & 32) != 0) yield return new[] { (byte)(byte0 | 2) };
+                        if ((bits & 16) != 0) yield return new[] { (byte)(byte0 | 3) };
+                        if ((bits & 8) != 0) yield return new[] { (byte)(byte0 | 4) };
+                        if ((bits & 4) != 0) yield return new[] { (byte)(byte0 | 5) };
+                        if ((bits & 2) != 0) yield return new[] { (byte)(byte0 | 6) };
+                        if ((bits & 1) != 0) yield return new[] { (byte)(byte0 | 7) };
                     }
                     break;
                 }
@@ -284,14 +284,14 @@ public class BitShapeHashSet : IEnumerable<byte[]> {
                         byte bits = page[byteIndex];
                         if (bits == 0) continue;
                         byte byte0 = (byte)(byteIndex >> 5), byte1 = (byte)(byteIndex << 3);
-                        if ((bits & 128) != 0) yield return new byte[] { byte0, byte1 };
-                        if ((bits & 64) != 0) yield return new byte[] { byte0, (byte)(byte1 | 1) };
-                        if ((bits & 32) != 0) yield return new byte[] { byte0, (byte)(byte1 | 2) };
-                        if ((bits & 16) != 0) yield return new byte[] { byte0, (byte)(byte1 | 3) };
-                        if ((bits & 8) != 0) yield return new byte[] { byte0, (byte)(byte1 | 4) };
-                        if ((bits & 4) != 0) yield return new byte[] { byte0, (byte)(byte1 | 5) };
-                        if ((bits & 2) != 0) yield return new byte[] { byte0, (byte)(byte1 | 6) };
-                        if ((bits & 1) != 0) yield return new byte[] { byte0, (byte)(byte1 | 7) };
+                        if ((bits & 128) != 0) yield return new[] { byte0, byte1 };
+                        if ((bits & 64) != 0) yield return new[] { byte0, (byte)(byte1 | 1) };
+                        if ((bits & 32) != 0) yield return new[] { byte0, (byte)(byte1 | 2) };
+                        if ((bits & 16) != 0) yield return new[] { byte0, (byte)(byte1 | 3) };
+                        if ((bits & 8) != 0) yield return new[] { byte0, (byte)(byte1 | 4) };
+                        if ((bits & 4) != 0) yield return new[] { byte0, (byte)(byte1 | 5) };
+                        if ((bits & 2) != 0) yield return new[] { byte0, (byte)(byte1 | 6) };
+                        if ((bits & 1) != 0) yield return new[] { byte0, (byte)(byte1 | 7) };
                     }
                     break;
                 }
@@ -301,14 +301,14 @@ public class BitShapeHashSet : IEnumerable<byte[]> {
                         byte bits = page[byteIndex];
                         if (bits == 0) continue;
                         byte byte0 = (byte)(byteIndex >> 13), byte1 = (byte)(byteIndex >> 5), byte2 = (byte)(byteIndex << 3);
-                        if ((bits & 128) != 0) yield return new byte[] { byte0, byte1, byte2 };
-                        if ((bits & 64) != 0) yield return new byte[] { byte0, byte1, (byte)(byte2 | 1) };
-                        if ((bits & 32) != 0) yield return new byte[] { byte0, byte1, (byte)(byte2 | 2) };
-                        if ((bits & 16) != 0) yield return new byte[] { byte0, byte1, (byte)(byte2 | 3) };
-                        if ((bits & 8) != 0) yield return new byte[] { byte0, byte1, (byte)(byte2 | 4) };
-                        if ((bits & 4) != 0) yield return new byte[] { byte0, byte1, (byte)(byte2 | 5) };
-                        if ((bits & 2) != 0) yield return new byte[] { byte0, byte1, (byte)(byte2 | 6) };
-                        if ((bits & 1) != 0) yield return new byte[] { byte0, byte1, (byte)(byte2 | 7) };
+                        if ((bits & 128) != 0) yield return new[] { byte0, byte1, byte2 };
+                        if ((bits & 64) != 0) yield return new[] { byte0, byte1, (byte)(byte2 | 1) };
+                        if ((bits & 32) != 0) yield return new[] { byte0, byte1, (byte)(byte2 | 2) };
+                        if ((bits & 16) != 0) yield return new[] { byte0, byte1, (byte)(byte2 | 3) };
+                        if ((bits & 8) != 0) yield return new[] { byte0, byte1, (byte)(byte2 | 4) };
+                        if ((bits & 4) != 0) yield return new[] { byte0, byte1, (byte)(byte2 | 5) };
+                        if ((bits & 2) != 0) yield return new[] { byte0, byte1, (byte)(byte2 | 6) };
+                        if ((bits & 1) != 0) yield return new[] { byte0, byte1, (byte)(byte2 | 7) };
                     }
                     break;
                 }
@@ -323,7 +323,7 @@ public class BitShapeHashSet : IEnumerable<byte[]> {
                                 int byteIndex = 0;
                                 for (int entryIndex = 0; entryIndex < 256; entryIndex++) {
                                     if ((page[byteIndex] & mask) != 0)
-                                        yield return new byte[] { (byte)byte0, (byte)byte1, (byte)byte2, (byte)entryIndex };
+                                        yield return new[] { (byte)byte0, (byte)byte1, (byte)byte2, (byte)entryIndex };
                                     mask >>= 1; if (mask == 0) { mask = 128; byteIndex++; }
                                 }
                             }

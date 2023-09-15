@@ -32,8 +32,6 @@ public class BitShape {
     /// </summary>
     public readonly byte d;
     
-    // bytes to store the shape, each bit represents a voxel inside the shape
-    // arranged in x,y,z order, so second bit is x=0, y=0, z=1.
     /// <summary>
     /// Bytes to store the voxel data of the shape. Each bit represents a voxel inside the shape arranged in x, y, z
     /// order such that the second bit is x=0, y=0, z=1.
@@ -466,7 +464,7 @@ public class BitShape {
         for (int x = 0; x < w; x++, index0 += hd, index1 += hd) {
             int index0a = index0;
             int index1a = index1;
-            for (int y = 0, yNot = yLimit; y < h2; y++, yNot--, index1a -= d) {
+            for (int y = 0; y < h2; y++, index1a -= d) {
                 for (int z = 0; z < d; z++, index0a++, index1a++) {
                     int byteIndex0 = index0a >> BITS_SHR;
                     int byteIndex1 = index1a >> BITS_SHR;
@@ -777,7 +775,7 @@ public class BitShape {
     /// Does restore the shape to its original state at the end.
     /// </summary>
     /// <returns>A sequence of 8 mirrorings.</returns>
-    public IEnumerable<BitShape> AllMirrors() {
+    private IEnumerable<BitShape> AllMirrors() {
         yield return this;
         yield return MirrorX();
         yield return MirrorY();
@@ -823,8 +821,8 @@ public class BitShape {
     /// </summary>
     /// <param name="other">other shape to be compared</param>
     /// <returns>negative if this is lower, 0 if equal, positive if other is lower</returns>
-    public int CompareTo(BitShape other) {
-        if (this == other) return 0;
+    private int CompareTo(BitShape other) {
+        if (ReferenceEquals(this, other)) return 0;
         int dw = w - other.w; if (dw != 0) return dw;
         int dh = h - other.h; if (dh != 0) return dh;
         int dd = d - other.d; if (dd != 0) return dd;
@@ -837,7 +835,7 @@ public class BitShape {
     /// <param name="obj">other shape to be compared</param>
     /// <returns>true if equal</returns>
     public override bool Equals(object? obj) {
-        return obj != null && obj is BitShape b && w == b.w && h == b.h && d == b.d && bytes.SequenceEqual(b.bytes);
+        return obj is BitShape b && w == b.w && h == b.h && d == b.d && bytes.SequenceEqual(b.bytes);
     }
 
     /// <summary>

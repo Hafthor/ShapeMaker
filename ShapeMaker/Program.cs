@@ -39,13 +39,14 @@ namespace ShapeMaker;
 #error You must define which hashset implementation to use
 #endif
 
-public class Program {
-    public static string FILE_PATH = "~/Downloads/ShapeMaker";
+public static class Program {
+    public static string filePath = "~/Downloads/ShapeMaker";
     public const string FILE_EXT = ".bin";
     public const string FILE_COMPLETE = "_COMPLETE";
-    public const int MAX_COMPUTE_N = 19;
-    public static bool DO_CHIRAL_COUNT = true;
-    public static bool DO_FORCE_RECOMPUTE = false;
+
+    private static bool doChiralCount = true;
+    private static bool doForceRecompute = false;
+    private const int MAX_COMPUTE_N = 19;
 
     /// <summary>
     /// Performs the computation to find all possible shapes of voxel count n, as well as all the unique chiral shapes.
@@ -55,34 +56,33 @@ public class Program {
     /// --force-recompute to recompute all shapes, even if they have already been computed
     /// </summary>
     static void Main(string[] args) {
-        for (int i = 0; i < args.Length; i++) {
-            var arg = args[i];
+        foreach (var arg in args) {
             if (arg.StartsWith("--"))
                 if (arg == "--no-chiral-count")
-                    DO_CHIRAL_COUNT = false;
+                    doChiralCount = false;
                 else if (arg == "--force-recompute")
-                    DO_FORCE_RECOMPUTE = true;
+                    doForceRecompute = true;
                 else
                     throw new ArgumentException("Unrecognized parameter " + arg);
             else
-                FILE_PATH = arg;
+                filePath = arg;
         }
 
-        if (FILE_PATH == "~")
-            FILE_PATH = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        else if (FILE_PATH.StartsWith("~/"))
-            FILE_PATH = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), FILE_PATH.Substring("~/".Length));
+        if (filePath == "~")
+            filePath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        else if (filePath.StartsWith("~/"))
+            filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), filePath.Substring("~/".Length));
 
         var totalAvailableMemory = GC.GetGCMemoryInfo().TotalAvailableMemoryBytes;
 
-        bool recompute = DO_FORCE_RECOMPUTE;
+        bool recompute = doForceRecompute;
 
         string completeString = FileReader.NCompleteString(1);
         if (recompute || completeString == null) {
             if (recompute) FileWriter.Clear(1); else FileWriter.ClearTmp(1);
             using (var writer = new FileWriter(1, 1, 1, 1))
                 writer.Write(new BitShape("1x1x1,*").bytes);
-            FileWriter.MarkNComplete(1, DO_CHIRAL_COUNT ? "n=1, shapes: 1 time: 0, chiral count: 1 time: 0" : "n=1, shapes: 1 time: 0");
+            FileWriter.MarkNComplete(1, doChiralCount ? "n=1, shapes: 1 time: 0, chiral count: 1 time: 0" : "n=1, shapes: 1 time: 0");
         }
 
         for (byte n = 2; n <= MAX_COMPUTE_N; n++) {
@@ -106,7 +106,7 @@ public class Program {
             foreach (var size in targetSizes) {
                 int shardCount = 0; // don't shard
                 // if the combined input size is 1GB, for example, the output is likely to be ~8GB, and ~24GB in memory
-                if (n >= 14 && size.w > 1 && size.h > 1 && size.d > 1) {
+                if (n >= 14 && size is { w: > 1, h: > 1, d: > 1 }) {
 #if USE_BITSHAPEHASHSET || USE_BITSHAPEHASHSET64K
                     long inMemSize = size.sz * 8; // should be *8 for BitShapeHashSet
 #else
@@ -151,7 +151,7 @@ public class Program {
                 Console.Write(progress);
             }
 
-            if (DO_CHIRAL_COUNT)
+            if (doChiralCount)
                 completeString += DoChiralCount(n, targetSizes);
 
             Console.WriteLine();
@@ -460,7 +460,7 @@ public static class ShapeMaker {
     /// </summary>
     /// <param name="value">number to pad</param>
     /// <returns>string of number zero-padded to be at least two characters</returns>
-    private static string Pad2(int value) => value >= 0 && value <= 9 ? "0" + value.ToString() : value.ToString();
+    private static string Pad2(int value) => value is >= 0 and <= 9 ? "0" + value.ToString() : value.ToString();
 
     /// <summary>
     /// Adds new possible shapes to hash set. For each blank voxel in range, if it has an adjacent neighbor, add that
@@ -627,7 +627,7 @@ public class FileScanner {
     /// <param name="n">voxel count</param>
     /// <param name="ext">file extension (defaults to .bin)</param>
     public FileScanner(byte n, string ext = Program.FILE_EXT) {
-        var di = new DirectoryInfo(Path.Combine(Program.FILE_PATH, n.ToString()));
+        var di = new DirectoryInfo(Path.Combine(Program.filePath, n.ToString()));
 
         // scan for and migrate old files
         var renameList = new List<(string, string)>();
@@ -642,8 +642,8 @@ public class FileScanner {
             renameList.Add((file.Name, newDim + ext));
         }
         foreach (var (oldname, newname) in renameList) {
-            var oldpath = Path.Combine(Program.FILE_PATH, n.ToString(), oldname);
-            var newpath = Path.Combine(Program.FILE_PATH, n.ToString(), newname);
+            var oldpath = Path.Combine(Program.filePath, n.ToString(), oldname);
+            var newpath = Path.Combine(Program.filePath, n.ToString(), newname);
             File.Move(oldpath, newpath);
         }
 
@@ -674,7 +674,7 @@ public class FileWriter : IDisposable {
     /// </summary>
     /// <param name="n">voxel count</param>
     public static void Clear(byte n) {
-        var di = new DirectoryInfo(Path.Combine(Program.FILE_PATH, n.ToString()));
+        var di = new DirectoryInfo(Path.Combine(Program.filePath, n.ToString()));
         if (!di.Exists)
             di.Create();
         else {
@@ -684,7 +684,7 @@ public class FileWriter : IDisposable {
             var tmpList = new FileScanner(n, ".tmp").List;
             foreach (var f in tmpList)
                 File.Delete(f.filepath);
-            var completePath = Path.Combine(Program.FILE_PATH, n.ToString(), Program.FILE_COMPLETE);
+            var completePath = Path.Combine(Program.filePath, n.ToString(), Program.FILE_COMPLETE);
             if (File.Exists(completePath))
                 File.Delete(completePath);
         }
@@ -695,7 +695,7 @@ public class FileWriter : IDisposable {
     /// </summary>
     /// <param name="n">voxel count</param>
     public static void ClearTmp(byte n) {
-        var di = new DirectoryInfo(Path.Combine(Program.FILE_PATH, n.ToString()));
+        var di = new DirectoryInfo(Path.Combine(Program.filePath, n.ToString()));
         if (!di.Exists)
             di.Create();
         else
@@ -710,7 +710,7 @@ public class FileWriter : IDisposable {
     /// <param name="n">voxel count</param>
     /// <param name="s">string containing the count and timing for the operation</param>
     public static void MarkNComplete(int n, string s) {
-        var path = Path.Combine(Program.FILE_PATH, n.ToString(), Program.FILE_COMPLETE);
+        var path = Path.Combine(Program.filePath, n.ToString(), Program.FILE_COMPLETE);
         File.WriteAllText(path, s);
     }
 
@@ -733,8 +733,7 @@ public class FileWriter : IDisposable {
     /// <param name="shape">bytes representing the internal contents of the shape</param>
     public void Write(byte[] shape) {
         if (shape.Length != length) throw new ArgumentOutOfRangeException(nameof(shape), shape.Length, "unexpected shape length - should be " + length);
-        if (fs == null)
-            fs = new FileStream(path + ".tmp", FileMode.Append, FileAccess.Write, FileShare.None, 65536, FileOptions.None);
+        fs ??= new FileStream(path + ".tmp", FileMode.Append, FileAccess.Write, FileShare.None, 65536, FileOptions.None);
         fs.Write(shape);
     }
 
@@ -770,7 +769,7 @@ public class FileReader : IDisposable {
     /// <param name="d">depth</param>
     /// <param name="ext">file extension</param>
     /// <returns>file path</returns>
-    public static string FilePath(int n, int w, int h, int d, string ext = Program.FILE_EXT) => Path.Combine(Program.FILE_PATH, n.ToString(), w + "x" + h + "x" + d + ext);
+    public static string FilePath(int n, int w, int h, int d, string ext = Program.FILE_EXT) => Path.Combine(Program.filePath, n.ToString(), w + "x" + h + "x" + d + ext);
 
     /// <summary>
     /// Helper method to determine if a file exists for a given voxel count and shape size.
@@ -817,7 +816,7 @@ public class FileReader : IDisposable {
     /// <param name="n">voxel count</param>
     /// <returns>a string with the shape count and timing for a given voxel count or null if not complete yet</returns>
     public static string NCompleteString(int n) {
-        var path = Path.Combine(Program.FILE_PATH, n.ToString(), Program.FILE_COMPLETE);
+        var path = Path.Combine(Program.filePath, n.ToString(), Program.FILE_COMPLETE);
         return File.Exists(path) ? File.ReadAllText(path) : null;
     }
 
@@ -828,12 +827,12 @@ public class FileReader : IDisposable {
     /// <returns>a sequence of BitShapes from file</returns>
     public static IEnumerable<BitShape> LoadShapes(FileScanner.Results fileInfo) {
         byte n = fileInfo.n, w = fileInfo.w, h = fileInfo.h, d = fileInfo.d;
-        using (var reader = new FileReader(n, w, h, d))
-            for (; ; ) {
-                var bytes = reader.Read();
-                if (bytes == null) break;
-                yield return new BitShape(w, h, d, bytes);
-            }
+        using var reader = new FileReader(n, w, h, d);
+        for (; ; ) {
+            var bytes = reader.Read();
+            if (bytes == null) break;
+            yield return new BitShape(w, h, d, bytes);
+        }
     }
 
     /// <summary>
@@ -843,7 +842,7 @@ public class FileReader : IDisposable {
     /// <param name="w">width</param>
     /// <param name="h">height</param>
     /// <param name="d">depth</param>
-    public FileReader(int n, int w, int h, int d) {
+    private FileReader(int n, int w, int h, int d) {
         fs = new FileStream(FilePath(n, w, h, d), FileMode.Open, FileAccess.Read, FileShare.None, 65536, FileOptions.None);
         length = new BitShape((byte)w, (byte)h, (byte)d).bytes.Length;
     }

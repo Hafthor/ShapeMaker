@@ -9,14 +9,14 @@ public class Program {
         BenchmarkRunner.Run<Program>();
     }
 
-    private BitShape shape555;
+    private readonly BitShape shape555;
 
     public Program() {
         Random r = new Random(420);
         shape555 = new BitShape(5, 5, 5); // 5x5x5=125 bits
         for (int i = 0; i < shape555.bytes.Length; i++)
             shape555.bytes[i] = (byte)r.Next(256);
-        shape555.bytes[shape555.bytes.Length - 1] &= 0xF8;
+        shape555.bytes[^1] &= 0xF8;
     }
 
     // Benchmarks   M2Max    Intel
