@@ -16,22 +16,22 @@ public class BitShape {
     const byte MASK_FIRST = 1 << BITS_PER_MINUS_1; // 128
 
     // shape dimensions - stored as bytes to reduce memory footprint
-    
+
     /// <summary>
     /// Width of shape. Defines limit of x coordinate.
     /// </summary>
     public readonly byte w;
-    
+
     /// <summary>
     /// Height of shape. Defines limit of y coordinate.
     /// </summary>
     public readonly byte h;
-    
+
     /// <summary>
     /// Depth of shape. Defines limit of z coordinate.
     /// </summary>
     public readonly byte d;
-    
+
     /// <summary>
     /// Bytes to store the voxel data of the shape. Each bit represents a voxel inside the shape arranged in x, y, z
     /// order such that the second bit is x=0, y=0, z=1.
@@ -593,7 +593,7 @@ public class BitShape {
             }
         return this;
     }
-    
+
     /// <summary>
     /// Helper method to generate all possible minimum rotations of a shape. When a shape has all equal dimensions,
     /// there are 24 possible rotations. When two dimensions are equal, there are 16 possible rotations. When all
@@ -875,12 +875,12 @@ public class BitShape {
                 for (int z = 0; z <= zLimit; z += zIncr) if (this[x, y, z]) corners++;
                 for (int z = 1; z < zLimit; z++) if (this[x, y, z]) edges++;
             }
-            for(int y = 1; y < yLimit; y++) {
+            for (int y = 1; y < yLimit; y++) {
                 for (int z = 0; z <= zLimit; z += zIncr) if (this[x, y, z]) edges++;
                 for (int z = 1; z < zLimit; z++) if (this[x, y, z]) faces++;
             }
         }
-        for(int x = 1; x<xLimit;x++) {
+        for (int x = 1; x < xLimit; x++) {
             for (int y = 0; y <= yLimit; y += yIncr) {
                 for (int z = 0; z <= zLimit; z += zIncr) if (this[x, y, z]) edges++;
                 for (int z = 1; z < zLimit; z++) if (this[x, y, z]) faces++;

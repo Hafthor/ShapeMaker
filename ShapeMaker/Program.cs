@@ -26,9 +26,9 @@ namespace ShapeMaker;
     #endif
     using MyHashSet = BitShapeHashSet;
 #elif USE_BITSHAPEHASHSET64K
-    #if USE_HASHSET || USE_HASHSETARRAY || USE_BITSHAPEHASHSET || USE_CONCURRENTDICTIONARY
-        #error You must only use one hashset implementation
-    #endif
+#if USE_HASHSET || USE_HASHSETARRAY || USE_BITSHAPEHASHSET || USE_CONCURRENTDICTIONARY
+#error You must only use one hashset implementation
+#endif
     using MyHashSet = BitShapeHashSet64k;
 #elif USE_CONCURRENTDICTIONARY
 #if USE_HASHSET || USE_HASHSETARRAY || USE_BITSHAPEHASHSET || USE_BITSHAPEHASHSET64K
@@ -314,7 +314,7 @@ public static class ShapeMaker {
     // for each shape in parallel, try to add cube to it
     // first does by adding cube to the shape in its current size
     // then tries padding each of the 6 faces of the shape and adding a cube there
-    
+
     /// <summary>
     /// Extend list of files of shapes to find new shapes and add them to a hashset.
     /// </summary>
@@ -584,32 +584,32 @@ public class FileScanner {
         /// width
         /// </summary>
         public byte w;
-        
+
         /// <summary>
         /// height
         /// </summary>
         public byte h;
-        
+
         /// <summary>
         /// depth
         /// </summary>
         public byte d;
-        
+
         /// <summary>
         /// voxel count
         /// </summary>
         public byte n;
-        
+
         /// <summary>
         /// file extension
         /// </summary>
         public required string ext;
-        
+
         /// <summary>
         /// full file path
         /// </summary>
         public string filepath => FileReader.FilePath(n, w, h, d, ext);
-        
+
         /// <summary>
         /// file size in bytes
         /// </summary>
