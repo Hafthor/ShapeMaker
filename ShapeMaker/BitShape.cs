@@ -301,6 +301,7 @@ public class BitShape {
 #endif
         return this;
     }
+
     /// <summary>
     /// Mirrors a shape in-place on X axis.
     /// </summary>
@@ -728,7 +729,7 @@ public class BitShape {
             RotateX();
         } else {
             yield return this;
-            var shape90 = this.RotateX();
+            var shape90 = RotateX();
             yield return shape90;
             yield return RotateX2();
             yield return shape90.RotateX2();
@@ -749,7 +750,7 @@ public class BitShape {
             RotateZ();
         } else {
             yield return this;
-            var shape90 = this.RotateZ();
+            var shape90 = RotateZ();
             yield return shape90;
             yield return RotateZ2();
             yield return shape90.RotateZ2();
@@ -869,18 +870,18 @@ public class BitShape {
         int xLimit = w - 1, yLimit = h - 1, zLimit = d - 1;
         int xIncr = Math.Max(1, xLimit), yIncr = Math.Max(1, yLimit), zIncr = Math.Max(1, zLimit);
 
-        for (int x = 0; x<=xLimit; x+=xIncr) {
-            for (int y=0;y<=yLimit; y+=yIncr) {
+        for (int x = 0; x <= xLimit; x += xIncr) {
+            for (int y = 0; y <= yLimit; y += yIncr) {
                 for (int z = 0; z <= zLimit; z += zIncr) if (this[x, y, z]) corners++;
                 for (int z = 1; z < zLimit; z++) if (this[x, y, z]) edges++;
             }
-            for(int y=1;y<yLimit;y++) {
+            for(int y = 1; y < yLimit; y++) {
                 for (int z = 0; z <= zLimit; z += zIncr) if (this[x, y, z]) edges++;
                 for (int z = 1; z < zLimit; z++) if (this[x, y, z]) faces++;
             }
         }
         for(int x = 1; x<xLimit;x++) {
-            for (int y = 0; y<=yLimit;y+=yIncr) {
+            for (int y = 0; y <= yLimit; y += yIncr) {
                 for (int z = 0; z <= zLimit; z += zIncr) if (this[x, y, z]) edges++;
                 for (int z = 1; z < zLimit; z++) if (this[x, y, z]) faces++;
             }
