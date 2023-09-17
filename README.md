@@ -1,14 +1,14 @@
 ﻿# ShapeMaker
 
-ShapeMaker finds unique Polycubes.
+ShapeMaker finds unique [polycubes](https://en.wikipedia.org/wiki/Polycube).
 
-If you run it, it will find Polycubes up to n=19, but it will likely run
+If you run it, it will find polycubes up to n=19, but it will likely run
 out of RAM or user will run out of patience before then.
 
-To find Polycubes of n cubes, it extends all found Polycubes of n-1 by
+To find polycubes of n cubes, it extends all found polycubes of n-1 by
 adding one cube to them.
 
-ShapeMaker writes out files that are binary serializations of the Polycubes
+ShapeMaker writes out files that are binary serializations of the polycubes
 it has found. By default they will go to a ShapeMaker subdirectory in the
 user's Downloads folder. You can provide a command line argument telling
 ShapeMaker where you would rather have these files saved to.
@@ -65,7 +65,7 @@ rotationally independent counting process so it is done before finding the minim
 By sharding by corner count alone, it is estimated that this would extend the maximum effective
 memory by a factor of 4. By sharding it also by edges and faces, as we do, it should provide a
 further factor of 5 improvement, for a total of 20. This should allow us to easily compute n=16
-and possibly n=17 on a 96GB machine.
+and possibly n=17 on a 96GB machine. This would likely take weeks to run.
 
 # How it works
 It starts with a n=1 polycube shape and it tries to add an adjacent neighbor cube to the shape
@@ -77,8 +77,8 @@ of the target shape will be, for example 2x3x5. This does mean that we may rerea
 to generate all possible targets. When extending a shape, we attempt to extend it within the
 bounds of the prior shape, but we also test extending the shape by growing its boundaries. To
 scale this, we will, when it looks like the hashset for a specific dimension will exceed the
-host's memory, shard by shape features that are rotationally indepenedent, such as the number
+host's memory, shard by shape features that are rotationally independent, such as the number
 of corners, edges, or faces set.
+
 Note that this program writes out the shapes it finds as it goes. It is safe to terminate the
-program and run again to resume, although it will not have the correct time elapsed shown in
-that case.
+program and run again to resume.

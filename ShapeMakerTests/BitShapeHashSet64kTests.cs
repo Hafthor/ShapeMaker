@@ -24,12 +24,16 @@ public class BitShapeHashSet64kTests {
         // since rs already had the value, while the BitShapeHashSet did not. In order to safe guard against
         // this we need an object for each element in ra that we can place a lock on.
         var lo = new Dictionary<byte, object>();
-        foreach (var v in ra) if (!lo.ContainsKey(v)) lo.Add(v, new object());
+        foreach (var v in ra)
+            if (!lo.ContainsKey(v))
+                lo.Add(v, new object());
         rs.Clear();
         bshs.Clear();
         Parallel.ForEach(ra, v => {
             lock (lo[v]) {
-                bool added; lock (rs) added = rs.Add(v);
+                bool added;
+                lock (rs)
+                    added = rs.Add(v);
                 Assert.AreEqual(added, bshs.Add(new[] { v }));
             }
         });
@@ -58,12 +62,16 @@ public class BitShapeHashSet64kTests {
         // since rs already had the value, while the BitShapeHashSet did not. In order to safe guard against
         // this we need an object for each element in ra that we can place a lock on.
         var lo = new Dictionary<ushort, object>();
-        foreach (var v in ra) if (!lo.ContainsKey(v)) lo.Add(v, new object());
+        foreach (var v in ra)
+            if (!lo.ContainsKey(v))
+                lo.Add(v, new object());
         rs.Clear();
         bshs.Clear();
         Parallel.ForEach(ra, v => {
             lock (lo[v]) {
-                bool added; lock (rs) added = rs.Add(v);
+                bool added;
+                lock (rs)
+                    added = rs.Add(v);
                 Assert.AreEqual(added, bshs.Add(new[] { (byte)(v >> 8), (byte)v }));
             }
         });
@@ -92,12 +100,16 @@ public class BitShapeHashSet64kTests {
         // since rs already had the value, while the BitShapeHashSet did not. In order to safe guard against
         // this we need an object for each element in ra that we can place a lock on.
         var lo = new Dictionary<int, object>();
-        foreach (var v in ra) if (!lo.ContainsKey(v)) lo.Add(v, new object());
+        foreach (var v in ra)
+            if (!lo.ContainsKey(v))
+                lo.Add(v, new object());
         rs.Clear();
         bshs.Clear();
         Parallel.ForEach(ra, v => {
             lock (lo[v]) {
-                bool added; lock (rs) added = rs.Add(v);
+                bool added;
+                lock (rs) 
+                    added = rs.Add(v);
                 Assert.AreEqual(added, bshs.Add(new[] { (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
             }
         });
@@ -126,12 +138,16 @@ public class BitShapeHashSet64kTests {
         // since rs already had the value, while the BitShapeHashSet did not. In order to safe guard against
         // this we need an object for each element in ra that we can place a lock on.
         var lo = new Dictionary<uint, object>();
-        foreach (var v in ra) if (!lo.ContainsKey(v)) lo.Add(v, new object());
+        foreach (var v in ra)
+            if (!lo.ContainsKey(v))
+                lo.Add(v, new object());
         rs.Clear();
         bshs.Clear();
         Parallel.ForEach(ra, v => {
             lock (lo[v]) {
-                bool added; lock (rs) added = rs.Add(v);
+                bool added;
+                lock (rs)
+                    added = rs.Add(v);
                 Assert.AreEqual(added, bshs.Add(new[] { (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
             }
         });
@@ -161,12 +177,16 @@ public class BitShapeHashSet64kTests {
         // since rs already had the value, while the BitShapeHashSet did not. In order to safe guard against
         // this we need an object for each element in ra that we can place a lock on.
         var lo = new Dictionary<long, object>();
-        foreach (var v in ra) if (!lo.ContainsKey(v)) lo.Add(v, new object());
+        foreach (var v in ra)
+            if (!lo.ContainsKey(v))
+                lo.Add(v, new object());
         rs.Clear();
         bshs.Clear();
         Parallel.ForEach(ra, v => {
             lock (lo[v]) {
-                bool added; lock (rs) added = rs.Add(v);
+                bool added;
+                lock (rs)
+                    added = rs.Add(v);
                 Assert.AreEqual(added, bshs.Add(new[] { (byte)(v >> 32), (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
             }
         });
@@ -208,12 +228,16 @@ public class BitShapeHashSet64kTests {
         // since rs already had the value, while the BitShapeHashSet did not. In order to safe guard against
         // this we need an object for each element in ra that we can place a lock on.
         var lo = new Dictionary<long, object>();
-        foreach (var v in ra) if (!lo.ContainsKey(v)) lo.Add(v, new object());
+        foreach (var v in ra)
+            if (!lo.ContainsKey(v))
+                lo.Add(v, new object());
         rs.Clear();
         bshs.Clear();
         Parallel.ForEach(ra, v => {
             lock (lo[v]) {
-                bool added; lock (rs) added = rs.Add(v);
+                bool added;
+                lock (rs) 
+                    added = rs.Add(v);
                 Assert.AreEqual(added, bshs.Add(new[] { (byte)(v >> 40), (byte)(v >> 32), (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
             }
         });
@@ -224,13 +248,17 @@ public class BitShapeHashSet64kTests {
 
         // test overloading a page
         var lo2 = new Dictionary<long, object>();
-        foreach (var v in ra2) if (!lo2.ContainsKey(v)) lo2.Add(v, new object());
+        foreach (var v in ra2)
+            if (!lo2.ContainsKey(v))
+                lo2.Add(v, new object());
         rs.Clear();
         bshs.Clear();
 
         Parallel.ForEach(ra2, v => {
             lock (lo2[v]) {
-                bool added; lock (rs) added = rs.Add(v);
+                bool added;
+                lock (rs) 
+                    added = rs.Add(v);
                 Assert.AreEqual(added, bshs.Add(new[] { (byte)(v >> 40), (byte)(v >> 32), (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
             }
         });

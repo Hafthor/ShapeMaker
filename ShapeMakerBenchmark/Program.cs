@@ -5,7 +5,7 @@ using ShapeMaker;
 namespace ShapeMakerBenchmark;
 
 public class Program {
-    static void Main(string[] args) {
+    public static void Main() {
         BenchmarkRunner.Run<Program>();
     }
 

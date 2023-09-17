@@ -3,7 +3,7 @@
 namespace ShapeMaker;
 
 /// <summary>
-/// Special purpose append-only hash set for bitshape bytes. For smaller sizes we use a bit array, then 64k pages.
+/// Special purpose append-only hash set for BitShape bytes. For smaller sizes we use a bit array, then 64k pages.
 /// We use the first 2 of the last 3 bytes as the index to the bucket rather than a hash.
 /// We avoid the last byte because it is often a bit partial, so may not have many unique values.
 /// We avoid the early part of the value since we order BitShapes by their minimal rotation which means the early bits
@@ -26,7 +26,7 @@ namespace ShapeMaker;
 /// n=15, but that's when this approach should really pay off and that where it is needed most.
 /// </summary>
 public class BitShapeHashSet64k : IEnumerable<byte[]> {
-    private readonly BitShapeHashBucket[] buckets;
+    private readonly BitShapeHashBucket?[] buckets;
     private readonly int bytesStored, hashIndex, bytesLength, entriesPerPage;
     private const int PAGE_SIZE = 65536;
 
@@ -53,12 +53,13 @@ public class BitShapeHashSet64k : IEnumerable<byte[]> {
             case 3:
                 // Special case for small byte lengths - we use a single page with a byte array that we use as a bit array
                 entriesPerPage = 1 << (8 * bytesLength);
-                buckets = new BitShapeHashBucket[1] { new BitShapeHashBucket() };
-                buckets[0].pages = new List<byte[]>(1) { new byte[entriesPerPage / 8] }; // 32B, 8KB or 2MB
+                buckets = new[] { new BitShapeHashBucket() };
+                buckets[0]!.pages = new List<byte[]>(1) { new byte[entriesPerPage / 8] }; // 32B, 8KB or 2MB
                 break;
             default:
                 buckets = new BitShapeHashBucket[NUMBER_OF_BUCKETS];
-                for (int i = 0; i < NUMBER_OF_BUCKETS; i++) buckets[i] = new BitShapeHashBucket();
+                for (int i = 0; i < NUMBER_OF_BUCKETS; i++) 
+                    buckets[i] = new BitShapeHashBucket();
                 entriesPerPage = PAGE_SIZE / bytesStored;
                 break;
         }
@@ -72,12 +73,13 @@ public class BitShapeHashSet64k : IEnumerable<byte[]> {
             case 1:
             case 2:
             case 3:
-                Array.Fill<byte>(buckets[0].pages[0], 0);
+                Array.Fill<byte>(buckets[0]!.pages![0], 0);
                 break;
             default:
                 for (int bucketIndex = 0; bucketIndex < NUMBER_OF_BUCKETS; bucketIndex++) {
                     var bucket = buckets[bucketIndex];
-                    if (bucket == null) continue;
+                    if (bucket == null) 
+                        continue;
                     lock (bucket) {
                         bool notFirst = false;
                         bucket.pages?.RemoveAll(_ => {
@@ -111,16 +113,18 @@ public class BitShapeHashSet64k : IEnumerable<byte[]> {
             case 2:
             case 3: {
                 int bitIndex = bytesLength == 3 ? value[0] * 65536 + value[1] * 256 + value[2] : bytesLength == 2 ? value[0] * 256 + value[1] : value[0];
-                var bucket = buckets[0];
+                var bucket = buckets[0]!;
                 int byteIndex = bitIndex >> 3, shr = bitIndex & 7;
                 byte mask = (byte)(128 >> shr);
-                var page = buckets[0].pages[0];
+                var page = bucket.pages![0];
                 // check the bit, if set, we don't add
-                if ((page[byteIndex] & mask) != 0) return false;
+                if ((page[byteIndex] & mask) != 0)
+                    return false;
                 lock (bucket) {
                     var pageByte = page[byteIndex];
                     // check the bit again
-                    if ((pageByte & mask) != 0) return false;
+                    if ((pageByte & mask) != 0)
+                        return false;
                     // add the bit
                     page[byteIndex] = (byte)(pageByte | mask);
                     return true;
@@ -130,7 +134,7 @@ public class BitShapeHashSet64k : IEnumerable<byte[]> {
                 byte lastValueByte = value[bytesLength - 1];
                 int firstValueBytes = bytesStored - 1;
                 int bucketIndex = value[hashIndex + 0] * 256 + value[hashIndex + 1];
-                var bucket = buckets[bucketIndex];
+                var bucket = buckets[bucketIndex]!;
                 if (bucket.pages == null) { // bucket hasn't been initialized yet
                     lock (bucket) {
                         bucket.pages ??= new List<byte[]> { new byte[PAGE_SIZE] };
@@ -142,7 +146,10 @@ public class BitShapeHashSet64k : IEnumerable<byte[]> {
                     }
                 }
                 int pageCount, lastPageEntryCount;
-                lock (bucket) { pageCount = bucket.pages.Count; lastPageEntryCount = bucket.lastPageEntryCount; }
+                lock (bucket) {
+                    pageCount = bucket.pages.Count;
+                    lastPageEntryCount = bucket.lastPageEntryCount;
+                }
                 // scan bucket to see if value found without locking
                 for (int pageIndex = 0; pageIndex < pageCount; pageIndex++) {
                     var page = bucket.pages[pageIndex];
@@ -208,53 +215,77 @@ public class BitShapeHashSet64k : IEnumerable<byte[]> {
             case < 1:
                 throw new ApplicationException("how did we get here?");
             case 1: {
-                var page = buckets[0].pages[0];
+                var page = buckets[0]!.pages![0];
                 for (int byteIndex = 0; byteIndex < page.Length; byteIndex++) {
                     byte bits = page[byteIndex];
                     if (bits == 0) continue;
                     byte byte0 = (byte)(byteIndex << 3);
-                    if ((bits & 128) != 0) yield return new[] { byte0 };
-                    if ((bits & 64) != 0) yield return new[] { (byte)(byte0 | 1) };
-                    if ((bits & 32) != 0) yield return new[] { (byte)(byte0 | 2) };
-                    if ((bits & 16) != 0) yield return new[] { (byte)(byte0 | 3) };
-                    if ((bits & 8) != 0) yield return new[] { (byte)(byte0 | 4) };
-                    if ((bits & 4) != 0) yield return new[] { (byte)(byte0 | 5) };
-                    if ((bits & 2) != 0) yield return new[] { (byte)(byte0 | 6) };
-                    if ((bits & 1) != 0) yield return new[] { (byte)(byte0 | 7) };
+                    if ((bits & 128) != 0)
+                        yield return new[] { byte0 };
+                    if ((bits & 64) != 0)
+                        yield return new[] { (byte)(byte0 | 1) };
+                    if ((bits & 32) != 0) 
+                        yield return new[] { (byte)(byte0 | 2) };
+                    if ((bits & 16) != 0) 
+                        yield return new[] { (byte)(byte0 | 3) };
+                    if ((bits & 8) != 0) 
+                        yield return new[] { (byte)(byte0 | 4) };
+                    if ((bits & 4) != 0) 
+                        yield return new[] { (byte)(byte0 | 5) };
+                    if ((bits & 2) != 0) 
+                        yield return new[] { (byte)(byte0 | 6) };
+                    if ((bits & 1) != 0) 
+                        yield return new[] { (byte)(byte0 | 7) };
                 }
                 break;
             }
             case 2: {
-                var page = buckets[0].pages[0];
+                var page = buckets[0]!.pages![0];
                 for (int byteIndex = 0; byteIndex < page.Length; byteIndex++) {
                     byte bits = page[byteIndex];
                     if (bits == 0) continue;
                     byte byte0 = (byte)(byteIndex >> 5), byte1 = (byte)(byteIndex << 3);
-                    if ((bits & 128) != 0) yield return new[] { byte0, byte1 };
-                    if ((bits & 64) != 0) yield return new[] { byte0, (byte)(byte1 | 1) };
-                    if ((bits & 32) != 0) yield return new[] { byte0, (byte)(byte1 | 2) };
-                    if ((bits & 16) != 0) yield return new[] { byte0, (byte)(byte1 | 3) };
-                    if ((bits & 8) != 0) yield return new[] { byte0, (byte)(byte1 | 4) };
-                    if ((bits & 4) != 0) yield return new[] { byte0, (byte)(byte1 | 5) };
-                    if ((bits & 2) != 0) yield return new[] { byte0, (byte)(byte1 | 6) };
-                    if ((bits & 1) != 0) yield return new[] { byte0, (byte)(byte1 | 7) };
+                    if ((bits & 128) != 0) 
+                        yield return new[] { byte0, byte1 };
+                    if ((bits & 64) != 0)
+                        yield return new[] { byte0, (byte)(byte1 | 1) };
+                    if ((bits & 32) != 0)
+                        yield return new[] { byte0, (byte)(byte1 | 2) };
+                    if ((bits & 16) != 0) 
+                        yield return new[] { byte0, (byte)(byte1 | 3) };
+                    if ((bits & 8) != 0)
+                        yield return new[] { byte0, (byte)(byte1 | 4) };
+                    if ((bits & 4) != 0) 
+                        yield return new[] { byte0, (byte)(byte1 | 5) };
+                    if ((bits & 2) != 0)
+                        yield return new[] { byte0, (byte)(byte1 | 6) };
+                    if ((bits & 1) != 0)
+                        yield return new[] { byte0, (byte)(byte1 | 7) };
                 }
                 break;
             }
             case 3: {
-                var page = buckets[0].pages[0];
+                var page = buckets[0]!.pages![0];
                 for (int byteIndex = 0; byteIndex < page.Length; byteIndex++) {
                     byte bits = page[byteIndex];
                     if (bits == 0) continue;
                     byte byte0 = (byte)(byteIndex >> 13), byte1 = (byte)(byteIndex >> 5), byte2 = (byte)(byteIndex << 3);
-                    if ((bits & 128) != 0) yield return new[] { byte0, byte1, byte2 };
-                    if ((bits & 64) != 0) yield return new[] { byte0, byte1, (byte)(byte2 | 1) };
-                    if ((bits & 32) != 0) yield return new[] { byte0, byte1, (byte)(byte2 | 2) };
-                    if ((bits & 16) != 0) yield return new[] { byte0, byte1, (byte)(byte2 | 3) };
-                    if ((bits & 8) != 0) yield return new[] { byte0, byte1, (byte)(byte2 | 4) };
-                    if ((bits & 4) != 0) yield return new[] { byte0, byte1, (byte)(byte2 | 5) };
-                    if ((bits & 2) != 0) yield return new[] { byte0, byte1, (byte)(byte2 | 6) };
-                    if ((bits & 1) != 0) yield return new[] { byte0, byte1, (byte)(byte2 | 7) };
+                    if ((bits & 128) != 0)
+                        yield return new[] { byte0, byte1, byte2 };
+                    if ((bits & 64) != 0) 
+                        yield return new[] { byte0, byte1, (byte)(byte2 | 1) };
+                    if ((bits & 32) != 0)
+                        yield return new[] { byte0, byte1, (byte)(byte2 | 2) };
+                    if ((bits & 16) != 0) 
+                        yield return new[] { byte0, byte1, (byte)(byte2 | 3) };
+                    if ((bits & 8) != 0) 
+                        yield return new[] { byte0, byte1, (byte)(byte2 | 4) };
+                    if ((bits & 4) != 0) 
+                        yield return new[] { byte0, byte1, (byte)(byte2 | 5) };
+                    if ((bits & 2) != 0) 
+                        yield return new[] { byte0, byte1, (byte)(byte2 | 6) };
+                    if ((bits & 1) != 0) 
+                        yield return new[] { byte0, byte1, (byte)(byte2 | 7) };
                 }
                 break;
             }
@@ -264,7 +295,10 @@ public class BitShapeHashSet64k : IEnumerable<byte[]> {
                         var bucket = buckets[bucketIndex];
                         if (bucket?.pages != null) {
                             int pageCount, lastPageEntryCount;
-                            lock (bucket) { pageCount = bucket.pages.Count; lastPageEntryCount = bucket.lastPageEntryCount; }
+                            lock (bucket) {
+                                pageCount = bucket.pages.Count;
+                                lastPageEntryCount = bucket.lastPageEntryCount;
+                            }
                             for (int pageIndex = 0; pageIndex < pageCount; pageIndex++) {
                                 var page = bucket.pages[pageIndex];
                                 int entryCount = pageIndex + 1 < bucket.pages.Count ? entriesPerPage : lastPageEntryCount;
@@ -290,7 +324,7 @@ public class BitShapeHashSet64k : IEnumerable<byte[]> {
     }
 
     private record BitShapeHashBucket {
-        public List<byte[]> pages = null;
+        public List<byte[]>? pages = null;
         public int lastPageEntryCount = 0;
     }
 }

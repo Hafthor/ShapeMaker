@@ -519,12 +519,24 @@ public class BitShapeTests {
     public void TestHasSetNeighbor() {
         var shape = new BitShape(3, 3, 3);
         Assert.IsFalse(shape.HasSetNeighbor(1, 1, 1));
-        shape[0, 1, 1] = true; Assert.IsTrue(shape.HasSetNeighbor(1, 1, 1)); shape[0, 1, 1] = false;
-        shape[2, 1, 1] = true; Assert.IsTrue(shape.HasSetNeighbor(1, 1, 1)); shape[2, 1, 1] = false;
-        shape[1, 0, 1] = true; Assert.IsTrue(shape.HasSetNeighbor(1, 1, 1)); shape[1, 0, 1] = false;
-        shape[1, 2, 1] = true; Assert.IsTrue(shape.HasSetNeighbor(1, 1, 1)); shape[1, 2, 1] = false;
-        shape[1, 1, 0] = true; Assert.IsTrue(shape.HasSetNeighbor(1, 1, 1)); shape[1, 1, 0] = false;
-        shape[1, 1, 2] = true; Assert.IsTrue(shape.HasSetNeighbor(1, 1, 1)); shape[1, 1, 2] = false;
+        shape[0, 1, 1] = true;
+        Assert.IsTrue(shape.HasSetNeighbor(1, 1, 1));
+        shape[0, 1, 1] = false;
+        shape[2, 1, 1] = true;
+        Assert.IsTrue(shape.HasSetNeighbor(1, 1, 1));
+        shape[2, 1, 1] = false;
+        shape[1, 0, 1] = true;
+        Assert.IsTrue(shape.HasSetNeighbor(1, 1, 1));
+        shape[1, 0, 1] = false;
+        shape[1, 2, 1] = true;
+        Assert.IsTrue(shape.HasSetNeighbor(1, 1, 1));
+        shape[1, 2, 1] = false;
+        shape[1, 1, 0] = true;
+        Assert.IsTrue(shape.HasSetNeighbor(1, 1, 1));
+        shape[1, 1, 0] = false;
+        shape[1, 1, 2] = true;
+        Assert.IsTrue(shape.HasSetNeighbor(1, 1, 1));
+        shape[1, 1, 2] = false;
 
         Assert.IsFalse(shape.HasSetNeighbor(0, 1, 1));
         Assert.IsFalse(shape.HasSetNeighbor(2, 1, 1));
