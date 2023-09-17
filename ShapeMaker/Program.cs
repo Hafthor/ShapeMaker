@@ -41,6 +41,10 @@ namespace ShapeMaker;
 #error You must define which hashset implementation to use
 #endif
 
+/// <summary>
+/// Main program class. Kinda has more than it ideally should, but this is mostly because we want to be able
+/// to use the #define to switch between hashset implementations.
+/// </summary>
 public static class Program {
     public const string FILE_EXT = ".bin";
     public const string FILE_COMPLETE = "_COMPLETE";
@@ -53,8 +57,8 @@ public static class Program {
 
     /// <summary>
     /// Performs the computation to find all possible shapes of voxel count n, as well as all the unique chiral shapes.
-    /// Takes a single command line argument, the path to the directory where the files will be stored.
-    /// There are two options that can be passed as command line arguments:
+    /// Takes a single un-optioned command line argument, the path to the directory where the files will be stored.
+    /// There are three options that can be passed as command line arguments:
     /// --no-chiral-count to skip the chiral count operation
     /// --force-recompute to recompute all shapes, even if they have already been computed
     /// --max-compute [n] to compute up to n voxel count shapes
@@ -152,19 +156,19 @@ public static class Program {
                     var progress = "            " + (shardCount != 0 ? "/" + shardCount : "") + 
                                    "[" + shapeCount.ToString("N0") + ", " + totalSeconds.ToString("N0") + "s, " + 
                                    size.w + "x" + size.h + "x" + size.d + " " + currentSizeIndex + "/" + targetSizesCount + "]     ";
-                    ShapeMaker.ConsoleWriteWithBackspace(progress);
+                    ConsoleWriteWithBackspace(progress);
                     if (n < maxComputeN)
                         using (var writer = new FileWriter(n, size.w, size.h, size.d))
-                            shapeCount += ShapeMaker.ShapesFromExtendingShapes(inputFileList, writer, size, shardCount);
+                            shapeCount += ShapesFromExtendingShapes(inputFileList, writer, size, shardCount);
                     else
-                        shapeCount += ShapeMaker.ShapesFromExtendingShapes(inputFileList, null, size, shardCount);
+                        shapeCount += ShapesFromExtendingShapes(inputFileList, null, size, shardCount);
                 }
                 {
                     double totalSeconds = additionalTime.Add(sw.Elapsed).TotalSeconds;
                     var progress = "            " + (shardCount != 0 ? "/" + shardCount : "") + 
                                    "[" + shapeCount.ToString("N0") + ", " + totalSeconds.ToString("N0") + "s, " + 
                                    size.w + "x" + size.h + "x" + size.d + " " + currentSizeIndex + "/" + targetSizesCount + "]     ";
-                    ShapeMaker.ConsoleWriteWithBackspace(progress);
+                    ConsoleWriteWithBackspace(progress);
                 }
             }
             sw.Stop();
@@ -173,7 +177,7 @@ public static class Program {
                 string progress = shapeCount.ToString("N0") + " time: " + totalSeconds;
                 completeString += progress;
                 Console.Write(progress);
-                ShapeMaker.ConsoleWriteWithBackspace("      ");
+                ConsoleWriteWithBackspace("      ");
             }
 
             if (doChiralCount)
@@ -201,7 +205,7 @@ public static class Program {
             string progress = "     " + ++currentSizeIndex + "/" + targetSizesCount + "=" + 
                               size.w + "x" + size.h + "x" + size.d + ", " + chiralCount.ToString("N0") + ", " + 
                               sw.Elapsed.TotalSeconds.ToString("N0") + "s   ";
-            ShapeMaker.ConsoleWriteWithBackspace(progress);
+            ConsoleWriteWithBackspace(progress);
             FileScanner.Results fileInfo = new FileScanner.Results() { n = n, w = size.w, h = size.h, d = size.d, ext = Program.FILE_EXT };
             int shapeSizeInBytes = new BitShape(size.w, size.h, size.d).bytes.Length;
             long sourceShapes = FileReader.FileSize(n, size.w, size.h, size.d) / shapeSizeInBytes;
@@ -211,7 +215,7 @@ public static class Program {
             Parallel.ForEach(FileReader.LoadShapes(fileInfo), (shape) => {
                 if (Interlocked.Increment(ref sourceShapeCount) == nextShapeCount) {
                     nextShapeCount += sourceShapes100;
-                    ShapeMaker.ConsoleWriteWithBackspace(" " + ++percent + "%");
+                    ConsoleWriteWithBackspace(" " + ++percent + "%");
                 }
                 if (shape.IsMinChiralRotation())
                     Interlocked.Increment(ref chiralCount);
@@ -224,13 +228,7 @@ public static class Program {
             return progress;
         }
     }
-}
 
-/// <summary>
-/// Helper class to take previously found shapes and extend them to find new shapes and add them to a hashset.
-/// This class is in the same file as Program so it can use the #define constants.
-/// </summary>
-public static class ShapeMaker {
     /// <summary>
     /// Extend list of files of shapes to find new shapes and add them to a hashset.
     /// </summary>
@@ -240,7 +238,7 @@ public static class ShapeMaker {
     /// <param name="shardCount">shardCount - 0 if no sharding, -8 to shard only on the 8 corners, negative to shard on
     /// corners and edges, positive to shard on corners, edges and faces.</param>
     /// <returns>shape count found for target size {width}, {height}, {depth}</returns>
-    public static long ShapesFromExtendingShapes(IList<FileScanner.Results> fileList, FileWriter? writer, (byte w, byte h, byte d, long _) size, int shardCount) {
+    private static long ShapesFromExtendingShapes(IList<FileScanner.Results> fileList, FileWriter? writer, (byte w, byte h, byte d, long _) size, int shardCount) {
 #if USE_BITSHAPEHASHSET || USE_BITSHAPEHASHSET64K
         var newShapes = new MyHashSet((size.w * size.h * size.d + 7) / 8);
 #elif USE_HASHSET || USE_CONCURRENTDICTIONARY
@@ -410,7 +408,7 @@ public static class ShapeMaker {
     /// Writes to console, but returning the cursor to the previous position.
     /// </summary>
     /// <param name="text">text to write to console</param>
-    public static void ConsoleWriteWithBackspace(string text) {
+    private static void ConsoleWriteWithBackspace(string text) {
         lock (Console.Out) {
             Console.Write(text);
             Console.Write(new string('\b', text.Length));
@@ -507,25 +505,24 @@ public static class ShapeMaker {
                             }
                         }
                     }
-                    if (!shape[x, y, z])
-                        if (shape.HasSetNeighbor(x, y, z)) {
-                            Array.Copy(shapeBytes, newShapeBytes, shapeBytesLength);
-                            newShape[x, y, z] = true;
-                            var bytes = newShape.MinRotation().bytes;
+                    if (!shape[x, y, z] && shape.HasSetNeighbor(x, y, z)) {
+                        Array.Copy(shapeBytes, newShapeBytes, shapeBytesLength);
+                        newShape[x, y, z] = true;
+                        var bytes = newShape.MinRotation().bytes;
 #if USE_HASHSET
-                            lock (newShapes) 
-                                newShapes.Add(bytes);
-#elif USE_BITSHAPEHASHSET || USE_BITSHAPEHASHSET64K
+                        lock (newShapes) 
                             newShapes.Add(bytes);
+#elif USE_BITSHAPEHASHSET || USE_BITSHAPEHASHSET64K
+                        newShapes.Add(bytes);
 #elif USE_CONCURRENTDICTIONARY
-                            newShapes.TryAdd(bytes, 0);
+                        newShapes.TryAdd(bytes, 0);
 #elif USE_HASHSETARRAY
-                            int len = bytes.Length; 
-                            byte hashIndex = len < 3 ? bytes[0] : bytes[len - 2]; // use last full byte
-                            lock (newShapes[hashIndex]) 
-                                newShapes[hashIndex].Add(bytes);
+                        int len = bytes.Length; 
+                        byte hashIndex = len < 3 ? bytes[0] : bytes[len - 2]; // use last full byte
+                        lock (newShapes[hashIndex]) 
+                            newShapes[hashIndex].Add(bytes);
 #endif
-                        }
+                    }
                 }
             }
         }
