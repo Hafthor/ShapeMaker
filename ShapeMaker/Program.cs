@@ -249,7 +249,7 @@ public static class Program {
             newShapes[i] = new HashSet<byte[]>(ByteArrayEqualityComparer.Instance);
 #endif
 
-        if (shardCount == 0)
+        if (shardCount == 0) // no sharding
             return ShapesFromExtendingShapes(fileList, writer, newShapes, size.w, size.h, size.d, -1, -1, -1);
 
         long shapeCount = 0;
@@ -261,7 +261,7 @@ public static class Program {
                 for (int cornerIndex = 0; cornerIndex <= 8; cornerIndex++)
                     for (int edgeIndex = cornerIndex == 0 ? 0 : 1; edgeIndex <= -shardCount - cornerIndex; edgeIndex++)
                         shapeCount += ShapesFromExtendingShapes(fileList, writer, newShapes, size.w, size.h, size.d, cornerIndex, edgeIndex, -1);
-        else {
+        else { // corner/edge/face count sharding
             int maxInteriorCount = Math.Max(0, size.w - 2) * Math.Max(0, size.h - 2) * Math.Max(0, size.d - 2);
             for (int cornerIndex = 0; cornerIndex <= 8; cornerIndex++)
                 for (int edgeIndex = cornerIndex == 0 ? 0 : 1; edgeIndex <= shardCount - cornerIndex; edgeIndex++)
@@ -456,24 +456,21 @@ public static class Program {
     private static void AddShapes(MyHashSet newShapes, BitShape shape, int xStart, int w, int yStart, int h, int zStart, int d, int targetCornerCount, int targetEdgeCount, int targetFaceCount) {
 #endif
         int cornerCount = targetCornerCount, edgeCount = targetEdgeCount, faceCount = targetFaceCount;
-        if (targetCornerCount >= 0)
-            if (targetEdgeCount < 0) {
+        if (targetCornerCount >= 0) // if sharding
+            if (targetEdgeCount < 0) { // if sharding on corners only
                 cornerCount = shape.CornerCount();
                 if (cornerCount > targetCornerCount || (cornerCount + 1) < targetCornerCount)
                     return;
-            } else if (targetFaceCount < 0) {
+            } else if (targetFaceCount < 0) { // if sharding on corners and edges
                 (cornerCount, edgeCount) = shape.CornerEdgeCount();
-                if (cornerCount > targetCornerCount || (cornerCount + 1) < targetCornerCount) 
+                if (cornerCount > targetCornerCount || (cornerCount + 1) < targetCornerCount ||
+                    edgeCount > targetEdgeCount || (edgeCount + 1) < targetEdgeCount) 
                     return;
-                if (edgeCount > targetEdgeCount || (edgeCount + 1) < targetEdgeCount) 
-                    return;
-            } else {
+            } else { // if sharding on corners, edges and faces
                 (cornerCount, edgeCount, faceCount) = shape.CornerEdgeFaceCount();
-                if (cornerCount > targetCornerCount || (cornerCount + 1) < targetCornerCount) 
-                    return;
-                if (edgeCount > targetEdgeCount || (edgeCount + 1) < targetEdgeCount) 
-                    return;
-                if (faceCount > targetFaceCount || (faceCount + 1) < targetFaceCount)
+                if (cornerCount > targetCornerCount || (cornerCount + 1) < targetCornerCount ||
+                    edgeCount > targetEdgeCount || (edgeCount + 1) < targetEdgeCount ||
+                    faceCount > targetFaceCount || (faceCount + 1) < targetFaceCount)
                     return;
             }
         var newShape = new BitShape(shape);
@@ -486,21 +483,21 @@ public static class Program {
             for (var y = yStart; y < h; y++) {
                 bool yFace = y == 0 || y == yLimit;
                 for (var z = zStart; z < d; z++) {
-                    if (targetCornerCount >= 0) {
+                    if (targetCornerCount >= 0) { // if sharding
                         bool zFace = z == 0 || z == zLimit;
                         bool isInterior = !xFace && !yFace && !zFace;
                         if (isInterior && (targetCornerCount != cornerCount || targetEdgeCount != edgeCount || targetFaceCount != faceCount)) 
                             continue;
                         bool isCorner = xFace && yFace && zFace;
-                        if (isCorner && targetCornerCount != cornerCount + 1)
+                        if (isCorner && (targetCornerCount != cornerCount + 1 || targetEdgeCount != edgeCount || targetFaceCount != faceCount))
                             continue;
-                        if (targetEdgeCount >= 0) {
+                        if (targetEdgeCount >= 0) { // if sharding on edges
                             bool isEdge = xFace && yFace || yFace && zFace || xFace && zFace;
-                            if (isEdge && targetEdgeCount != edgeCount + 1) 
+                            if (isEdge && (targetCornerCount != cornerCount || targetEdgeCount != edgeCount + 1 || targetFaceCount != faceCount)) 
                                 continue;
-                            if (targetFaceCount >= 0) {
+                            if (targetFaceCount >= 0) { // if sharding on faces
                                 bool isFace = !isCorner && !isEdge && !isInterior;
-                                if (isFace && targetFaceCount != faceCount + 1) 
+                                if (isFace && (targetCornerCount != cornerCount || targetEdgeCount != edgeCount || targetFaceCount != faceCount + 1)) 
                                     continue;
                             }
                         }
