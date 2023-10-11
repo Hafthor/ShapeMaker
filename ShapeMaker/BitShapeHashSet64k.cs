@@ -29,6 +29,7 @@ public class BitShapeHashSet64k : IEnumerable<byte[]> {
     private readonly BitShapeHashBucket?[] buckets;
     private readonly int bytesStored, hashIndex, bytesLength, entriesPerPage;
     private const int PAGE_SIZE = 65536;
+    public const int MAX_BYTES_LENGTH = PAGE_SIZE + 2;
 
     // this cannot be easily changed - lots of the code depends on this specific value
     private const int NUMBER_OF_BUCKETS = 65536;
@@ -45,9 +46,9 @@ public class BitShapeHashSet64k : IEnumerable<byte[]> {
 
         switch (bytesLength) {
             case < 1:
-                throw new ArgumentOutOfRangeException(nameof(bytesLength), bytesLength, "range 1 to " + PAGE_SIZE);
-            case > PAGE_SIZE:
-                throw new ArgumentOutOfRangeException(nameof(bytesLength), bytesLength, "range 1 to " + PAGE_SIZE);
+                throw new ArgumentOutOfRangeException(nameof(bytesLength), bytesLength, "range 1 to " + MAX_BYTES_LENGTH);
+            case > MAX_BYTES_LENGTH:
+                throw new ArgumentOutOfRangeException(nameof(bytesLength), bytesLength, "range 1 to " + MAX_BYTES_LENGTH);
             case 1:
             case 2:
             case 3:

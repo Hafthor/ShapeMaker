@@ -5,6 +5,14 @@ namespace ShapeMakerTests;
 [TestClass]
 public class BitShapeHashSetTests {
     [TestMethod]
+    public void Limits() {
+        Assert.ThrowsException<ArgumentOutOfRangeException>(() => new BitShapeHashSet(0));
+        Assert.IsNotNull(new BitShapeHashSet(1));
+        Assert.IsNotNull(new BitShapeHashSet(BitShapeHashSet.MAX_BYTES_LENGTH));
+        Assert.ThrowsException<ArgumentOutOfRangeException>(() => new BitShapeHashSet(BitShapeHashSet.MAX_BYTES_LENGTH + 1));
+    }
+    
+    [TestMethod]
     public void OneByteHashSet() {
         var r = new Random();
         var ra = Enumerable.Range(0, 256).Select(_ => (byte)r.Next(256)).ToList();
