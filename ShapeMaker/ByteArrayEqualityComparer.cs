@@ -25,4 +25,16 @@ public class ByteArrayEqualityComparer : IEqualityComparer<byte[]> {
             return hash;
         }
     }
+    
+    public static bool Equals(byte[] byteArray1, int offset1, byte[] byteArray2, int offset2, int length) {
+        int endOffset1 = offset1 + length;
+        while (offset1 < endOffset1)
+            if (byteArray1[offset1++] != byteArray2[offset2++])
+                return false;
+        return true;
+        
+        //var span1 = byteArray1.AsSpan().Slice(offset1, length);
+        //var span2 = byteArray2.AsSpan().Slice(offset2, length);
+        //return span1.SequenceEqual(span2);
+    }
 }

@@ -5,19 +5,11 @@ namespace ShapeMakerTests;
 [TestClass]
 public class BitShapeHashSetTests {
     [TestMethod]
-    public void Limits() {
-        Assert.ThrowsException<ArgumentOutOfRangeException>(() => new BitShapeHashSet(0));
-        Assert.IsNotNull(new BitShapeHashSet(1));
-        Assert.IsNotNull(new BitShapeHashSet(BitShapeHashSet.MAX_BYTES_LENGTH));
-        Assert.ThrowsException<ArgumentOutOfRangeException>(() => new BitShapeHashSet(BitShapeHashSet.MAX_BYTES_LENGTH + 1));
-    }
-    
-    [TestMethod]
     public void OneByteHashSet() {
         var r = new Random();
         var ra = Enumerable.Range(0, 256).Select(_ => (byte)r.Next(256)).ToList();
         var rs = new HashSet<byte>();
-        var bshs = new BitShapeHashSet(1);
+        var bshs = BitShapeHashSetFactory.Create(1);
 
         foreach (var v in ra)
             Assert.AreEqual(rs.Add(v), bshs.Add(new[] { v }));
@@ -55,7 +47,7 @@ public class BitShapeHashSetTests {
         var r = new Random();
         var ra = Enumerable.Range(0, 65536).Select(_ => (ushort)r.Next(65536)).ToList();
         var rs = new HashSet<ushort>();
-        var bshs = new BitShapeHashSet(2);
+        var bshs = BitShapeHashSetFactory.Create(2);
 
         foreach (var v in ra)
             Assert.AreEqual(rs.Add(v), bshs.Add(new[] { (byte)(v >> 8), (byte)v }));
@@ -93,7 +85,7 @@ public class BitShapeHashSetTests {
         var r = new Random();
         var ra = Enumerable.Range(0, 65280).Select(_ => r.Next(65280) * 257).ToList();
         var rs = new HashSet<int>();
-        var bshs = new BitShapeHashSet(3);
+        var bshs = BitShapeHashSetFactory.Create(3);
 
         foreach (var v in ra)
             Assert.AreEqual(rs.Add(v), bshs.Add(new[] { (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
@@ -131,7 +123,7 @@ public class BitShapeHashSetTests {
         var r = new Random();
         var ra = Enumerable.Range(0, 65535).Select(_ => (uint)r.Next(65535) * 65537u).ToList();
         var rs = new HashSet<uint>();
-        var bshs = new BitShapeHashSet(4);
+        var bshs = BitShapeHashSetFactory.Create(4);
 
         foreach (var v in ra)
             Assert.AreEqual(rs.Add(v), bshs.Add(new[] { (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
@@ -170,7 +162,7 @@ public class BitShapeHashSetTests {
         var r = new Random();
         var ra = Enumerable.Range(0, 65535).Select(_ => r.Next(65535) * 65280L * 257L).ToList();
         var rs = new HashSet<long>();
-        var bshs = new BitShapeHashSet(5);
+        var bshs = BitShapeHashSetFactory.Create(5);
 
         foreach (var v in ra)
             Assert.AreEqual(rs.Add(v), bshs.Add(new[] { (byte)(v >> 32), (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v }));
@@ -205,11 +197,16 @@ public class BitShapeHashSetTests {
     }
 
     [TestMethod]
-    public void SixByteHashSet() {
+    public void SixByteHashSet16M() => SixByteHashSet(true);
+    
+    [TestMethod]
+    public void SixByteHashSet64K() => SixByteHashSet(false);
+    
+    public void SixByteHashSet(bool preferSpeedOverMemory) {
         var r = new Random();
         var ra = Enumerable.Range(0, 65535).Select(_ => r.Next(65535) * 65535L * 65537L).ToList();
         var rs = new HashSet<long>();
-        var bshs = new BitShapeHashSet(6);
+        var bshs = BitShapeHashSetFactory.Create(6, preferSpeedOverMemory);
 
         foreach (var v in ra)
             Assert.AreEqual(rs.Add(v), bshs.Add(new[] { (byte)(v >> 40), (byte)(v >> 32), (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v }));

@@ -1,69 +1,55 @@
-﻿// Uncomment one of the following hashset implementations to use
-//#define USE_HASHSET               // works fast at the beginning, but slows down as it gets bigger, uses more memory
-//#define USE_HASHSETARRAY          // 256 hashsets, works fast overall, but uses more memory
-#define USE_BITSHAPEHASHSET       // works slower overall, but uses less memory, 16M buckets
-//#define USE_BITSHAPEHASHSET64K    // works slower overall, but uses less memory - not as good for large n, 64K buckets
-//#define USE_CONCURRENTDICTIONARY  // works fast overall, but uses more memory
-
-#if USE_CONCURRENTDICTIONARY
-using System.Collections.Concurrent;
-#endif
-using System.Diagnostics;
+﻿using System.Diagnostics;
 
 namespace ShapeMaker;
 
-#if USE_HASHSET
-    #if USE_HASHSETARRAY || USE_BITSHAPEHASHSET || USE_BITSHAPEHASHSET64K || USE_CONCURRENTDICTIONARY
-        #error You must only use one hashset implementation
-    #endif
-    using MyHashSet = HashSet<byte[]>;
-#elif USE_HASHSETARRAY
-    #if USE_HASHSET || USE_BITSHAPEHASHSET || USE_BITSHAPEHASHSET64K || USE_CONCURRENTDICTIONARY
-        #error You must only use one hashset implementation
-    #endif
-    using MyHashSet = HashSet<byte[]>;
-#elif USE_BITSHAPEHASHSET
-    #if USE_HASHSET || USE_HASHSETARRAY || USE_BITSHAPEHASHSET64K || USE_CONCURRENTDICTIONARY
-        #error You must only use one hashset implementation
-    #endif
-    using MyHashSet = BitShapeHashSet;
-#elif USE_BITSHAPEHASHSET64K
-#if USE_HASHSET || USE_HASHSETARRAY || USE_BITSHAPEHASHSET || USE_CONCURRENTDICTIONARY
-#error You must only use one hashset implementation
-#endif
-    using MyHashSet = BitShapeHashSet64k;
-#elif USE_CONCURRENTDICTIONARY
-#if USE_HASHSET || USE_HASHSETARRAY || USE_BITSHAPEHASHSET || USE_BITSHAPEHASHSET64K
-#error You must only use one hashset implementation
-#endif
-    using MyHashSet = ConcurrentDictionary<byte[], byte>;
-#else
-#error You must define which hashset implementation to use
-#endif
+public enum HashSetAlgorithm {
+    HashSet,
+    HashSet256,
+    Dictionary,
+    HashSet64K,
+    HashSet16M,
+}
 
 /// <summary>
-/// Main program class. Kinda has more than it ideally should, but this is mostly because we want to be able
-/// to use the #define to switch between hashset implementations.
+/// Main program class.
 /// </summary>
 public static class Program {
     public const string FILE_EXT = ".bin";
     public const string FILE_COMPLETE = "_COMPLETE";
 
-    public static string filePath = "~/Downloads/ShapeMaker";
-
-    private static bool doChiralCount = true;
+    public static string filePath = ".";
+    
+    private static HashSetAlgorithm hashSetAlgorithm = HashSetAlgorithm.HashSet16M;
+    private static bool doMirrorCount = true;
     private static bool doForceRecompute = false;
     private static int maxComputeN = 19;
 
+    private static int ShowHelp() {
+        Console.WriteLine("ShapeMaker [options] [path]");
+        Console.WriteLine("path: where shape files will be stored");
+        Console.WriteLine("options:");
+        Console.WriteLine("  --no-mirror-count   skip the mirror count operation");
+        Console.WriteLine("  --force-recompute   recompute all shapes, even if they have already been computed");
+        Console.WriteLine("  --max-compute [n]   compute up to n voxel count shapes - note that it will not output shape files for the last n");
+        Console.WriteLine("  --hashset           use a HashSet to store the shapes");
+        Console.WriteLine("  --hashset256        use 256 HashSets to store the shapes");
+        Console.WriteLine("  --dictionary        use a ConcurrentDictionary to store the shapes");
+        Console.WriteLine("  --hashset64k        use a BitShapeHashSet with 64K buckets to store the shapes");
+        Console.WriteLine("  --hashset16m        use a BitShapeHashSet with 16M buckets to store the shapes");
+        Console.WriteLine("  --help              show this help");
+        return 0;
+    }
+
+    private static int ShowError(string message) {
+        Console.WriteLine("Error: " + message);
+        Console.WriteLine("Use --help for help");
+        return 1;
+    }
+    
     /// <summary>
-    /// Performs the computation to find all possible shapes of voxel count n, as well as all the unique chiral shapes.
-    /// Takes a single un-optioned command line argument, the path to the directory where the files will be stored.
-    /// There are three options that can be passed as command line arguments:
-    /// --no-chiral-count to skip the chiral count operation
-    /// --force-recompute to recompute all shapes, even if they have already been computed
-    /// --max-compute [n] to compute up to n voxel count shapes
+    /// Performs the computation to find all possible shapes of voxel count n, as well as all the mirror unique shapes.
     /// </summary>
-    static void Main(string[] args) {
+    static int Main(string[] args) {
         // parse command line options
         bool getMaxComputeNext = false;
         foreach (var arg in args) {
@@ -71,19 +57,34 @@ public static class Program {
                 maxComputeN = int.Parse(arg);
                 getMaxComputeNext = false;
             } else if (arg.StartsWith("--"))
-                if (arg == "--no-chiral-count")
-                    doChiralCount = false;
+                if (arg == "--no-mirror-count")
+                    doMirrorCount = false;
                 else if (arg == "--force-recompute")
                     doForceRecompute = true;
                 else if (arg == "--max-compute")
                     getMaxComputeNext = true;
+                else if (arg == "--help")
+                    return ShowHelp();
+                else if (Enum.TryParse(arg[2..], true, out HashSetAlgorithm algorithm))
+                    hashSetAlgorithm = algorithm;
                 else
-                    throw new ArgumentException("Unrecognized parameter " + arg);
+                    return ShowError("Unrecognized parameter " + arg);
+            else if (arg.StartsWith("-"))
+                if (arg == "-n")
+                    getMaxComputeNext = true;
+                else if (arg == "-f")
+                    doForceRecompute = true;
+                else if (arg is "-h" or "-?")
+                    return ShowHelp();
+                else
+                    return ShowError("Unrecognized parameter " + arg);
+            else if (arg is "/?" or "/h")
+                return ShowHelp();
             else
                 filePath = arg;
         }
-        if (getMaxComputeNext) 
-            throw new ArgumentException("Missing parameter for --max-compute");
+        if (getMaxComputeNext)
+            return ShowError("Missing parameter for --max-compute (or -n)");
 
         if (filePath == "~")
             filePath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
@@ -101,7 +102,7 @@ public static class Program {
                 FileWriter.ClearTmp(1);
             using (var writer = new FileWriter(1, 1, 1, 1))
                 writer.Write(new BitShape("1x1x1,*").bytes);
-            FileWriter.MarkNComplete(1, doChiralCount ? "n=1, shapes: 1 time: 0, chiral count: 1 time: 0" : "n=1, shapes: 1 time: 0");
+            FileWriter.MarkNComplete(1, doMirrorCount ? "n=1, shapes: 1 time: 0, mirror count: 1 time: 0" : "n=1, shapes: 1 time: 0");
         }
 
         for (byte n = 2; n <= maxComputeN; n++) {
@@ -125,17 +126,13 @@ public static class Program {
             var targetSizes = ShapeMakerEstimator.ShapeSizesFromExtendingShapes(inputFileList)
                 .OrderByDescending(f => f.sz)
                 .ToList();
-            long shapeCount = 0;
+            long shapeCount = 0, mirrorCount = 0;
             int currentSizeIndex = 0, targetSizesCount = targetSizes.Count;
             foreach (var size in targetSizes) {
                 int shardCount = 0; // don't shard
                 // if the combined input size is 1GB, for example, the output is likely to be ~8GB, and ~24GB in memory
                 if (n >= 14 && size is { w: > 1, h: > 1, d: > 1 }) {
-#if USE_BITSHAPEHASHSET || USE_BITSHAPEHASHSET64K
-                    long inMemSize = size.sz * 8; // should be *8 for BitShapeHashSet
-#else
-                    long inMemSize = size.sz * 8 * 3; // should be *8*3 normally
-#endif
+                    long inMemSize = size.sz * 8; // should be *8 for next size
                     if (inMemSize > totalAvailableMemory) {
                         shardCount = -8; // just shard on corner count
                         if (inMemSize / 3 > totalAvailableMemory) { // unless that's not enough
@@ -158,10 +155,16 @@ public static class Program {
                                    size.w + "x" + size.h + "x" + size.d + " " + currentSizeIndex + "/" + targetSizesCount + "]     ";
                     ConsoleWriteWithBackspace(progress);
                     if (n < maxComputeN)
-                        using (var writer = new FileWriter(n, size.w, size.h, size.d))
-                            shapeCount += ShapesFromExtendingShapes(inputFileList, writer, size, shardCount);
-                    else
-                        shapeCount += ShapesFromExtendingShapes(inputFileList, null, size, shardCount);
+                        using (var writer = new FileWriter(n, size.w, size.h, size.d)) {
+                            var result = ShapesFromExtendingShapes(inputFileList, writer, size, shardCount);
+                            shapeCount += result.Item1;
+                            mirrorCount += result.Item2;
+                        }
+                    else {
+                        var result = ShapesFromExtendingShapes(inputFileList, null, size, shardCount);
+                        shapeCount += result.Item1;
+                        mirrorCount += result.Item2;
+                    }
                 }
                 {
                     double totalSeconds = additionalTime.Add(sw.Elapsed).TotalSeconds;
@@ -174,59 +177,19 @@ public static class Program {
             sw.Stop();
             {
                 double totalSeconds = additionalTime.Add(sw.Elapsed).TotalSeconds;
-                string progress = shapeCount.ToString("N0") + " time: " + totalSeconds;
+                string progress = shapeCount.ToString("N0");
+                if (doMirrorCount)
+                    progress += ", mirror count: " + mirrorCount.ToString("N0");
+                progress += " time: " + totalSeconds;
                 completeString += progress;
                 Console.Write(progress);
                 ConsoleWriteWithBackspace("      ");
             }
 
-            if (doChiralCount)
-                completeString += DoChiralCount(n, targetSizes);
-
             Console.WriteLine();
             FileWriter.MarkNComplete(n, completeString);
         }
-    }
-
-    /// <summary>
-    /// Perform a chiral count on the shapes we've found so far. Reads shapes of voxel count n from disk and checks
-    /// each to see if it is the minimal chiral rotation of the shape, and if so counts that shape. This is done in
-    /// parallel. Roughly half of the shapes will be chiral.
-    /// </summary>
-    /// <param name="n">voxel count</param>
-    /// <param name="targetSizes">list of shape sizes of voxel count</param>
-    /// <returns>string to write to complete file with count and timing</returns>
-    private static string DoChiralCount(byte n, List<(byte w, byte h, byte d, long sz)> targetSizes) {
-        var sw = Stopwatch.StartNew();
-        long chiralCount = 0;
-        int currentSizeIndex = 0;
-        int targetSizesCount = targetSizes.Count;
-        foreach (var size in targetSizes) {
-            string progress = "     " + ++currentSizeIndex + "/" + targetSizesCount + "=" + 
-                              size.w + "x" + size.h + "x" + size.d + ", " + chiralCount.ToString("N0") + ", " + 
-                              sw.Elapsed.TotalSeconds.ToString("N0") + "s   ";
-            ConsoleWriteWithBackspace(progress);
-            FileScanner.Results fileInfo = new FileScanner.Results() { n = n, w = size.w, h = size.h, d = size.d, ext = Program.FILE_EXT };
-            int shapeSizeInBytes = new BitShape(size.w, size.h, size.d).bytes.Length;
-            long sourceShapes = FileReader.FileSize(n, size.w, size.h, size.d) / shapeSizeInBytes;
-            long sourceShapes100 = sourceShapes / 100;
-            long sourceShapeCount = 0, nextShapeCount = sourceShapes100;
-            int percent = 0;
-            Parallel.ForEach(FileReader.LoadShapes(fileInfo), (shape) => {
-                if (Interlocked.Increment(ref sourceShapeCount) == nextShapeCount) {
-                    nextShapeCount += sourceShapes100;
-                    ConsoleWriteWithBackspace(" " + ++percent + "%");
-                }
-                if (shape.IsMinChiralRotation())
-                    Interlocked.Increment(ref chiralCount);
-            });
-        }
-        sw.Stop();
-        {
-            string progress = ", chiral count: " + chiralCount.ToString("N0") + " time: " + sw.Elapsed.TotalSeconds;
-            Console.Write(progress + "    ");
-            return progress;
-        }
+        return 0;
     }
 
     /// <summary>
@@ -237,39 +200,47 @@ public static class Program {
     /// <param name="size">size of shapes to extend (width, height, depth)</param>
     /// <param name="shardCount">shardCount - 0 if no sharding, -8 to shard only on the 8 corners, negative to shard on
     /// corners and edges, positive to shard on corners, edges and faces.</param>
-    /// <returns>shape count found for target size {width}, {height}, {depth}</returns>
-    private static long ShapesFromExtendingShapes(IList<FileScanner.Results> fileList, FileWriter? writer, (byte w, byte h, byte d, long _) size, int shardCount) {
-#if USE_BITSHAPEHASHSET || USE_BITSHAPEHASHSET64K
-        var newShapes = new MyHashSet((size.w * size.h * size.d + 7) / 8);
-#elif USE_HASHSET || USE_CONCURRENTDICTIONARY
-        var newShapes = new MyHashSet(ByteArrayEqualityComparer.Instance);
-#elif USE_HASHSETARRAY
-        var newShapes = new MyHashSet[256];
-        for (int i = 0; i < 256; i++) 
-            newShapes[i] = new HashSet<byte[]>(ByteArrayEqualityComparer.Instance);
-#endif
+    /// <returns>(shape count found for target size {width} {height} {depth}, mirror unique shape count for size)</returns>
+    private static (long shapeCount, long mirrorCount) ShapesFromExtendingShapes(IList<FileScanner.Results> fileList, FileWriter? writer, (byte w, byte h, byte d, long _) size, int shardCount) {
+        IBitShapeHashSet newShapes = hashSetAlgorithm switch {
+            HashSetAlgorithm.HashSet => BitShapeHashSetFactory.CreateWithHashSet(use256HashSets: false),
+            HashSetAlgorithm.HashSet256 => BitShapeHashSetFactory.CreateWithHashSet(use256HashSets: true),
+            HashSetAlgorithm.Dictionary => BitShapeHashSetFactory.CreateWithDictionary(),
+            HashSetAlgorithm.HashSet64K => BitShapeHashSetFactory.Create((size.w * size.h * size.d + 7) / 8, preferSpeedOverMemory: false),
+            HashSetAlgorithm.HashSet16M => BitShapeHashSetFactory.Create((size.w * size.h * size.d + 7) / 8, preferSpeedOverMemory: true),
+            _ => throw new ArgumentException("Unrecognized hash set algorithm " + Program.hashSetAlgorithm),
+        };
 
         if (shardCount == 0) // no sharding
             return ShapesFromExtendingShapes(fileList, writer, newShapes, size.w, size.h, size.d, -1, -1, -1);
 
-        long shapeCount = 0;
+        long shapeCount = 0, mirrorCount = 0;
         if (shardCount < 0)
             if (shardCount == -8) // just corner count sharding
-                for (int cornerIndex = 0; cornerIndex <= 8; cornerIndex++)
-                    shapeCount += ShapesFromExtendingShapes(fileList, writer, newShapes, size.w, size.h, size.d, cornerIndex, -1, -1);
+                for (int cornerIndex = 0; cornerIndex <= 8; cornerIndex++) {
+                    var result = ShapesFromExtendingShapes(fileList, writer, newShapes, size.w, size.h, size.d, cornerIndex, -1, -1);
+                    shapeCount += result.Item1;
+                    mirrorCount += result.Item2;
+                }
             else // just corner/edge count sharding
                 for (int cornerIndex = 0; cornerIndex <= 8; cornerIndex++)
-                    for (int edgeIndex = cornerIndex == 0 ? 0 : 1; edgeIndex <= -shardCount - cornerIndex; edgeIndex++)
-                        shapeCount += ShapesFromExtendingShapes(fileList, writer, newShapes, size.w, size.h, size.d, cornerIndex, edgeIndex, -1);
+                    for (int edgeIndex = cornerIndex == 0 ? 0 : 1; edgeIndex <= -shardCount - cornerIndex; edgeIndex++) {
+                        var result = ShapesFromExtendingShapes(fileList, writer, newShapes, size.w, size.h, size.d, cornerIndex, edgeIndex, -1);
+                        shapeCount += result.Item1;
+                        mirrorCount += result.Item2;
+                    }
         else { // corner/edge/face count sharding
             int maxInteriorCount = Math.Max(0, size.w - 2) * Math.Max(0, size.h - 2) * Math.Max(0, size.d - 2);
             for (int cornerIndex = 0; cornerIndex <= 8; cornerIndex++)
                 for (int edgeIndex = cornerIndex == 0 ? 0 : 1; edgeIndex <= shardCount - cornerIndex; edgeIndex++)
                     for (int faceIndex = edgeIndex == 0 ? 0 : 1; faceIndex <= shardCount - cornerIndex - edgeIndex; faceIndex++)
-                        if (cornerIndex + edgeIndex + faceIndex >= shardCount - maxInteriorCount)
-                            shapeCount += ShapesFromExtendingShapes(fileList, writer, newShapes, size.w, size.h, size.d, cornerIndex, edgeIndex, faceIndex);
+                        if (cornerIndex + edgeIndex + faceIndex >= shardCount - maxInteriorCount) {
+                            var result = ShapesFromExtendingShapes(fileList, writer, newShapes, size.w, size.h, size.d, cornerIndex, edgeIndex, faceIndex);
+                            shapeCount += result.Item1;
+                            mirrorCount += result.Item2;
+                        }
         }
-        return shapeCount;
+        return (shapeCount, mirrorCount);
     }
 
     /// <summary>
@@ -284,38 +255,21 @@ public static class Program {
     /// <param name="targetCornerCount">target corner count for sharding (-1 if not sharding)</param>
     /// <param name="targetEdgeCount">target edge count for sharding (-1 if not sharding on edges, faces)</param>
     /// <param name="targetFaceCount">target face count for sharding (-1 if not sharding on faces)</param>
-    /// <returns>shape count</returns>
-#if USE_HASHSETARRAY
-    private static long ShapesFromExtendingShapes(IEnumerable<FileScanner.Results> fileList, FileWriter writer, MyHashSet[] newShapes, byte targetWidth, byte targetHeight, byte targetDepth, int targetCornerCount, int targetEdgeCount, int targetFaceCount) {
-#else
-    private static long ShapesFromExtendingShapes(IEnumerable<FileScanner.Results> fileList, FileWriter? writer, MyHashSet newShapes, byte targetWidth, byte targetHeight, byte targetDepth, int targetCornerCount, int targetEdgeCount, int targetFaceCount) {
-#endif
-        long shapeCount = 0;
+    /// <returns>(shape count, mirror shape count)</returns>
+    private static (long shapeCount, long mirrorCount) ShapesFromExtendingShapes(IEnumerable<FileScanner.Results> fileList, FileWriter? writer, IBitShapeHashSet newShapes, byte targetWidth, byte targetHeight, byte targetDepth, int targetCornerCount, int targetEdgeCount, int targetFaceCount) {
+        long shapeCount = 0, mirrorCount = 0;
         foreach (var fileInfo in fileList)
-            ShapesFromExtendingShapes(fileInfo, newShapes, targetWidth, targetHeight, targetDepth, targetCornerCount, targetEdgeCount, targetFaceCount);
-#if USE_HASHSETARRAY
-        if (writer != null) 
-            foreach (var hs in newShapes) 
-                foreach (var shape in hs) 
-                    writer.Write(shape);
-        foreach (var hs in newShapes) {
-            shapeCount += hs.LongCount(); 
-            hs.Clear();
-        }
-#elif USE_CONCURRENTDICTIONARY
-        if (writer != null) 
-            foreach (var shape in newShapes.Keys)
+            mirrorCount += ShapesFromExtendingShapes(fileInfo, newShapes, targetWidth, targetHeight, targetDepth, targetCornerCount, targetEdgeCount, targetFaceCount);
+        
+        if (writer != null)
+            foreach (var shape in newShapes) {
                 writer.Write(shape);
-        shapeCount += newShapes.Keys.LongCount();
+                shapeCount++;
+            }
+        else
+            shapeCount = newShapes.Count();
         newShapes.Clear();
-#else
-        if (writer != null) 
-            foreach (var shape in newShapes) 
-                writer.Write(shape);
-        shapeCount += newShapes.LongCount();
-        newShapes.Clear();
-#endif
-        return shapeCount;
+        return (shapeCount, mirrorCount);
     }
 
     /// <summary>
@@ -331,27 +285,26 @@ public static class Program {
     /// <param name="targetCornerCount">target corner count for sharding (-1 if not sharding)</param>
     /// <param name="targetEdgeCount">target edge count for sharding (-1 if not sharding on edges, faces)</param>
     /// <param name="targetFaceCount">target face count for sharding (-1 if not sharding on faces)</param>
-#if USE_HASHSETARRAY
-    private static void ShapesFromExtendingShapes(FileScanner.Results fileInfo, MyHashSet[] newShapes, byte targetWidth, byte targetHeight, byte targetDepth, int targetCornerCount, int targetEdgeCount, int targetFaceCount) {
-#else
-    private static void ShapesFromExtendingShapes(FileScanner.Results fileInfo, MyHashSet newShapes, byte targetWidth, byte targetHeight, byte targetDepth, int targetCornerCount, int targetEdgeCount, int targetFaceCount) {
-#endif
+    /// <returns>oddly, returns the number of mirror unique shapes found</returns>
+    private static long ShapesFromExtendingShapes(FileScanner.Results fileInfo, IBitShapeHashSet newShapes, byte targetWidth, byte targetHeight, byte targetDepth, int targetCornerCount, int targetEdgeCount, int targetFaceCount) {
         byte w = fileInfo.w, h = fileInfo.h, d = fileInfo.d;
         int shapeSizeInBytes = new BitShape(w, h, d).bytes.Length;
         long sourceShapes = FileReader.FileSize(fileInfo.n, w, h, d) / shapeSizeInBytes;
         long sourceShapes100 = sourceShapes / 100;
+        long mirrorCount = 0;
 
         if (w == targetWidth && h == targetHeight && d == targetDepth) {
             // target shape size is same as source shape size, so we are just adding a voxel to the shape
             StatusUpdate('*', targetCornerCount, targetEdgeCount, targetFaceCount);
             long sourceShapeCount = 0, nextShapeCount = sourceShapes100;
             int percent = 0;
-            Parallel.ForEach(FileReader.LoadShapes(fileInfo), (shape) => {
+            Parallel.ForEach(FileReader.LoadShapes(fileInfo), shape => {
                 if (Interlocked.Increment(ref sourceShapeCount) == nextShapeCount) {
                     nextShapeCount += sourceShapes100;
                     ConsoleWriteWithBackspace("*" + ++percent + "%");
                 }
-                AddShapes(newShapes, shape, 0, w, 0, h, 0, d, targetCornerCount, targetEdgeCount, targetFaceCount);
+                long mc = AddShapes(newShapes, shape, 0, w, 0, h, 0, d, targetCornerCount, targetEdgeCount, targetFaceCount);
+                Interlocked.Add(ref mirrorCount, mc);
             });
         }
 
@@ -361,13 +314,14 @@ public static class Program {
             StatusUpdate('|', targetCornerCount, targetEdgeCount, targetFaceCount);
             long sourceShapeCount = 0, nextShapeCount = sourceShapes100;
             int percent = 0;
-            Parallel.ForEach(FileReader.LoadShapes(fileInfo), (shape) => {
+            Parallel.ForEach(FileReader.LoadShapes(fileInfo), shape => {
                 if (Interlocked.Increment(ref sourceShapeCount) == nextShapeCount) {
                     nextShapeCount += sourceShapes100;
                     ConsoleWriteWithBackspace("|" + ++percent + "%");
                 }
-                AddShapes(newShapes, shape.PadLeft(), 0, 1, 0, h, 0, d, targetCornerCount, targetEdgeCount, targetFaceCount);
-                AddShapes(newShapes, shape.PadRight(), w, w + 1, 0, h, 0, d, targetCornerCount, targetEdgeCount, targetFaceCount);
+                long mc1 = AddShapes(newShapes, shape.PadLeft(), 0, 1, 0, h, 0, d, targetCornerCount, targetEdgeCount, targetFaceCount);
+                long mc2 = AddShapes(newShapes, shape.PadRight(), w, w + 1, 0, h, 0, d, targetCornerCount, targetEdgeCount, targetFaceCount);
+                Interlocked.Add(ref mirrorCount, mc1 + mc2);
             });
         }
 
@@ -377,13 +331,14 @@ public static class Program {
             StatusUpdate('-', targetCornerCount, targetEdgeCount, targetFaceCount);
             long sourceShapeCount = 0, nextShapeCount = sourceShapes100;
             int percent = 0;
-            Parallel.ForEach(FileReader.LoadShapes(fileInfo), (shape) => {
+            Parallel.ForEach(FileReader.LoadShapes(fileInfo), shape => {
                 if (Interlocked.Increment(ref sourceShapeCount) == nextShapeCount) {
                     nextShapeCount += sourceShapes100;
                     ConsoleWriteWithBackspace("-" + ++percent + "%");
                 }
-                AddShapes(newShapes, shape.PadTop(), 0, w, 0, 1, 0, d, targetCornerCount, targetEdgeCount, targetFaceCount);
-                AddShapes(newShapes, shape.PadBottom(), 0, w, h, h + 1, 0, d, targetCornerCount, targetEdgeCount, targetFaceCount);
+                long mc1 = AddShapes(newShapes, shape.PadTop(), 0, w, 0, 1, 0, d, targetCornerCount, targetEdgeCount, targetFaceCount);
+                long mc2 = AddShapes(newShapes, shape.PadBottom(), 0, w, h, h + 1, 0, d, targetCornerCount, targetEdgeCount, targetFaceCount);
+                Interlocked.Add(ref mirrorCount, mc1 + mc2);
             });
         }
 
@@ -393,15 +348,17 @@ public static class Program {
             StatusUpdate('/', targetCornerCount, targetEdgeCount, targetFaceCount);
             long sourceShapeCount = 0, nextShapeCount = sourceShapes100;
             int percent = 0;
-            Parallel.ForEach(FileReader.LoadShapes(fileInfo), (shape) => {
+            Parallel.ForEach(FileReader.LoadShapes(fileInfo), shape => {
                 if (Interlocked.Increment(ref sourceShapeCount) == nextShapeCount) {
                     nextShapeCount += sourceShapes100;
                     ConsoleWriteWithBackspace("/" + ++percent + "%");
                 }
-                AddShapes(newShapes, shape.PadFront(), 0, w, 0, h, 0, 1, targetCornerCount, targetEdgeCount, targetFaceCount);
-                AddShapes(newShapes, shape.PadBack(), 0, w, 0, h, d, d + 1, targetCornerCount, targetEdgeCount, targetFaceCount);
+                long mc1 = AddShapes(newShapes, shape.PadFront(), 0, w, 0, h, 0, 1, targetCornerCount, targetEdgeCount, targetFaceCount);
+                long mc2 = AddShapes(newShapes, shape.PadBack(), 0, w, 0, h, d, d + 1, targetCornerCount, targetEdgeCount, targetFaceCount);
+                Interlocked.Add(ref mirrorCount, mc1 + mc2);
             });
         }
+        return mirrorCount;
     }
 
     /// <summary>
@@ -450,28 +407,26 @@ public static class Program {
     /// <param name="targetCornerCount">target corner count for sharding (-1 if not sharding)</param>
     /// <param name="targetEdgeCount">target edge count for sharding (-1 if not sharding on edges, faces)</param>
     /// <param name="targetFaceCount">target face count for sharding (-1 if not sharding on faces)</param>
-#if USE_HASHSETARRAY
-    private static void AddShapes(MyHashSet[] newShapes, BitShape shape, int xStart, int w, int yStart, int h, int zStart, int d, int targetCornerCount, int targetEdgeCount, int targetFaceCount) {
-#else
-    private static void AddShapes(MyHashSet newShapes, BitShape shape, int xStart, int w, int yStart, int h, int zStart, int d, int targetCornerCount, int targetEdgeCount, int targetFaceCount) {
-#endif
+    /// <returns>oddly, this returns the mirror count shapes found</returns>
+    private static long AddShapes(IBitShapeHashSet newShapes, BitShape shape, int xStart, int w, int yStart, int h, int zStart, int d, int targetCornerCount, int targetEdgeCount, int targetFaceCount) {
+        long mirrorCount = 0;
         int cornerCount = targetCornerCount, edgeCount = targetEdgeCount, faceCount = targetFaceCount;
         if (targetCornerCount >= 0) // if sharding
             if (targetEdgeCount < 0) { // if sharding on corners only
                 cornerCount = shape.CornerCount();
                 if (cornerCount > targetCornerCount || (cornerCount + 1) < targetCornerCount)
-                    return;
+                    return mirrorCount;
             } else if (targetFaceCount < 0) { // if sharding on corners and edges
                 (cornerCount, edgeCount) = shape.CornerEdgeCount();
                 if (cornerCount > targetCornerCount || (cornerCount + 1) < targetCornerCount ||
                     edgeCount > targetEdgeCount || (edgeCount + 1) < targetEdgeCount) 
-                    return;
+                    return mirrorCount;
             } else { // if sharding on corners, edges and faces
                 (cornerCount, edgeCount, faceCount) = shape.CornerEdgeFaceCount();
                 if (cornerCount > targetCornerCount || (cornerCount + 1) < targetCornerCount ||
                     edgeCount > targetEdgeCount || (edgeCount + 1) < targetEdgeCount ||
                     faceCount > targetFaceCount || (faceCount + 1) < targetFaceCount)
-                    return;
+                    return mirrorCount;
             }
         var newShape = new BitShape(shape);
         var newShapeBytes = newShape.bytes;
@@ -491,11 +446,11 @@ public static class Program {
                         bool isCorner = xFace && yFace && zFace;
                         if (isCorner && (targetCornerCount != cornerCount + 1 || targetEdgeCount != edgeCount || targetFaceCount != faceCount))
                             continue;
-                        if (targetEdgeCount >= 0) { // if sharding on edges
+                        if (targetEdgeCount >= 0) { // if sharding on corners and edges
                             bool isEdge = xFace && yFace || yFace && zFace || xFace && zFace;
                             if (isEdge && (targetCornerCount != cornerCount || targetEdgeCount != edgeCount + 1 || targetFaceCount != faceCount)) 
                                 continue;
-                            if (targetFaceCount >= 0) { // if sharding on faces
+                            if (targetFaceCount >= 0) { // if sharding on corners, edges and faces
                                 bool isFace = !isCorner && !isEdge && !isInterior;
                                 if (isFace && (targetCornerCount != cornerCount || targetEdgeCount != edgeCount || targetFaceCount != faceCount + 1)) 
                                     continue;
@@ -505,23 +460,13 @@ public static class Program {
                     if (!shape[x, y, z] && shape.HasSetNeighbor(x, y, z)) {
                         Array.Copy(shapeBytes, newShapeBytes, shapeBytesLength);
                         newShape[x, y, z] = true;
-                        var bytes = newShape.MinRotation().bytes;
-#if USE_HASHSET
-                        lock (newShapes) 
-                            newShapes.Add(bytes);
-#elif USE_BITSHAPEHASHSET || USE_BITSHAPEHASHSET64K
-                        newShapes.Add(bytes);
-#elif USE_CONCURRENTDICTIONARY
-                        newShapes.TryAdd(bytes, 0);
-#elif USE_HASHSETARRAY
-                        int len = bytes.Length; 
-                        byte hashIndex = len < 3 ? bytes[0] : bytes[len - 2]; // use last full byte
-                        lock (newShapes[hashIndex]) 
-                            newShapes[hashIndex].Add(bytes);
-#endif
+                        bool added = newShapes.Add(newShape.MinRotation().bytes); 
+                        if (doMirrorCount && added && newShape.IsMinMirrorRotation())
+                            Interlocked.Increment(ref mirrorCount);
                     }
                 }
             }
         }
+        return mirrorCount;
     }
 }

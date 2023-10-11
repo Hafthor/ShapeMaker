@@ -920,12 +920,12 @@ public class BitShape {
     }
 
     /// <summary>
-    /// Finds the minimal chiral rotation of a shape. This is the rotation that has the lowest serialization of the
+    /// Finds the minimal mirror rotation of a shape. This is the rotation that has the lowest serialization of the
     /// shape, where w is the lowest, then h, then d, then the binary serialization of its contents. This is done
     /// for all possible rotations and the 8 possible mirrorings of the shape.
     /// </summary>
-    /// <returns>Minimal chiral rotation of shape</returns>
-    public BitShape MinChiralRotation() {
+    /// <returns>Minimal mirror rotation of shape</returns>
+    public BitShape MinMirrorRotation() {
         BitShape? minShape = null;
         // note we do mirroring on the inside loop since it is in-place and should be more cache friendly
         foreach (var rotatedShape in AllMinRotations())
@@ -938,8 +938,8 @@ public class BitShape {
     /// <summary>
     /// Checks if this shape is the minimal rotation of all possible rotations and mirrorings of the shape.
     /// </summary>
-    /// <returns>true if shape is minimal chiral rotation</returns>
-    public bool IsMinChiralRotation() {
+    /// <returns>true if shape is minimal mirror rotation</returns>
+    public bool IsMinMirrorRotation() {
         var inputShape = new BitShape(this);
         foreach (var rotatedShape in AllMinRotations())
             foreach (var mirroredShape in rotatedShape.AllMirrors())

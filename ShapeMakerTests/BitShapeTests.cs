@@ -469,7 +469,7 @@ public class BitShapeTests {
     }
 
     [TestMethod]
-    public void TestMinChiralRotation() {
+    public void TestMinMirrorRotation() {
         var minRotation = "3x3x3,......................*..**";
         for (int cx = 0; cx <= 2; cx += 2)
             for (int cy = 0; cy <= 2; cy += 2)
@@ -484,32 +484,32 @@ public class BitShapeTests {
                                     if (shape.HasSetNeighbor(0, 1, 1)) {
                                         var newShape = new BitShape(shape);
                                         newShape[0, 1, 1] = true;
-                                        Assert.AreEqual(minRotation, newShape.MinChiralRotation().Serialize());
+                                        Assert.AreEqual(minRotation, newShape.MinMirrorRotation().Serialize());
                                     }
                                     if (shape.HasSetNeighbor(2, 1, 1)) {
                                         var newShape = new BitShape(shape);
                                         newShape[2, 1, 1] = true;
-                                        Assert.AreEqual(minRotation, newShape.MinChiralRotation().Serialize());
+                                        Assert.AreEqual(minRotation, newShape.MinMirrorRotation().Serialize());
                                     }
                                     if (shape.HasSetNeighbor(1, 0, 1)) {
                                         var newShape = new BitShape(shape);
                                         newShape[1, 0, 1] = true;
-                                        Assert.AreEqual(minRotation, newShape.MinChiralRotation().Serialize());
+                                        Assert.AreEqual(minRotation, newShape.MinMirrorRotation().Serialize());
                                     }
                                     if (shape.HasSetNeighbor(1, 2, 1)) {
                                         var newShape = new BitShape(shape);
                                         newShape[1, 2, 1] = true;
-                                        Assert.AreEqual(minRotation, newShape.MinChiralRotation().Serialize());
+                                        Assert.AreEqual(minRotation, newShape.MinMirrorRotation().Serialize());
                                     }
                                     if (shape.HasSetNeighbor(1, 1, 0)) {
                                         var newShape = new BitShape(shape);
                                         newShape[1, 1, 0] = true;
-                                        Assert.AreEqual(minRotation, newShape.MinChiralRotation().Serialize());
+                                        Assert.AreEqual(minRotation, newShape.MinMirrorRotation().Serialize());
                                     }
                                     if (shape.HasSetNeighbor(1, 1, 2)) {
                                         var newShape = new BitShape(shape);
                                         newShape[1, 1, 2] = true;
-                                        Assert.AreEqual(minRotation, newShape.MinChiralRotation().Serialize());
+                                        Assert.AreEqual(minRotation, newShape.MinMirrorRotation().Serialize());
                                     }
                                 }
                             }

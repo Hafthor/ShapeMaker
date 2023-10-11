@@ -9,44 +9,44 @@ To find polycubes of n cubes, it extends all found polycubes of n-1 by
 adding one cube to them.
 
 ShapeMaker writes out files that are binary serializations of the polycubes
-it has found. By default they will go to a ShapeMaker subdirectory in the
-user's Downloads folder. You can provide a command line argument telling
-ShapeMaker where you would rather have these files saved to.
+it has found. By default they will go to subdirectories in the current working
+directory. You can provide a command line argument telling ShapeMaker where
+you would rather have these files saved to.
 
 Results and timing (in seconds) from 14" 2023 MacBook Pro w/ 96GB 12-core M2 Max, .NET 7 in Release mode
 
-    n=2, shapes: 1 time: 0.0183248, chiral count: 1 time: 0.0006542
-    n=3, shapes: 2 time: 0.0013687, chiral count: 2 time: 0.000129
-    n=4, shapes: 8 time: 0.0023709, chiral count: 7 time: 0.0002405
-    n=5, shapes: 29 time: 0.0021787, chiral count: 23 time: 0.0007507
-    n=6, shapes: 166 time: 0.0074994, chiral count: 112 time: 0.001262
-    n=7, shapes: 1,023 time: 0.0096493, chiral count: 607 time: 0.0043927
-    n=8, shapes: 6,922 time: 0.0280305, chiral count: 3,811 time: 0.0214148
-    n=9, shapes: 48,311 time: 0.2259835, chiral count: 25,413 time: 0.1807897
-    n=10, shapes: 346,543 time: 1.587241, chiral count: 178,083 time: 0.5748292
-    n=11, shapes: 2,522,522 time: 13.1223066, chiral count: 1,279,537 time: 4.313887
-    n=12, shapes: 18,598,427 time: 106.563318, chiral count: 9,371,094 time: 36.8076492
-    n=13, shapes: 138,462,649 time: 962.6670521, chiral count: 69,513,546 time: 409.4930811
-    n=14, shapes: 1,039,496,297 time: 9737.4709864, chiral count: 520,878,101 time: 3823.9919743
-    n=15, shapes: 7,859,514,470 time: 83117.6538951, chiral count: 3,934,285,874 time: 25384.3347744
-    n=16, shapes: 59,795,121,480 time: ?, chiral count: 29,915,913,663 time: ?
+    n=2, shapes: 1 time: 0.0183248, mirror count: 1 time: 0.0006542
+    n=3, shapes: 2 time: 0.0013687, mirror count: 2 time: 0.000129
+    n=4, shapes: 8 time: 0.0023709, mirror count: 7 time: 0.0002405
+    n=5, shapes: 29 time: 0.0021787, mirror count: 23 time: 0.0007507
+    n=6, shapes: 166 time: 0.0074994, mirror count: 112 time: 0.001262
+    n=7, shapes: 1,023 time: 0.0096493, mirror count: 607 time: 0.0043927
+    n=8, shapes: 6,922 time: 0.0280305, mirror count: 3,811 time: 0.0214148
+    n=9, shapes: 48,311 time: 0.2259835, mirror count: 25,413 time: 0.1807897
+    n=10, shapes: 346,543 time: 1.587241, mirror count: 178,083 time: 0.5748292
+    n=11, shapes: 2,522,522 time: 13.1223066, mirror count: 1,279,537 time: 4.313887
+    n=12, shapes: 18,598,427 time: 106.563318, mirror count: 9,371,094 time: 36.8076492
+    n=13, shapes: 138,462,649 time: 962.6670521, mirror count: 69,513,546 time: 409.4930811
+    n=14, shapes: 1,039,496,297 time: 9737.4709864, mirror count: 520,878,101 time: 3823.9919743
+    n=15, shapes: 7,859,514,470 time: 83117.6538951, mirror count: 3,934,285,874 time: 25384.3347744
+    n=16, shapes: 59,795,121,480 time: ?, mirror count: 29,915,913,663 time: ?
 Peak memory usage: ~40GB
 
 Results and timing (in seconds) from 15" 2022 Microsoft Surface Laptop 4 w/ 32GB 4-core 11th Gen 3GHz Core i7, .NET 7 in Release mode
 
-    n=2, shapes: 1 time: 0.0333732, chiral count: 1 time: 0.0013402
-    n=3, shapes: 2 time: 0.0074581, chiral count: 2 time: 0.000919
-    n=4, shapes: 8 time: 0.0095852, chiral count: 7 time: 0.0012408
-    n=5, shapes: 29 time: 0.0122915, chiral count: 23 time: 0.0063124
-    n=6, shapes: 166 time: 0.0229438, chiral count: 112 time: 0.0051743
-    n=7, shapes: 1,023 time: 0.0489735, chiral count: 607 time: 0.0202495
-    n=8, shapes: 6,922 time: 0.134048, chiral count: 3,811 time: 0.0596569
-    n=9, shapes: 48,311 time: 0.6422478, chiral count: 25,413 time: 0.4140952
-    n=10, shapes: 346,543 time: 2.9891527, chiral count: 178,083 time: 1.7550483
-    n=11, shapes: 2,522,522 time: 16.7978658, chiral count: 1,279,537 time: 12.4580685
-    n=12, shapes: 18,598,427 time: 127.1727464, chiral count: 9,371,094 time: 102.1856359
-    n=13, shapes: 138,462,649 time: 1230.0157816, chiral count: 69,513,546 time: 899.4473192
-    n=14, shapes: 1,039,496,297 time: 26384.3786476, chiral count: 520,878,101 time: 21295.4038754
+    n=2, shapes: 1 time: 0.0333732, mirror count: 1 time: 0.0013402
+    n=3, shapes: 2 time: 0.0074581, mirror count: 2 time: 0.000919
+    n=4, shapes: 8 time: 0.0095852, mirror count: 7 time: 0.0012408
+    n=5, shapes: 29 time: 0.0122915, mirror count: 23 time: 0.0063124
+    n=6, shapes: 166 time: 0.0229438, mirror count: 112 time: 0.0051743
+    n=7, shapes: 1,023 time: 0.0489735, mirror count: 607 time: 0.0202495
+    n=8, shapes: 6,922 time: 0.134048, mirror count: 3,811 time: 0.0596569
+    n=9, shapes: 48,311 time: 0.6422478, mirror count: 25,413 time: 0.4140952
+    n=10, shapes: 346,543 time: 2.9891527, mirror count: 178,083 time: 1.7550483
+    n=11, shapes: 2,522,522 time: 16.7978658, mirror count: 1,279,537 time: 12.4580685
+    n=12, shapes: 18,598,427 time: 127.1727464, mirror count: 9,371,094 time: 102.1856359
+    n=13, shapes: 138,462,649 time: 1230.0157816, mirror count: 69,513,546 time: 899.4473192
+    n=14, shapes: 1,039,496,297 time: 26384.3786476, mirror count: 520,878,101 time: 21295.4038754
 
 # Potential Optimizations / Enhancements
 * We could do a counting pass to see how to best partition the data to avoid making a bunch 
