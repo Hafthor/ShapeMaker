@@ -460,8 +460,9 @@ public static class Program {
                     if (!shape[x, y, z] && shape.HasSetNeighbor(x, y, z)) {
                         Array.Copy(shapeBytes, newShapeBytes, shapeBytesLength);
                         newShape[x, y, z] = true;
-                        bool added = newShapes.Add(newShape.MinRotation().bytes); 
-                        if (doMirrorCount && added && newShape.IsMinMirrorRotation())
+                        var minRotation = newShape.MinRotation();
+                        bool added = newShapes.Add(minRotation.bytes); 
+                        if (doMirrorCount && added && minRotation.IsMinMirrorRotation())
                             Interlocked.Increment(ref mirrorCount);
                     }
                 }
