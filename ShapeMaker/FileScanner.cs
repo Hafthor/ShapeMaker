@@ -55,7 +55,7 @@ public class FileScanner {
     /// <param name="n">voxel count</param>
     /// <param name="ext">file extension (defaults to .bin)</param>
     public FileScanner(byte n, string ext = Program.FILE_EXT) {
-        var di = new DirectoryInfo(Path.Combine(Program.filePath, n.ToString()));
+        var di = new DirectoryInfo(Path.Combine(Program.options.filePath, n.ToString()));
 
         // scan for and migrate old files
         var renameList = new List<(string, string)>();
@@ -75,8 +75,8 @@ public class FileScanner {
             renameList.Add((file.Name, newDim + ext));
         }
         foreach (var (oldName, newName) in renameList) {
-            var oldPath = Path.Combine(Program.filePath, n.ToString(), oldName);
-            var newPath = Path.Combine(Program.filePath, n.ToString(), newName);
+            var oldPath = Path.Combine(Program.options.filePath, n.ToString(), oldName);
+            var newPath = Path.Combine(Program.options.filePath, n.ToString(), newName);
             File.Move(oldPath, newPath);
         }
 

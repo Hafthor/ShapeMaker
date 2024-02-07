@@ -897,7 +897,7 @@ public class BitShape {
     public BitShape MinRotation() {
         BitShape? minShape = null;
         foreach (var shape in AllMinRotations())
-            if (minShape == null || minShape.CompareTo(shape) > 0)
+            if (minShape is null || minShape.CompareTo(shape) > 0)
                 minShape = new BitShape(shape); // must clone it to prevent it from being mutated in-place
         return minShape!;
     }
@@ -930,7 +930,7 @@ public class BitShape {
         // note we do mirroring on the inside loop since it is in-place and should be more cache friendly
         foreach (var rotatedShape in AllMinRotations())
             foreach (var mirroredShape in rotatedShape.AllMirrors())
-                if (minShape == null || minShape.CompareTo(mirroredShape) > 0)
+                if (minShape is null || minShape.CompareTo(mirroredShape) > 0)
                     minShape = new BitShape(mirroredShape); // must clone it to prevent it from being mutated in-place
         return minShape!;
     }

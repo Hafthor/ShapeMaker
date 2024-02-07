@@ -3,10 +3,19 @@ using System.Collections.Concurrent;
 
 namespace ShapeMaker;
 
+public enum HashSetAlgorithm {
+    HashSet,
+    HashSet256,
+    Dictionary,
+    HashSet64K,
+    HashSet16M,
+}
+
 /// <summary>
 /// Special purpose append-only hash set for BitShape bytes. For sizes from 1 to 4 bytes we use a bit arrays.
 /// Otherwise, we use the last 2 or 3 bytes (but not the very last byte) as the index to the bucket rather than a hash.
-/// We avoid the last byte because it is often a bit partial, so may not have many unique values.
+/// We avoid the last byte because it is often a bit partial, so may not have many unique values. We always know the
+/// size of the values to be added to the hash set and they will always be the same size for the life of the hash set.
 /// We avoid the early part of the value since we order BitShapes by their minimal rotation which means the early bits
 /// will typically be zeroes.
 /// 
@@ -289,7 +298,7 @@ internal class BitShapeHashSet64K : IBitShapeHashSet {
     public void Clear() {
         for (int bucketIndex = 0; bucketIndex < NUMBER_OF_BUCKETS; bucketIndex++) {
             var bucket = buckets[bucketIndex];
-            if (bucket == null) 
+            if (bucket is null) 
                 continue;
             lock (bucket) {
                 bool notFirst = false;
@@ -309,7 +318,7 @@ internal class BitShapeHashSet64K : IBitShapeHashSet {
         int firstValueBytes = bytesStored - 1;
         int bucketIndex = value[hashIndex + 0] * 256 + value[hashIndex + 1];
         var bucket = buckets[bucketIndex]!;
-        if (bucket.pages == null) { // bucket hasn't been initialized yet
+        if (bucket.pages is null) { // bucket hasn't been initialized yet
             lock (bucket) {
                 bucket.pages ??= new List<byte[]> { new byte[pageSize] };
             }
@@ -373,7 +382,7 @@ internal class BitShapeHashSet64K : IBitShapeHashSet {
         for (int byte0 = 0, bucketIndex = 0; byte0 < 256; byte0++) {
             for (int byte1 = 0; byte1 < 256; byte1++, bucketIndex++) {
                 var bucket = buckets[bucketIndex];
-                if (bucket?.pages != null) {
+                if (bucket?.pages is not null) {
                     int pageCount, lastPageEntryCount;
                     lock (bucket) {
                         pageCount = bucket.pages.Count;
@@ -426,7 +435,7 @@ internal class BitShapeHashSet16M : IBitShapeHashSet {
     public void Clear() {
         for (int bucketIndex = 0; bucketIndex < NUMBER_OF_BUCKETS; bucketIndex++) {
             var bucket = buckets[bucketIndex];
-            if (bucket == null) continue;
+            if (bucket is null) continue;
             lock (bucket) {
                 bool notFirst = false;
                 bucket.pages?.RemoveAll(_ => {
@@ -451,15 +460,15 @@ internal class BitShapeHashSet16M : IBitShapeHashSet {
         int firstValueBytes = bytesStored - 1;
         int bucketIndex = value[hashIndex + 0] * 65536 + value[hashIndex + 1] * 256 + value[hashIndex + 2];
         var bucket = buckets[bucketIndex];
-        if (bucket == null) {
+        if (bucket is null) {
             lock (this) {
                 bucket = buckets[bucketIndex];
-                if (bucket == null) {
+                if (bucket is null) {
                     buckets[bucketIndex] = bucket = new BitShapeHashBucket() { pages = new List<byte[]>() { new byte[pageSize] } };
                 }
             }
         }
-        if (bucket.pages == null) { // bucket hasn't been initialized yet
+        if (bucket.pages is null) { // bucket hasn't been initialized yet
             lock (bucket) {
                 bucket.pages ??= new List<byte[]> { new byte[pageSize] };
             }
@@ -524,7 +533,7 @@ internal class BitShapeHashSet16M : IBitShapeHashSet {
             for (int byte1 = 0; byte1 < 256; byte1++) {
                 for (int byte2 = 0; byte2 < 256; byte2++, bucketIndex++) {
                     var bucket = buckets[bucketIndex];
-                    if (bucket?.pages != null) {
+                    if (bucket?.pages is not null) {
                         int pageCount, lastPageEntryCount;
                         lock (bucket) {
                             pageCount = bucket.pages.Count;

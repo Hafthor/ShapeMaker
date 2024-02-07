@@ -16,7 +16,7 @@ public class FileReader : IDisposable {
     /// <param name="d">depth</param>
     /// <param name="ext">file extension</param>
     /// <returns>file path</returns>
-    public static string FilePath(int n, int w, int h, int d, string ext = Program.FILE_EXT) => Path.Combine(Program.filePath, n.ToString(), w + "x" + h + "x" + d + ext);
+    public static string FilePath(int n, int w, int h, int d, string ext = Program.FILE_EXT) => Path.Combine(Program.options.filePath, n.ToString(), w + "x" + h + "x" + d + ext);
 
     /// <summary>
     /// Helper method to determine if a file exists for a given voxel count and shape size.
@@ -63,7 +63,7 @@ public class FileReader : IDisposable {
     /// <param name="n">voxel count</param>
     /// <returns>a string with the shape count and timing for a given voxel count or null if not complete yet</returns>
     public static string? NCompleteString(int n) {
-        var path = Path.Combine(Program.filePath, n.ToString(), Program.FILE_COMPLETE);
+        var path = Path.Combine(Program.options.filePath, n.ToString(), Program.FILE_COMPLETE);
         return File.Exists(path) ? File.ReadAllText(path) : null;
     }
 
@@ -77,7 +77,7 @@ public class FileReader : IDisposable {
         using var reader = new FileReader(n, w, h, d);
         for (;;) {
             var bytes = reader.Read();
-            if (bytes == null) break;
+            if (bytes is null) break;
             yield return new BitShape(w, h, d, bytes);
         }
     }

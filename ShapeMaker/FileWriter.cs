@@ -14,7 +14,7 @@ public class FileWriter : IDisposable {
     /// </summary>
     /// <param name="n">voxel count</param>
     public static void Clear(byte n) {
-        var di = new DirectoryInfo(Path.Combine(Program.filePath, n.ToString()));
+        var di = new DirectoryInfo(Path.Combine(Program.options.filePath, n.ToString()));
         if (!di.Exists)
             di.Create();
         else {
@@ -24,7 +24,7 @@ public class FileWriter : IDisposable {
             var tmpList = new FileScanner(n, ".tmp").List;
             foreach (var f in tmpList)
                 File.Delete(f.Filepath);
-            var completePath = Path.Combine(Program.filePath, n.ToString(), Program.FILE_COMPLETE);
+            var completePath = Path.Combine(Program.options.filePath, n.ToString(), Program.FILE_COMPLETE);
             if (File.Exists(completePath))
                 File.Delete(completePath);
         }
@@ -35,7 +35,7 @@ public class FileWriter : IDisposable {
     /// </summary>
     /// <param name="n">voxel count</param>
     public static void ClearTmp(byte n) {
-        var di = new DirectoryInfo(Path.Combine(Program.filePath, n.ToString()));
+        var di = new DirectoryInfo(Path.Combine(Program.options.filePath, n.ToString()));
         if (!di.Exists)
             di.Create();
         else
@@ -50,7 +50,7 @@ public class FileWriter : IDisposable {
     /// <param name="n">voxel count</param>
     /// <param name="s">string containing the count and timing for the operation</param>
     public static void MarkNComplete(int n, string s) {
-        var path = Path.Combine(Program.filePath, n.ToString(), Program.FILE_COMPLETE);
+        var path = Path.Combine(Program.options.filePath, n.ToString(), Program.FILE_COMPLETE);
         File.WriteAllText(path, s);
     }
 
