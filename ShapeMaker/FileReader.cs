@@ -3,7 +3,7 @@ namespace ShapeMaker;
 /// <summary>
 /// Class to read shapes from a file.
 /// </summary>
-public class FileReader : IDisposable {
+public sealed class FileReader : IDisposable {
     private readonly FileStream fs;
     private readonly int length;
 

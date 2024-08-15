@@ -1,6 +1,6 @@
 namespace ShapeMaker;
 
-public class ShapeMakerOptions {
+public sealed class ShapeMakerOptions {
     // options and their defaults
     public string filePath = ".";
     public HashSetAlgorithm hashSetAlgorithm = HashSetAlgorithm.HashSet16M;

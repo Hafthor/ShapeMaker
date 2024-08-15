@@ -13,7 +13,7 @@ public class Program {
 
     public Program() {
         var r = new Random(420);
-        shape555 = new BitShape(5, 5, 5); // 5x5x5=125 bits
+        shape555 = new BitShape(5, 5, 5); // 5x5x5=125 bits (4 bytes)
         for (int i = 0; i < shape555.bytes.Length; i++)
             shape555.bytes[i] = (byte)r.Next(256);
         shape555.bytes[^1] &= 0xF8;

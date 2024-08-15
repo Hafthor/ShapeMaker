@@ -3,11 +3,11 @@ namespace ShapeMaker;
 /// <summary>
 /// File scanner. Scans a directory for shape files of a given voxel count and extension.
 /// </summary>
-public class FileScanner {
+public sealed class FileScanner {
     /// <summary>
     /// Results of a file scan.
     /// </summary>
-    public class Results {
+    public sealed class Results {
         /// <summary>
         /// width
         /// </summary>

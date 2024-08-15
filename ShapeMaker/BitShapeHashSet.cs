@@ -69,7 +69,7 @@ public static class BitShapeHashSetFactory {
     public static IBitShapeHashSet CreateWithHashSet(bool use256HashSets) => use256HashSets ? new BitShapeHashSet256HashSets() : new BitShapeHashSet1HashSet();
 }
 
-internal class BitShapeHashSetBits1 : IBitShapeHashSet {
+internal sealed class BitShapeHashSetBits1 : IBitShapeHashSet {
     private readonly byte[] bucket = new byte[256 / 8];
     
     /// <inheritdoc />
@@ -102,7 +102,7 @@ internal class BitShapeHashSetBits1 : IBitShapeHashSet {
     IEnumerator IEnumerable.GetEnumerator() => throw new NotImplementedException();
 }
 
-internal class BitShapeHashSetBits2 : IBitShapeHashSet {
+internal sealed class BitShapeHashSetBits2 : IBitShapeHashSet {
     private readonly byte[] bucket = new byte[65536 / 8];
     
     /// <inheritdoc />
@@ -135,7 +135,7 @@ internal class BitShapeHashSetBits2 : IBitShapeHashSet {
     IEnumerator IEnumerable.GetEnumerator() => throw new NotImplementedException();
 }
 
-internal class BitShapeHashSetBits3 : IBitShapeHashSet {
+internal sealed class BitShapeHashSetBits3 : IBitShapeHashSet {
     private readonly byte[] bucket = new byte[16777216 / 8];
     
     /// <inheritdoc />
@@ -168,7 +168,7 @@ internal class BitShapeHashSetBits3 : IBitShapeHashSet {
     IEnumerator IEnumerable.GetEnumerator() => throw new NotImplementedException();
 }
 
-internal class BitShapeHashSetBits4 : IBitShapeHashSet {
+internal sealed class BitShapeHashSetBits4 : IBitShapeHashSet {
     private readonly byte[] bucket = new byte[4294967296 / 8];
     
     /// <inheritdoc />
@@ -201,7 +201,7 @@ internal class BitShapeHashSetBits4 : IBitShapeHashSet {
     IEnumerator IEnumerable.GetEnumerator() => throw new NotImplementedException();
 }
 
-internal class BitShapeHashSetDictionary : IBitShapeHashSet {
+internal sealed class BitShapeHashSetDictionary : IBitShapeHashSet {
     private readonly ConcurrentDictionary<byte[], byte> dictionary = new(ByteArrayEqualityComparer.Instance);
 
     /// <inheritdoc />
@@ -216,7 +216,7 @@ internal class BitShapeHashSetDictionary : IBitShapeHashSet {
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }
 
-internal class BitShapeHashSet1HashSet : IBitShapeHashSet {
+internal sealed class BitShapeHashSet1HashSet : IBitShapeHashSet {
     private readonly HashSet<byte[]> hashSet = new(ByteArrayEqualityComparer.Instance);
 
     /// <inheritdoc />
@@ -234,7 +234,7 @@ internal class BitShapeHashSet1HashSet : IBitShapeHashSet {
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }
 
-internal class BitShapeHashSet256HashSets : IBitShapeHashSet {
+internal sealed class BitShapeHashSet256HashSets : IBitShapeHashSet {
     private readonly HashSet<byte[]>[] hashSets = new HashSet<byte[]>[256];
 
     public BitShapeHashSet256HashSets() {
@@ -269,7 +269,7 @@ internal class BitShapeHashSet256HashSets : IBitShapeHashSet {
     IEnumerator IEnumerable.GetEnumerator() => throw new NotImplementedException();
 }
 
-internal class BitShapeHashSet64K : IBitShapeHashSet {
+internal sealed class BitShapeHashSet64K : IBitShapeHashSet {
     // this cannot be easily changed - lots of the code depends on this specific value
     private const int NUMBER_OF_BUCKETS = 65536;
     private const int ENTRIES_PER_PAGE = 256;
@@ -409,7 +409,7 @@ internal class BitShapeHashSet64K : IBitShapeHashSet {
     IEnumerator IEnumerable.GetEnumerator() => throw new NotImplementedException();
 }
 
-internal class BitShapeHashSet16M : IBitShapeHashSet {
+internal sealed class BitShapeHashSet16M : IBitShapeHashSet {
     // this cannot be easily changed - lots of the code depends on this specific value
     private const int NUMBER_OF_BUCKETS = 256 * 256 * 256;
     private const int ENTRIES_PER_PAGE = 256;
@@ -562,7 +562,7 @@ internal class BitShapeHashSet16M : IBitShapeHashSet {
     IEnumerator IEnumerable.GetEnumerator() => throw new NotImplementedException();
 }
 
-internal record BitShapeHashBucket {
+internal sealed record BitShapeHashBucket {
     public List<byte[]>? pages = null;
     public int lastPageEntryCount = 0;
 }

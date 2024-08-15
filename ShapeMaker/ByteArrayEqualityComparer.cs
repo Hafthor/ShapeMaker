@@ -4,7 +4,7 @@ namespace ShapeMaker;
 /// Byte array equality comparer. Used to compare byte arrays for equality and to get a hash code for a byte array.
 /// Used to allow HashSet to store byte arrays by using .Instance as the comparer.
 /// </summary>
-public class ByteArrayEqualityComparer : IEqualityComparer<byte[]> {
+public sealed class ByteArrayEqualityComparer : IEqualityComparer<byte[]> {
     /// <summary>
     /// Byte array equality comparer instance. Used when creating a HashSet to store byte arrays.
     /// </summary>

@@ -3,7 +3,7 @@ namespace ShapeMaker;
 /// <summary>
 /// File writer. Writes shapes to a file.
 /// </summary>
-public class FileWriter : IDisposable {
+public sealed class FileWriter : IDisposable {
     private FileStream? fs = null;
     private readonly int length;
     private readonly string path;

@@ -9,7 +9,7 @@ namespace ShapeMaker;
 /// Stores a shape of given dimensions with w*h*d bits inside to represent a shape.
 /// Supports various 3-D operations on shape.
 /// </summary>
-public class BitShape {
+public sealed class BitShape {
     const int BITS_PER = sizeof(byte) * 8; // 8
     const int BITS_PER_MINUS_1 = BITS_PER - 1; // 7
     const byte MASK_FIRST = 1 << BITS_PER_MINUS_1; // 128
@@ -85,23 +85,23 @@ public class BitShape {
     /// <exception cref="ArgumentException">on incorrect serialization</exception>
     public BitShape(string s) {
         var split = s.Split(',');
-        if (split.Length != 2) 
+        if (split.Length != 2)
             throw new ArgumentException("expected a two part string (dimensions,contents)");
         var whd = split[0].Split('x');
-        if (whd.Length != 3) 
+        if (whd.Length != 3)
             throw new ArgumentException("expected a three part dimension string (WxHxD)");
         this.w = byte.Parse(whd[0]);
         this.h = byte.Parse(whd[1]);
         this.d = byte.Parse(whd[2]);
         var chars = split[1].Replace(" ", "").Replace("\n", "");
-        if (chars.Length != w * h * d) 
+        if (chars.Length != w * h * d)
             throw new ArgumentException("expected string of len w*h*d");
         int size = w * h * d;
         this.bytes = new byte[(size + BITS_PER_MINUS_1) >> BITS_SHR];
         int byteIndex = 0;
         byte mask = MASK_FIRST;
         for (int i = 0; i < size; i++) {
-            if (chars[i] == '*') 
+            if (chars[i] == '*')
                 bytes[byteIndex] |= mask;
             mask >>= 1;
             if (mask == 0) {
@@ -130,7 +130,7 @@ public class BitShape {
                         byteIndex++;
                     }
                 }
-        if (charIndex != chars.Length) 
+        if (charIndex != chars.Length)
             throw new InvalidProgramException("miscalculated string length");
         return w + "x" + h + "x" + d + "," + new string(chars);
     }
@@ -153,7 +153,7 @@ public class BitShape {
             int byteIndex = bitIndex >> BITS_SHR, shr = bitIndex & BITS_PER_MINUS_1;
             byte mask = (byte)(MASK_FIRST >> shr);
             byte b = bytes[byteIndex];
-            if (value != ((b & mask) != 0)) 
+            if (value != ((b & mask) != 0))
                 bytes[byteIndex] = (byte)(b ^ mask);
         }
     }
@@ -254,13 +254,13 @@ public class BitShape {
                         bool isSet1 = (bytes[byteIndex1] & mask1) != 0;
                         bool isSet2 = (bytes[byteIndex2] & mask2) != 0;
                         bool isSet3 = (bytes[byteIndex3] & mask3) != 0;
-                        if (isSet0 != isSet1) 
+                        if (isSet0 != isSet1)
                             bytes[byteIndex0] ^= mask0;
-                        if (isSet1 != isSet2) 
+                        if (isSet1 != isSet2)
                             bytes[byteIndex1] ^= mask1;
-                        if (isSet2 != isSet3) 
+                        if (isSet2 != isSet3)
                             bytes[byteIndex2] ^= mask2;
-                        if (isSet3 != isSet0) 
+                        if (isSet3 != isSet0)
                             bytes[byteIndex3] ^= mask3;
                     }
             return this;
@@ -273,7 +273,7 @@ public class BitShape {
         for (int x = 0, yLimit = h - 1; x < w; x++)
             for (int z = 0; z < d; z++)
                 for (int y = 0, yNot = yLimit; y < h; y++, yNot--) {
-                    if (this[x, yNot, z]) 
+                    if (this[x, yNot, z])
                         newBytes[byteIndex] |= mask; // newShape[x, z, y] = true;
                     mask >>= 1;
                     if (mask == 0) {
@@ -425,13 +425,13 @@ public class BitShape {
                         bool isSet1 = (bytes[byteIndex1] & mask1) != 0;
                         bool isSet2 = (bytes[byteIndex2] & mask2) != 0;
                         bool isSet3 = (bytes[byteIndex3] & mask3) != 0;
-                        if (isSet0 != isSet1) 
+                        if (isSet0 != isSet1)
                             bytes[byteIndex0] ^= mask0;
-                        if (isSet1 != isSet2) 
+                        if (isSet1 != isSet2)
                             bytes[byteIndex1] ^= mask1;
-                        if (isSet2 != isSet3) 
+                        if (isSet2 != isSet3)
                             bytes[byteIndex2] ^= mask2;
-                        if (isSet3 != isSet0) 
+                        if (isSet3 != isSet0)
                             bytes[byteIndex3] ^= mask3;
                     }
             return this;
@@ -444,7 +444,7 @@ public class BitShape {
         for (int z = 0, xLimit = w - 1; z < d; z++)
             for (int y = 0; y < h; y++)
                 for (int x = 0, xNot = xLimit; x < w; x++, xNot--) {
-                    if (this[xNot, y, z]) 
+                    if (this[xNot, y, z])
                         newBytes[byteIndex] |= mask; // newShape[z, y, x] = true;
                     mask >>= 1;
                     if (mask == 0) {
@@ -595,7 +595,7 @@ public class BitShape {
                             bytes[byteIndex0] ^= mask0;
                         if (isSet1 != isSet2)
                             bytes[byteIndex1] ^= mask1;
-                        if (isSet2 != isSet3) 
+                        if (isSet2 != isSet3)
                             bytes[byteIndex2] ^= mask2;
                         if (isSet3 != isSet0)
                             bytes[byteIndex3] ^= mask3;
@@ -610,7 +610,7 @@ public class BitShape {
         for (int y = 0, xLimit = w - 1; y < h; y++)
             for (int x = 0, xNot = xLimit; x < w; x++, xNot--)
                 for (int z = 0; z < d; z++) {
-                    if (this[xNot, y, z]) 
+                    if (this[xNot, y, z])
                         newBytes[byteIndex] |= mask; // newShape[y, x, z] = true;
                     mask >>= 1;
                     if (mask == 0) {
@@ -713,19 +713,19 @@ public class BitShape {
         BitShape newShape = this;
         if (w > h || h > d) {
             if (w == h)
-                if (w > d) 
+                if (w > d)
                     newShape = RotateY();
-                else 
+                else
                     throw new ApplicationException("how did we end up here?");
             else if (h == d)
-                if (w > d) 
+                if (w > d)
                     newShape = RotateY();
-                else 
+                else
                     throw new ApplicationException("how did we end up here?");
             else if (w == d)
-                if (w > h) 
+                if (w > h)
                     newShape = RotateZ();
-                else 
+                else
                     newShape = RotateX();
             else {
                 if (w < h && h < d)
@@ -743,15 +743,15 @@ public class BitShape {
                 else
                     throw new ApplicationException("how did we end up here?");
             }
-            if (newShape.w > newShape.h || newShape.h > newShape.d) 
+            if (newShape.w > newShape.h || newShape.h > newShape.d)
                 throw new ApplicationException("Unexpected non minimal rotation");
         }
 
-        if (newShape.w < newShape.h && newShape.h < newShape.d) 
+        if (newShape.w < newShape.h && newShape.h < newShape.d)
             return newShape.All8Rotations();
-        if (newShape.w < newShape.h && newShape.h == newShape.d) 
+        if (newShape.w < newShape.h && newShape.h == newShape.d)
             return newShape.All16RotationsY2Z2();
-        if (newShape.w == newShape.h && newShape.h < newShape.d) 
+        if (newShape.w == newShape.h && newShape.h < newShape.d)
             return newShape.All16RotationsX2Y2();
         throw new ApplicationException("Unexpected situation");
     }
@@ -778,19 +778,19 @@ public class BitShape {
     /// <returns>A sequence of all possible minimum rotations of shape</returns>
     private IEnumerable<BitShape> All16RotationsY2Z2() {
         var inputShape = new BitShape(this);
-        foreach (var shape in inputShape.AllRotationsOfX()) 
+        foreach (var shape in inputShape.AllRotationsOfX())
             yield return shape;
 
         inputShape = inputShape.RotateY2();
-        foreach (var shape in inputShape.AllRotationsOfX()) 
+        foreach (var shape in inputShape.AllRotationsOfX())
             yield return shape;
 
         inputShape = inputShape.RotateZ2();
-        foreach (var shape in inputShape.AllRotationsOfX()) 
+        foreach (var shape in inputShape.AllRotationsOfX())
             yield return shape;
 
         inputShape = inputShape.RotateY2();
-        foreach (var shape in inputShape.AllRotationsOfX()) 
+        foreach (var shape in inputShape.AllRotationsOfX())
             yield return shape;
     }
 
@@ -800,11 +800,11 @@ public class BitShape {
     /// <returns>A sequence of all possible minimum rotations of shape</returns>
     private IEnumerable<BitShape> All16RotationsX2Y2() {
         var inputShape = new BitShape(this);
-        foreach (var shape in inputShape.AllRotationsOfZ()) 
+        foreach (var shape in inputShape.AllRotationsOfZ())
             yield return shape;
 
         inputShape = inputShape.RotateY2();
-        foreach (var shape in inputShape.AllRotationsOfZ()) 
+        foreach (var shape in inputShape.AllRotationsOfZ())
             yield return shape;
 
         inputShape = inputShape.RotateX2();
@@ -812,7 +812,7 @@ public class BitShape {
             yield return shape;
 
         inputShape = inputShape.RotateY2();
-        foreach (var shape in inputShape.AllRotationsOfZ()) 
+        foreach (var shape in inputShape.AllRotationsOfZ())
             yield return shape;
     }
 
@@ -825,23 +825,23 @@ public class BitShape {
     /// six*four=24.</remarks>
     private IEnumerable<BitShape> All24Rotations() {
         var inputShape = new BitShape(this);
-        foreach (var shape in inputShape.AllRotationsOfX()) 
+        foreach (var shape in inputShape.AllRotationsOfX())
             yield return shape;
 
         inputShape = inputShape.RotateY();
-        foreach (var shape in inputShape.AllRotationsOfX()) 
+        foreach (var shape in inputShape.AllRotationsOfX())
             yield return shape;
 
         var inputShapeRotateY2 = new BitShape(this).RotateY2();
-        foreach (var shape in inputShapeRotateY2.AllRotationsOfX()) 
+        foreach (var shape in inputShapeRotateY2.AllRotationsOfX())
             yield return shape;
 
         inputShape.RotateY2();
-        foreach (var shape in inputShape.AllRotationsOfX()) 
+        foreach (var shape in inputShape.AllRotationsOfX())
             yield return shape;
 
         inputShape = inputShape.RotateZ();
-        foreach (var shape in inputShape.AllRotationsOfX()) 
+        foreach (var shape in inputShape.AllRotationsOfX())
             yield return shape;
 
         inputShape.RotateZ2();
@@ -954,21 +954,21 @@ public class BitShape {
     /// <param name="other">other shape to be compared</param>
     /// <returns>negative if this is lower, 0 if equal, positive if other is lower</returns>
     private int CompareTo(BitShape other) {
-        if (ReferenceEquals(this, other)) 
+        if (ReferenceEquals(this, other))
             return 0;
-        
+
         int dw = w - other.w;
         if (dw != 0)
             return dw;
-        
+
         int dh = h - other.h;
-        if (dh != 0) 
+        if (dh != 0)
             return dh;
-        
+
         int dd = d - other.d;
-        if (dd != 0) 
+        if (dd != 0)
             return dd;
-        
+
         return ((IStructuralComparable)bytes).CompareTo(other.bytes, Comparer<byte>.Default);
     }
 
@@ -980,7 +980,7 @@ public class BitShape {
     public override bool Equals(object? obj) {
         return obj is BitShape b && w == b.w && h == b.h && d == b.d && bytes.SequenceEqual(b.bytes);
     }
-    
+
     /// <summary>
     /// Computes the hash code of a shape. Hash code is based on dimensions and binary serialization.
     /// </summary>
@@ -998,23 +998,23 @@ public class BitShape {
     /// <returns>true if shape has voxel adjacent to given coordinates set</returns>
     public bool HasSetNeighbor(int x, int y, int z) {
         // minor opt: we do easier comparisons first
-        if (x > 0 && this[x - 1, y, z]) 
+        if (x > 0 && this[x - 1, y, z])
             return true;
-        if (y > 0 && this[x, y - 1, z]) 
+        if (y > 0 && this[x, y - 1, z])
             return true;
-        if (z > 0 && this[x, y, z - 1]) 
+        if (z > 0 && this[x, y, z - 1])
             return true;
-        
+
         int x1 = x + 1;
-        if (x1 < w && this[x1, y, z]) 
+        if (x1 < w && this[x1, y, z])
             return true;
         int y1 = y + 1;
-        if (y1 < h && this[x, y1, z]) 
+        if (y1 < h && this[x, y1, z])
             return true;
         int z1 = z + 1;
-        if (z1 < d && this[x, y, z1]) 
+        if (z1 < d && this[x, y, z1])
             return true;
-        
+
         return false;
     }
 
