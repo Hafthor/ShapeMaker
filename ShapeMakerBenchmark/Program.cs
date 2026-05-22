@@ -4,6 +4,7 @@ using ShapeMaker;
 
 namespace ShapeMakerBenchmark;
 
+[MemoryDiagnoser]
 public class Program {
     public static void Main() {
         BenchmarkRunner.Run<Program>();
@@ -20,24 +21,39 @@ public class Program {
     }
 
     // Benchmarks   M2Max    Intel
-    [Benchmark] //  76.49ns  107.91ns
+    [Benchmark] //  78.75ns  107.91ns
     public void RotateX2() => shape555.RotateX2();
 
-    [Benchmark] //  64.45ns   93.42ns
+    [Benchmark] //  63.43ns   93.42ns
     public void MirrorX() => shape555.MirrorX();
 
-    [Benchmark] //  71.57ns  109.72ns
+    [Benchmark] //  67.867ns  109.72ns
     public void MirrorY() => shape555.MirrorY();
 
-    [Benchmark] // 102.80ns  146.59ns
+    [Benchmark] //  96.87ns  146.59ns
     public void MirrorZ() => shape555.MirrorZ();
 
-    [Benchmark] //  98.06ns  117.55ns
+    [Benchmark] //  98.71ns  117.55ns
     public void CornerEdgeFaceCount() => shape555.CornerEdgeFaceCount();
 
-    [Benchmark] //  49.12ns   56.67ns
+    [Benchmark] //  41.43ns   56.67ns
     public void CornerEdgeCount() => shape555.CornerEdgeCount();
 
-    [Benchmark] //   9.95ns   14.25ns
+    [Benchmark] //   4.72ns   14.25ns
     public void CornerCount() => shape555.CornerCount();
+    
+    [Benchmark] // 112.83ns
+    public void RotateX() => shape555.RotateX();
+    
+    [Benchmark] // 104.87ns
+    public void RotateY() => shape555.RotateY();
+    
+    [Benchmark] // 108.88ns
+    public void RotateZ() => shape555.RotateZ();
+    
+    [Benchmark] //  98.32ns
+    public void RotateY2() => shape555.RotateY2();
+    
+    [Benchmark] // 111.18ns
+    public void RotateZ2() => shape555.RotateZ2();
 }

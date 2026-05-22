@@ -46,12 +46,12 @@ public class BitShapeTests {
 
     [TestMethod]
     public void TestParseNonTwoPartString() {
-        Assert.ThrowsException<ArgumentException>(() => new BitShape("3x3x3"));
-        Assert.ThrowsException<ArgumentException>(() => new BitShape("3x3x3,***************************,extra"));
-        Assert.ThrowsException<ArgumentException>(() => new BitShape("3x3,***************************"));
-        Assert.ThrowsException<ArgumentException>(() => new BitShape("3x3x3x3,***************************"));
-        Assert.ThrowsException<ArgumentException>(() => new BitShape("3x3x3,**************************"));
-        Assert.ThrowsException<ArgumentException>(() => new BitShape("3x3x3,****************************"));
+        Assert.Throws<ArgumentException>(() => new BitShape("3x3x3"));
+        Assert.Throws<ArgumentException>(() => new BitShape("3x3x3,***************************,extra"));
+        Assert.Throws<ArgumentException>(() => new BitShape("3x3,***************************"));
+        Assert.Throws<ArgumentException>(() => new BitShape("3x3x3x3,***************************"));
+        Assert.Throws<ArgumentException>(() => new BitShape("3x3x3,**************************"));
+        Assert.Throws<ArgumentException>(() => new BitShape("3x3x3,****************************"));
     }
 
     [TestMethod]
@@ -593,7 +593,7 @@ public class BitShapeTests {
     [TestMethod]
     public void TestShapeCornerCount() {
         var shape = new BitShape("1x1x1,*");
-        Assert.AreEqual(1, shape.CornerCount());
+        Assert.AreEqual(8, shape.CornerCount());
         shape = new BitShape("1x1x1,.");
         Assert.AreEqual(0, shape.CornerCount());
 

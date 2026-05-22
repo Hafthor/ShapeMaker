@@ -895,7 +895,7 @@ public class BitShape {
     /// </summary>
     /// <returns>BitShape rotated such that it is the minimum serialization</returns>
     public BitShape MinRotation() {
-        BitShape? minShape = null;
+        BitShape minShape = null;
         foreach (var shape in AllMinRotations())
             if (minShape is null || minShape.CompareTo(shape) > 0)
                 minShape = new BitShape(shape); // must clone it to prevent it from being mutated in-place
@@ -907,17 +907,17 @@ public class BitShape {
     /// Does restore the shape to its original state at the end.
     /// </summary>
     /// <returns>A sequence of 8 mirrorings.</returns>
-    private IEnumerable<BitShape> AllMirrors() {
-        yield return this;
-        yield return MirrorX();
-        yield return MirrorY();
-        yield return MirrorX();
-        yield return MirrorZ();
-        yield return MirrorX();
-        yield return MirrorY();
-        yield return MirrorX();
-        MirrorZ(); // restore
-    }
+    // private IEnumerable<BitShape> AllMirrors() {
+    //     yield return this;
+    //     yield return MirrorX();
+    //     yield return MirrorY();
+    //     yield return MirrorX();
+    //     yield return MirrorZ();
+    //     yield return MirrorX();
+    //     yield return MirrorY();
+    //     yield return MirrorX();
+    //     MirrorZ(); // restore
+    // }
 
     /// <summary>
     /// Finds the minimal mirror rotation of a shape. This is the rotation that has the lowest serialization of the
@@ -926,12 +926,20 @@ public class BitShape {
     /// </summary>
     /// <returns>Minimal mirror rotation of shape</returns>
     public BitShape MinMirrorRotation() {
-        BitShape? minShape = null;
+        BitShape minShape = null;
         // note we do mirroring on the inside loop since it is in-place and should be more cache friendly
+        // foreach (var rotatedShape in AllMinRotations())
+        //     foreach (var mirroredShape in rotatedShape.AllMirrors())
+        //         if (minShape is null || minShape.CompareTo(mirroredShape) > 0)
+        //             minShape = new BitShape(mirroredShape); // must clone it to prevent it from being mutated in-place
         foreach (var rotatedShape in AllMinRotations())
-            foreach (var mirroredShape in rotatedShape.AllMirrors())
-                if (minShape is null || minShape.CompareTo(mirroredShape) > 0)
-                    minShape = new BitShape(mirroredShape); // must clone it to prevent it from being mutated in-place
+            if (minShape is null || minShape.CompareTo(rotatedShape) > 0)
+                minShape = new BitShape(rotatedShape); // must clone it to prevent it from being mutated in-place
+        MirrorX();
+        foreach (var rotatedShape in AllMinRotations())
+            if (minShape.CompareTo(rotatedShape) > 0)
+                minShape = new BitShape(rotatedShape); // must clone it to prevent it from being mutated in-place
+        MirrorX();
         return minShape!;
     }
 
@@ -940,13 +948,29 @@ public class BitShape {
     /// </summary>
     /// <returns>true if shape is minimal mirror rotation</returns>
     public bool IsMinMirrorRotation() {
+        // var inputShape = new BitShape(this);
+        // foreach (var rotatedShape in AllMinRotations())
+        //     foreach (var mirroredShape in rotatedShape.AllMirrors())
+        //         if (inputShape.CompareTo(mirroredShape) > 0)
+        //             return false;
+        // return true;
         var inputShape = new BitShape(this);
-        foreach (var rotatedShape in AllMinRotations())
-            foreach (var mirroredShape in rotatedShape.AllMirrors())
-                if (inputShape.CompareTo(mirroredShape) > 0)
-                    return false;
+        foreach(var rotatedShape in AllMinRotations())
+            if (inputShape.CompareTo(rotatedShape) > 0)
+                return false;
+        MirrorX();
+        foreach(var rotatedShape in AllMinRotations())
+            if (inputShape.CompareTo(rotatedShape) > 0)
+                return false;
+        MirrorX();
         return true;
     }
+
+    /// <summary>
+    /// Checks if this shape is the minimal rotation of all possible rotations of the shape.
+    /// </summary>
+    /// <returns>true if shape is minimal rotation</returns>
+    public bool IsMinRotation() => CompareTo(MinRotation()) == 0;
 
     /// <summary>
     /// Compares two shapes. Compares their dimensions first, then their binary serialization.
@@ -985,8 +1009,20 @@ public class BitShape {
     /// Computes the hash code of a shape. Hash code is based on dimensions and binary serialization.
     /// </summary>
     /// <returns>hash code of shape</returns>
-    public override int GetHashCode() {
-        return HashCode.Combine(w, h, d, bytes);
+    public override int GetHashCode() => HashCode.Combine(w, h, d, bytes);
+
+    /// <summary>
+    /// Determines if a shape is in a given shard of a given number of shards.
+    /// </summary>
+    /// <param name="shard">shard</param>
+    /// <param name="shardCount">total number of shards</param>
+    /// <returns>true if in shard</returns>
+    public bool IsInShard(int shard, int shardCount) {
+        if (shardCount < 2) return true;
+        uint hash = 7;
+        for (int i = 0; i < bytes.Length; i++)
+            hash = hash * 31 + bytes[i];
+        return hash % (uint)shardCount == (uint)shard;
     }
 
     /// <summary>
@@ -1104,16 +1140,14 @@ public class BitShape {
     /// </summary>
     /// <returns>Corners set</returns>
     public int CornerCount() {
-        int corners = 0;
-        int xLimit = w - 1, yLimit = h - 1, zLimit = d - 1;
-        int xIncr = Math.Max(1, xLimit), yIncr = Math.Max(1, yLimit), zIncr = Math.Max(1, zLimit);
-
-        for (int x = 0; x <= xLimit; x += xIncr)
-            for (int y = 0; y <= yLimit; y += yIncr)
-                for (int z = 0; z <= zLimit; z += zIncr)
-                    if (this[x, y, z])
-                        corners++;
-
-        return corners;
+        int x = w - 1, y = h - 1, z = d - 1;
+        return (this[0, 0, 0] ? 1 : 0) +
+               (this[0, 0, z] ? 1 : 0) +
+               (this[0, y, 0] ? 1 : 0) +
+               (this[0, y, z] ? 1 : 0) +
+               (this[x, 0, 0] ? 1 : 0) +
+               (this[x, 0, z] ? 1 : 0) +
+               (this[x, y, 0] ? 1 : 0) +
+               (this[x, y, z] ? 1 : 0);
     }
 }

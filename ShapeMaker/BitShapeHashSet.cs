@@ -272,10 +272,10 @@ internal class BitShapeHashSet256HashSets : IBitShapeHashSet {
 internal class BitShapeHashSet64K : IBitShapeHashSet {
     // this cannot be easily changed - lots of the code depends on this specific value
     private const int NUMBER_OF_BUCKETS = 65536;
-    private const int ENTRIES_PER_PAGE = 256;
+    private const int MAX_PAGE_SIZE = 65536;
     
     private readonly BitShapeHashBucket[] buckets = new BitShapeHashBucket[NUMBER_OF_BUCKETS];
-    private readonly int bytesStored, hashIndex, bytesLength, pageSize;
+    private readonly int bytesStored, hashIndex, bytesLength, pageSize, entriesPerPage;
 
     /// <summary>
     /// Creates a new BitShapeHashSet with the specified number of bytes per entry.
@@ -290,8 +290,9 @@ internal class BitShapeHashSet64K : IBitShapeHashSet {
         buckets = new BitShapeHashBucket[NUMBER_OF_BUCKETS];
         for (int i = 0; i < NUMBER_OF_BUCKETS; i++)
             buckets[i] = new BitShapeHashBucket();
+        entriesPerPage = MAX_PAGE_SIZE / bytesStored;
         
-        pageSize = ENTRIES_PER_PAGE * bytesStored;
+        pageSize = entriesPerPage * bytesStored;
     }
     
     /// <inheritdoc />
@@ -336,22 +337,22 @@ internal class BitShapeHashSet64K : IBitShapeHashSet {
         // scan bucket to see if value found without locking
         for (int pageIndex = 0; pageIndex < pageCount; pageIndex++) {
             var page = bucket.pages[pageIndex];
-            int entryCount = pageIndex + 1 < pageCount ? ENTRIES_PER_PAGE : lastPageEntryCount;
+            int entryCount = pageIndex + 1 < pageCount ? entriesPerPage : lastPageEntryCount;
             for (int entryIndex = 0, byteIndex = 0; entryIndex < entryCount; entryIndex++, byteIndex += bytesStored)
                 if (ByteArrayEqualityComparer.Equals(page, byteIndex, value, 0, firstValueBytes) && page[byteIndex + firstValueBytes] == lastValueByte)
                     return false;
         }
-        int scannedEntryCount = (pageCount - 1) * ENTRIES_PER_PAGE + lastPageEntryCount;
-        var startEntryIndex = scannedEntryCount % ENTRIES_PER_PAGE;
+        int scannedEntryCount = (pageCount - 1) * entriesPerPage + lastPageEntryCount;
+        var startEntryIndex = scannedEntryCount % entriesPerPage;
         var startByteIndex = startEntryIndex * bytesStored;
 
         lock (bucket) {
             pageCount = bucket.pages.Count;
             lastPageEntryCount = bucket.lastPageEntryCount;
             // scan the rest of the bucket under lock
-            for (int pageIndex = scannedEntryCount / ENTRIES_PER_PAGE; pageIndex < pageCount; pageIndex++) {
+            for (int pageIndex = scannedEntryCount / entriesPerPage; pageIndex < pageCount; pageIndex++) {
                 var page = bucket.pages[pageIndex];
-                int entryCount = pageIndex + 1 < pageCount ? ENTRIES_PER_PAGE : lastPageEntryCount;
+                int entryCount = pageIndex + 1 < pageCount ? entriesPerPage : lastPageEntryCount;
                 for (int entryIndex = startEntryIndex, byteIndex = startByteIndex; entryIndex < entryCount; entryIndex++, byteIndex += bytesStored)
                     if (ByteArrayEqualityComparer.Equals(page, byteIndex, value, 0, firstValueBytes) && page[byteIndex + firstValueBytes] == lastValueByte)
                         return false;
@@ -361,7 +362,7 @@ internal class BitShapeHashSet64K : IBitShapeHashSet {
             // add new entry
             int destByteIndex;
             byte[] destPage;
-            if (lastPageEntryCount < ENTRIES_PER_PAGE) {
+            if (lastPageEntryCount < entriesPerPage) {
                 destPage = bucket.pages[pageCount - 1];
                 destByteIndex = lastPageEntryCount * bytesStored;
                 bucket.lastPageEntryCount++;
@@ -390,7 +391,7 @@ internal class BitShapeHashSet64K : IBitShapeHashSet {
                     }
                     for (int pageIndex = 0; pageIndex < pageCount; pageIndex++) {
                         var page = bucket.pages[pageIndex];
-                        int entryCount = pageIndex + 1 < bucket.pages.Count ? ENTRIES_PER_PAGE : lastPageEntryCount;
+                        int entryCount = pageIndex + 1 < bucket.pages.Count ? entriesPerPage : lastPageEntryCount;
                         for (int entryIndex = 0, byteIndex = 0; entryIndex < entryCount; entryIndex++, byteIndex += bytesStored) {
                             var returnValue = new byte[bytesLength];
                             Array.Copy(page, byteIndex, returnValue, 0, bytesStored - 1);
@@ -412,10 +413,10 @@ internal class BitShapeHashSet64K : IBitShapeHashSet {
 internal class BitShapeHashSet16M : IBitShapeHashSet {
     // this cannot be easily changed - lots of the code depends on this specific value
     private const int NUMBER_OF_BUCKETS = 256 * 256 * 256;
-    private const int ENTRIES_PER_PAGE = 256;
-
+    //private const int MAX_PAGE_SIZE = 1024; // 1K * 16M buckets = 16G
+    
     private readonly BitShapeHashBucket[] buckets = new BitShapeHashBucket[NUMBER_OF_BUCKETS];
-    private readonly int bytesStored, hashIndex, bytesLength, pageSize;
+    private readonly int bytesStored, hashIndex, bytesLength, pageSize, entriesPerPage, maxPageSize;
 
     /// <summary>
     /// Creates a new BitShapeHashSet with the specified number of bytes per entry.
@@ -427,8 +428,9 @@ internal class BitShapeHashSet16M : IBitShapeHashSet {
         bytesStored = bytesLength - 3; // number of bytes actually stored in the bucket pages per entry
         hashIndex = bytesLength - 4; // start index of bytes in entry to be used as bucket index
 
-        //for (int i = 0; i < NUMBER_OF_BUCKETS; i++) buckets[i] = new BitShapeHashBucket();
-        pageSize = ENTRIES_PER_PAGE * bytesStored;
+        maxPageSize = (int)(GC.GetGCMemoryInfo().TotalAvailableMemoryBytes / 2 / NUMBER_OF_BUCKETS);
+        entriesPerPage = maxPageSize / bytesStored;
+        pageSize = entriesPerPage * bytesStored;
     }
     
     /// <inheritdoc />
@@ -486,22 +488,22 @@ internal class BitShapeHashSet16M : IBitShapeHashSet {
         // scan bucket to see if value found without locking
         for (int pageIndex = 0; pageIndex < pageCount; pageIndex++) {
             var page = bucket.pages[pageIndex];
-            int entryCount = pageIndex + 1 < pageCount ? ENTRIES_PER_PAGE : lastPageEntryCount;
+            int entryCount = pageIndex + 1 < pageCount ? entriesPerPage : lastPageEntryCount;
             for (int entryIndex = 0, byteIndex = 0; entryIndex < entryCount; entryIndex++, byteIndex += bytesStored)
                 if (ByteArrayEqualityComparer.Equals(page, byteIndex, value, 0, firstValueBytes) && page[byteIndex + firstValueBytes] == lastValueByte)
                     return false;
         }
-        int scannedEntryCount = (pageCount - 1) * ENTRIES_PER_PAGE + lastPageEntryCount;
-        var startEntryIndex = scannedEntryCount % ENTRIES_PER_PAGE;
+        int scannedEntryCount = (pageCount - 1) * entriesPerPage + lastPageEntryCount;
+        var startEntryIndex = scannedEntryCount % entriesPerPage;
         var startByteIndex = startEntryIndex * bytesStored;
 
         lock (bucket) {
             pageCount = bucket.pages.Count;
             lastPageEntryCount = bucket.lastPageEntryCount;
             // scan the rest of the bucket under lock
-            for (int pageIndex = scannedEntryCount / ENTRIES_PER_PAGE; pageIndex < pageCount; pageIndex++) {
+            for (int pageIndex = scannedEntryCount / entriesPerPage; pageIndex < pageCount; pageIndex++) {
                 var page = bucket.pages[pageIndex];
-                int entryCount = pageIndex + 1 < pageCount ? ENTRIES_PER_PAGE : lastPageEntryCount;
+                int entryCount = pageIndex + 1 < pageCount ? entriesPerPage : lastPageEntryCount;
                 for (int entryIndex = startEntryIndex, byteIndex = startByteIndex; entryIndex < entryCount; entryIndex++, byteIndex += bytesStored)
                     if (ByteArrayEqualityComparer.Equals(page, byteIndex, value, 0, firstValueBytes) && page[byteIndex + firstValueBytes] == lastValueByte)
                         return false;
@@ -511,7 +513,7 @@ internal class BitShapeHashSet16M : IBitShapeHashSet {
             // add new entry
             int destByteIndex;
             byte[] destPage;
-            if (lastPageEntryCount < ENTRIES_PER_PAGE) {
+            if (lastPageEntryCount < entriesPerPage) {
                 destPage = bucket.pages[pageCount - 1];
                 destByteIndex = lastPageEntryCount * bytesStored;
                 bucket.lastPageEntryCount++;
@@ -541,7 +543,7 @@ internal class BitShapeHashSet16M : IBitShapeHashSet {
                         }
                         for (int pageIndex = 0; pageIndex < pageCount; pageIndex++) {
                             var page = bucket.pages[pageIndex];
-                            int entryCount = pageIndex + 1 < bucket.pages.Count ? ENTRIES_PER_PAGE : lastPageEntryCount;
+                            int entryCount = pageIndex + 1 < bucket.pages.Count ? entriesPerPage : lastPageEntryCount;
                             for (int entryIndex = 0, byteIndex = 0; entryIndex < entryCount; entryIndex++, byteIndex += bytesStored) {
                                 var returnValue = new byte[bytesLength];
                                 Array.Copy(page, byteIndex, returnValue, 0, bytesStored - 1);
@@ -563,6 +565,6 @@ internal class BitShapeHashSet16M : IBitShapeHashSet {
 }
 
 internal record BitShapeHashBucket {
-    public List<byte[]>? pages = null;
-    public int lastPageEntryCount = 0;
+    public List<byte[]> pages;
+    public int lastPageEntryCount;
 }

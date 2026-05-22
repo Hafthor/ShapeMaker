@@ -5,10 +5,16 @@ public class ShapeMakerOptions {
     public string filePath = ".";
     public HashSetAlgorithm hashSetAlgorithm = HashSetAlgorithm.HashSet16M;
     public bool doMirrorCount = true;
-    public bool doForceRecompute = false;
-    public int maxComputeN = 19;
+    public bool doForceRecompute;
+    public int maxComputeN = int.MaxValue;
 
-    public static int ParseCommandLineOptions(string[] args, ref ShapeMakerOptions options) {
+    /// <summary>
+    /// Parse command line options and set the options object.
+    /// </summary>
+    /// <param name="args">command line arguments</param>
+    /// <param name="options">default options object</param>
+    /// <returns>negative number if we should not terminate, otherwise it returns the error code to terminate with</returns>
+    public static int ParseCommandLineOptions(string[] args, ShapeMakerOptions options) {
         // parse command line options
         bool getMaxComputeNext = false;
         foreach (var arg in args) {
